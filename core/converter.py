@@ -2617,9 +2617,10 @@ def update_preview_with_replacements(cache, color_replacements: dict,
                                      loop_pos=None, add_loop=False,
                                      loop_width=4, loop_length=8, 
                                      loop_hole=2.5, loop_angle=0,
+                                     merge_map: dict = None,
                                      lang: str = "zh"):
     """
-    Update preview image with color replacements applied.
+    Update preview image with color replacements and optional color merging applied.
     
     This function applies color replacements to the cached preview data
     without re-processing the entire image. It's designed for fast
@@ -2635,6 +2636,9 @@ def update_preview_with_replacements(cache, color_replacements: dict,
         loop_length: Loop length in mm
         loop_hole: Loop hole diameter in mm
         loop_angle: Loop rotation angle in degrees
+        merge_map: Optional dict mapping source hex to target hex colors for merging
+                  (applied before color_replacements)
+        lang: Language code
     
     Returns:
         tuple: (display_image, updated_cache, palette_html)
@@ -2651,12 +2655,22 @@ def update_preview_with_replacements(cache, color_replacements: dict,
     backing_color_id = cache.get('backing_color_id', 0)  # Handle old cache versions
     target_h, target_w = original_rgb.shape[:2]
     
-    # Apply color replacements if any
+    # Start with original RGB
+    matched_rgb = original_rgb.copy()
+    
+    # Apply merge_map first (if provided)
+    if merge_map:
+        from core.color_merger import ColorMerger
+        from core.image_processing import LuminaImageProcessor
+        
+        merger = ColorMerger(LuminaImageProcessor._rgb_to_lab)
+        matched_rgb = merger.apply_color_merging(matched_rgb, merge_map)
+    
+    # Then apply color replacements (if any)
+    # This allows users to manually override merged colors if needed
     if color_replacements:
         manager = ColorReplacementManager.from_dict(color_replacements)
-        matched_rgb = manager.apply_to_image(original_rgb)
-    else:
-        matched_rgb = original_rgb.copy()
+        matched_rgb = manager.apply_to_image(matched_rgb)
     
     # Build new preview RGBA
     preview_rgba = np.zeros((target_h, target_w, 4), dtype=np.uint8)

@@ -794,3 +794,230 @@ def on_merge_execute(primary_name, secondary_names, dedup_threshold, lang="zh"):
         import traceback
         traceback.print_exc()
         return I18n.get('merge_error_failed', lang).format(msg=str(e)), gr.update(), gr.update()
+
+
+# ═══════════════════════════════════════════════════════════════
+# Color Merging Callbacks
+# ═══════════════════════════════════════════════════════════════
+
+def on_merge_preview(cache, merge_enable, merge_threshold, merge_max_distance,
+                    loop_pos, add_loop, loop_width, loop_length, loop_hole, loop_angle,
+                    lang: str = "zh"):
+    """
+    Generate preview with color merging applied.
+    
+    Args:
+        cache: Preview cache from generate_preview_cached
+        merge_enable: Whether merging is enabled
+        merge_threshold: Usage threshold percentage (0.1-5.0)
+        merge_max_distance: Maximum Delta-E distance (5-50)
+        loop_pos: Loop position tuple
+        add_loop: Whether loop is enabled
+        loop_width: Loop width in mm
+        loop_length: Loop length in mm
+        loop_hole: Loop hole diameter in mm
+        loop_angle: Loop rotation angle
+        lang: Language code
+    
+    Returns:
+        tuple: (preview_image, updated_cache, palette_html, merge_map, merge_stats, status)
+    """
+    from core.converter import update_preview_with_replacements, extract_color_palette
+    from core.color_merger import ColorMerger
+    from core.image_processing import LuminaImageProcessor
+    from ui.palette_extension import generate_palette_html
+    
+    if cache is None:
+        return None, None, "", {}, {}, I18n.get('palette_need_preview', lang)
+    
+    # If merging is disabled, return empty merge map
+    if not merge_enable:
+        return gr.update(), cache, gr.update(), {}, {}, I18n.get('merge_status_empty', lang)
+    
+    # Extract color palette from cache
+    palette = cache.get('color_palette', [])
+    
+    if not palette:
+        return gr.update(), cache, gr.update(), {}, {}, I18n.get('merge_error_empty_palette', lang)
+    
+    # Handle edge cases
+    if len(palette) == 1:
+        return gr.update(), cache, gr.update(), {}, {}, I18n.get('merge_error_single_color', lang)
+    
+    # Build merge map using ColorMerger
+    merger = ColorMerger(LuminaImageProcessor._rgb_to_lab)
+    merge_map = merger.build_merge_map(palette, merge_threshold, merge_max_distance)
+    
+    # Check if all colors are below threshold
+    if not merge_map and len(palette) > 1:
+        low_usage_colors = merger.identify_low_usage_colors(palette, merge_threshold)
+        if len(low_usage_colors) >= len(palette):
+            return gr.update(), cache, gr.update(), {}, {}, I18n.get('merge_error_all_below_threshold', lang)
+    
+    # If no colors to merge, return info message
+    if not merge_map:
+        return gr.update(), cache, gr.update(), {}, {}, I18n.get('merge_info_low_usage', lang).format(
+            count=0, threshold=merge_threshold
+        )
+    
+    # Apply merge map to preview (without modifying cache yet)
+    # Create a temporary cache with merged colors (deep copy matched_rgb to avoid modifying original)
+    temp_cache = cache.copy()
+    matched_rgb = temp_cache.get('matched_rgb')
+    
+    if matched_rgb is not None:
+        # Deep copy to avoid modifying original cache
+        matched_rgb_copy = matched_rgb.copy()
+        merged_rgb = merger.apply_color_merging(matched_rgb_copy, merge_map)
+        temp_cache['matched_rgb'] = merged_rgb
+        
+        # Re-extract palette from merged image
+        merged_palette = extract_color_palette(temp_cache)
+        temp_cache['color_palette'] = merged_palette
+    else:
+        merged_palette = palette
+    
+    # Calculate quality metric
+    quality = merger.calculate_quality_metric(palette, merged_palette, merge_map)
+    
+    # Build merge stats
+    merge_stats = {
+        'total_colors_before': len(palette),
+        'total_colors_after': len(merged_palette),
+        'colors_merged': len(merge_map),
+        'merge_map': merge_map,
+        'quality_metric': quality
+    }
+    
+    # Generate updated preview
+    display, updated_cache, palette_html = update_preview_with_replacements(
+        temp_cache, {}, loop_pos, add_loop,
+        loop_width, loop_length, loop_hole, loop_angle,
+        merge_map=None,  # Don't pass merge_map here since temp_cache already has merged colors
+        lang=lang
+    )
+    
+    # Status message
+    status_msg = I18n.get('merge_status_preview', lang).format(
+        merged=len(merge_map),
+        quality=quality
+    )
+    
+    return display, updated_cache, palette_html, merge_map, merge_stats, status_msg
+
+
+def on_merge_apply(cache, merge_map, merge_stats, loop_pos, add_loop,
+                  loop_width, loop_length, loop_hole, loop_angle,
+                  lang: str = "zh"):
+    """
+    Apply color merging to the cached image data.
+    
+    Args:
+        cache: Preview cache from generate_preview_cached
+        merge_map: Dict mapping source hex to target hex colors
+        merge_stats: Merge statistics dict
+        loop_pos: Loop position tuple
+        add_loop: Whether loop is enabled
+        loop_width: Loop width in mm
+        loop_length: Loop length in mm
+        loop_hole: Loop hole diameter in mm
+        loop_angle: Loop rotation angle
+        lang: Language code
+    
+    Returns:
+        tuple: (preview_image, updated_cache, palette_html, status)
+    """
+    from core.converter import update_preview_with_replacements, extract_color_palette
+    from core.color_merger import ColorMerger
+    from core.image_processing import LuminaImageProcessor
+    
+    if cache is None:
+        return None, None, "", I18n.get('palette_need_preview', lang)
+    
+    if not merge_map:
+        return gr.update(), cache, gr.update(), I18n.get('merge_status_empty', lang)
+    
+    # Save original matched_rgb for potential revert
+    if 'original_matched_rgb' not in cache:
+        cache['original_matched_rgb'] = cache.get('matched_rgb').copy()
+    
+    # Apply merging
+    merger = ColorMerger(LuminaImageProcessor._rgb_to_lab)
+    matched_rgb = cache.get('matched_rgb')
+    
+    if matched_rgb is not None:
+        merged_rgb = merger.apply_color_merging(matched_rgb, merge_map)
+        cache['matched_rgb'] = merged_rgb
+        
+        # Re-extract palette
+        merged_palette = extract_color_palette(cache)
+        cache['color_palette'] = merged_palette
+    
+    # Store merge info in cache
+    cache['merge_map'] = merge_map
+    cache['merge_stats'] = merge_stats
+    
+    # Generate updated preview
+    display, updated_cache, palette_html = update_preview_with_replacements(
+        cache, {}, loop_pos, add_loop,
+        loop_width, loop_length, loop_hole, loop_angle,
+        lang=lang
+    )
+    
+    # Status message
+    status_msg = I18n.get('merge_status_applied', lang).format(
+        merged=len(merge_map)
+    )
+    
+    return display, updated_cache, palette_html, status_msg
+
+
+def on_merge_revert(cache, loop_pos, add_loop, loop_width, loop_length, loop_hole, loop_angle,
+                   lang: str = "zh"):
+    """
+    Revert color merging and restore original colors.
+    
+    Args:
+        cache: Preview cache from generate_preview_cached
+        loop_pos: Loop position tuple
+        add_loop: Whether loop is enabled
+        loop_width: Loop width in mm
+        loop_length: Loop length in mm
+        loop_hole: Loop hole diameter in mm
+        loop_angle: Loop rotation angle
+        lang: Language code
+    
+    Returns:
+        tuple: (preview_image, updated_cache, palette_html, empty_merge_map, empty_stats, status)
+    """
+    from core.converter import update_preview_with_replacements, extract_color_palette
+    
+    if cache is None:
+        return None, None, "", {}, {}, I18n.get('palette_need_preview', lang)
+    
+    # Restore original matched_rgb if it exists
+    if 'original_matched_rgb' in cache:
+        cache['matched_rgb'] = cache['original_matched_rgb'].copy()
+        del cache['original_matched_rgb']
+        
+        # Re-extract palette
+        original_palette = extract_color_palette(cache)
+        cache['color_palette'] = original_palette
+    
+    # Clear merge info
+    if 'merge_map' in cache:
+        del cache['merge_map']
+    if 'merge_stats' in cache:
+        del cache['merge_stats']
+    
+    # Generate updated preview
+    display, updated_cache, palette_html = update_preview_with_replacements(
+        cache, {}, loop_pos, add_loop,
+        loop_width, loop_length, loop_hole, loop_angle,
+        lang=lang
+    )
+    
+    # Status message
+    status_msg = I18n.get('merge_status_reverted', lang)
+    
+    return display, updated_cache, palette_html, {}, {}, status_msg

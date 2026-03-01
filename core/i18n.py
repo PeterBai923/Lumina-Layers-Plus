@@ -662,6 +662,85 @@ class I18n:
             'zh': '↩️ 已撤销',
             'en': '↩️ Undone'
         },
+        
+        # ==================== Color Merging ====================
+        'merge_enable_label': {
+            'zh': '启用自动颜色合并 Enable Auto Color Merging',
+            'en': 'Enable Auto Color Merging'
+        },
+        'merge_enable_info': {
+            'zh': '自动合并低使用率颜色到相近颜色',
+            'en': 'Automatically merge low-usage colors to similar colors'
+        },
+        'merge_threshold_label': {
+            'zh': '使用率阈值 Usage Threshold (%)',
+            'en': 'Usage Threshold (%)'
+        },
+        'merge_threshold_info': {
+            'zh': '低于此百分比的颜色将被合并',
+            'en': 'Colors below this percentage will be merged'
+        },
+        'merge_max_distance_label': {
+            'zh': '最大颜色距离 Max Color Distance (Delta-E)',
+            'en': 'Max Color Distance (Delta-E)'
+        },
+        'merge_max_distance_info': {
+            'zh': '只合并距离小于此值的颜色',
+            'en': 'Only merge colors with distance below this value'
+        },
+        'merge_preview_btn': {
+            'zh': '🔍 预览合并效果 Preview Merge',
+            'en': '🔍 Preview Merge'
+        },
+        'merge_apply_btn': {
+            'zh': '✅ 应用合并 Apply Merge',
+            'en': '✅ Apply Merge'
+        },
+        'merge_revert_btn': {
+            'zh': '↩️ 恢复原始 Revert',
+            'en': '↩️ Revert'
+        },
+        'merge_status_empty': {
+            'zh': '💡 调整参数后点击预览',
+            'en': '💡 Adjust parameters and click preview'
+        },
+        'merge_status_preview': {
+            'zh': '🔍 预览: {merged} 种颜色被合并 (质量: {quality:.1f})',
+            'en': '🔍 Preview: {merged} colors merged (quality: {quality:.1f})'
+        },
+        'merge_status_applied': {
+            'zh': '✅ 已应用: {merged} 种颜色被合并',
+            'en': '✅ Applied: {merged} colors merged'
+        },
+        'merge_status_reverted': {
+            'zh': '↩️ 已恢复到原始颜色',
+            'en': '↩️ Reverted to original colors'
+        },
+        'merge_error_empty_palette': {
+            'zh': '❌ 调色板为空，无法执行颜色合并',
+            'en': '❌ Empty palette, cannot perform color merging'
+        },
+        'merge_error_single_color': {
+            'zh': '❌ 图像只包含一种颜色，已禁用颜色合并',
+            'en': '❌ Image contains only one color, merging disabled'
+        },
+        'merge_error_all_below_threshold': {
+            'zh': '⚠️ 所有颜色使用率都低于阈值，已禁用颜色合并以防止颜色丢失',
+            'en': '⚠️ All colors below threshold, merging disabled to prevent color loss'
+        },
+        'merge_warning_no_targets': {
+            'zh': '⚠️ 部分颜色未找到合适的合并目标，保持原始颜色',
+            'en': '⚠️ Some colors have no suitable merge targets, keeping original'
+        },
+        'merge_info_low_usage': {
+            'zh': '💡 检测到 {count} 种低使用率颜色 (<{threshold}%)',
+            'en': '💡 Detected {count} low-usage colors (<{threshold}%)'
+        },
+        'merge_accordion_title': {
+            'zh': '🎨 颜色合并 Color Merging',
+            'en': '🎨 Color Merging'
+        },
+        
         'lut_grid_load_hint': {
             'zh': '加载 LUT 后显示可用颜色',
             'en': 'Load LUT to see available colors'

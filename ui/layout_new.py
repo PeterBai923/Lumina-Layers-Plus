@@ -66,6 +66,9 @@ from .callbacks import (
     on_merge_execute,
     on_merge_primary_select,
     on_merge_secondary_change,
+    on_merge_preview,
+    on_merge_apply,
+    on_merge_revert,
 )
 
 # Runtime-injected i18n keys (avoids editing core/i18n.py).
@@ -2266,6 +2269,68 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
                         )
                     # ========== END Color Palette ==========
                     
+                    # ========== Color Merging ==========
+                    with gr.Accordion(I18n.get('merge_accordion_title', lang), open=False) as conv_merge_acc:
+                        components['accordion_conv_merge'] = conv_merge_acc
+                        
+                        # 状态变量
+                        conv_merge_map = gr.State({})  # 合并映射表
+                        conv_merge_stats = gr.State({})  # 合并统计信息
+                        
+                        # 启用/禁用复选框
+                        conv_merge_enable = gr.Checkbox(
+                            label=I18n.get('merge_enable_label', lang),
+                            value=True,  # 默认启用以便测试
+                            info=I18n.get('merge_enable_info', lang)
+                        )
+                        components['checkbox_conv_merge_enable'] = conv_merge_enable
+                        
+                        # 参数滑块
+                        with gr.Row():
+                            conv_merge_threshold = gr.Slider(
+                                minimum=0.1,
+                                maximum=5.0,
+                                value=0.5,
+                                step=0.1,
+                                label=I18n.get('merge_threshold_label', lang),
+                                info=I18n.get('merge_threshold_info', lang)
+                            )
+                            components['slider_conv_merge_threshold'] = conv_merge_threshold
+                            
+                            conv_merge_max_distance = gr.Slider(
+                                minimum=5,
+                                maximum=50,
+                                value=20,
+                                step=1,
+                                label=I18n.get('merge_max_distance_label', lang),
+                                info=I18n.get('merge_max_distance_info', lang)
+                            )
+                            components['slider_conv_merge_max_distance'] = conv_merge_max_distance
+                        
+                        # 操作按钮
+                        with gr.Row():
+                            conv_merge_preview_btn = gr.Button(
+                                I18n.get('merge_preview_btn', lang),
+                                variant="primary"
+                            )
+                            conv_merge_apply_btn = gr.Button(
+                                I18n.get('merge_apply_btn', lang),
+                                variant="secondary"
+                            )
+                            conv_merge_revert_btn = gr.Button(
+                                I18n.get('merge_revert_btn', lang)
+                            )
+                            components['btn_conv_merge_preview'] = conv_merge_preview_btn
+                            components['btn_conv_merge_apply'] = conv_merge_apply_btn
+                            components['btn_conv_merge_revert'] = conv_merge_revert_btn
+                        
+                        # 状态显示
+                        conv_merge_status = gr.Markdown(
+                            value=I18n.get('merge_status_empty', lang)
+                        )
+                        components['md_conv_merge_status'] = conv_merge_status
+                    # ========== END Color Merging ==========
+                    
                     with gr.Group(visible=False):
                         components['md_conv_loop_section'] = gr.Markdown(
                             I18n.get('conv_loop_section', lang)
@@ -2958,6 +3023,110 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
         outputs=[conv_free_color_set, conv_free_color_html, components['textbox_conv_status']]
     )
     # ========== END Free Color ==========
+
+    # ========== Color Merging Event Handlers ==========
+    
+    # Preview merge effect
+    def on_merge_preview_with_fit(cache, merge_enable, merge_threshold, merge_max_distance,
+                                  loop_pos, add_loop, loop_width, loop_length, loop_hole, loop_angle,
+                                  lang_state_val):
+        display, updated_cache, palette_html, merge_map, merge_stats, status = on_merge_preview(
+            cache, merge_enable, merge_threshold, merge_max_distance,
+            loop_pos, add_loop, loop_width, loop_length, loop_hole, loop_angle,
+            lang_state_val
+        )
+        return _preview_update(display), updated_cache, palette_html, merge_map, merge_stats, status
+
+    components['btn_conv_merge_preview'].click(
+        on_merge_preview_with_fit,
+        inputs=[
+            conv_preview_cache,
+            components['checkbox_conv_merge_enable'],
+            components['slider_conv_merge_threshold'],
+            components['slider_conv_merge_max_distance'],
+            conv_loop_pos,
+            components['checkbox_conv_loop_enable'],
+            components['slider_conv_loop_width'],
+            components['slider_conv_loop_length'],
+            components['slider_conv_loop_hole'],
+            components['slider_conv_loop_angle'],
+            lang_state
+        ],
+        outputs=[
+            conv_preview,
+            conv_preview_cache,
+            conv_palette_html,
+            conv_merge_map,
+            conv_merge_stats,
+            components['md_conv_merge_status']
+        ]
+    )
+
+    # Apply merge
+    def on_merge_apply_with_fit(cache, merge_map, merge_stats,
+                                loop_pos, add_loop, loop_width, loop_length, loop_hole, loop_angle,
+                                lang_state_val):
+        display, updated_cache, palette_html, status = on_merge_apply(
+            cache, merge_map, merge_stats,
+            loop_pos, add_loop, loop_width, loop_length, loop_hole, loop_angle,
+            lang_state_val
+        )
+        return _preview_update(display), updated_cache, palette_html, status
+
+    components['btn_conv_merge_apply'].click(
+        on_merge_apply_with_fit,
+        inputs=[
+            conv_preview_cache,
+            conv_merge_map,
+            conv_merge_stats,
+            conv_loop_pos,
+            components['checkbox_conv_loop_enable'],
+            components['slider_conv_loop_width'],
+            components['slider_conv_loop_length'],
+            components['slider_conv_loop_hole'],
+            components['slider_conv_loop_angle'],
+            lang_state
+        ],
+        outputs=[
+            conv_preview,
+            conv_preview_cache,
+            conv_palette_html,
+            components['md_conv_merge_status']
+        ]
+    )
+
+    # Revert merge
+    def on_merge_revert_with_fit(cache, loop_pos, add_loop, loop_width, loop_length, loop_hole, loop_angle,
+                                 lang_state_val):
+        display, updated_cache, palette_html, empty_map, empty_stats, status = on_merge_revert(
+            cache, loop_pos, add_loop, loop_width, loop_length, loop_hole, loop_angle,
+            lang_state_val
+        )
+        return _preview_update(display), updated_cache, palette_html, empty_map, empty_stats, status
+
+    components['btn_conv_merge_revert'].click(
+        on_merge_revert_with_fit,
+        inputs=[
+            conv_preview_cache,
+            conv_loop_pos,
+            components['checkbox_conv_loop_enable'],
+            components['slider_conv_loop_width'],
+            components['slider_conv_loop_length'],
+            components['slider_conv_loop_hole'],
+            components['slider_conv_loop_angle'],
+            lang_state
+        ],
+        outputs=[
+            conv_preview,
+            conv_preview_cache,
+            conv_palette_html,
+            conv_merge_map,
+            conv_merge_stats,
+            components['md_conv_merge_status']
+        ]
+    )
+    
+    # ========== END Color Merging ==========
 
     # [修改] 预览图点击事件同步到 UI
     def on_preview_click_sync_ui(cache, evt: gr.SelectData):
