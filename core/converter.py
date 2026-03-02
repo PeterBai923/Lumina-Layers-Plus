@@ -2864,8 +2864,8 @@ def update_preview_with_replacements(cache, replacement_regions=None,
                                      loop_pos=None, add_loop=False,
                                      loop_width=4, loop_length=8,
                                      loop_hole=2.5, loop_angle=0,
-                                     merge_map: dict = None,
-                                     lang: str = "zh"):
+                                     lang: str = "zh",
+                                     merge_map: dict = None):
     """
     Update preview image with color replacements and optional color merging applied.
     
