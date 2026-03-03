@@ -5,6 +5,7 @@ Coordinates modules to complete image-to-3D model conversion.
 """
 
 import os
+from collections import deque
 import numpy as np
 import cv2
 import trimesh
@@ -123,19 +124,19 @@ def get_lut_color_choices(lut_path: str) -> List[tuple]:
 def generate_lut_color_dropdown_html(lut_path: str, selected_color: str = None, used_colors: set = None) -> str:
     """
     Generate HTML for displaying LUT available colors as a clickable visual grid.
-    
+
     Colors are grouped into two sections:
     1. Colors used in current image (if any)
     2. Other available colors
-    
+
     This provides a visual preview of all available colors from the LUT,
     allowing users to click directly to select a replacement color.
-    
+
     Args:
         lut_path: Path to the LUT .npy file
         selected_color: Currently selected replacement color hex
         used_colors: Set of hex colors currently used in the image (for grouping)
-    
+
     Returns:
         HTML string showing available colors as a clickable grid
     """
@@ -143,6 +144,195 @@ def generate_lut_color_dropdown_html(lut_path: str, selected_color: str = None, 
     colors = extract_lut_available_colors(lut_path)
     # Delegate HTML generation to palette_extension (non-invasive)
     return generate_lut_color_grid_html(colors, selected_color, used_colors)
+
+
+def _compute_connected_region_mask_4n(quantized_image, mask_solid, x, y):
+    """基于 4 邻接计算点击像素所属连通域掩码。"""
+    h, w = quantized_image.shape[:2]
+    if not (0 <= x < w and 0 <= y < h) or not mask_solid[y, x]:
+        return np.zeros((h, w), dtype=bool)
+
+    target = quantized_image[y, x]
+    out = np.zeros((h, w), dtype=bool)
+    q = deque([(x, y)])
+    out[y, x] = True
+
+    while q:
+        cx, cy = q.popleft()
+        for nx, ny in ((cx - 1, cy), (cx + 1, cy), (cx, cy - 1), (cx, cy + 1)):
+            if 0 <= nx < w and 0 <= ny < h and not out[ny, nx]:
+                if mask_solid[ny, nx] and np.array_equal(quantized_image[ny, nx], target):
+                    out[ny, nx] = True
+                    q.append((nx, ny))
+
+    return out
+
+
+def _recommend_lut_colors_by_rgb(base_rgb, lut_colors, top_k=10):
+    """按 RGB 欧氏距离推荐 LUT 颜色，返回前 top_k 项。"""
+    if not lut_colors:
+        return []
+
+    normalized = []
+    for c in lut_colors:
+        if isinstance(c, dict):
+            color = c.get("color")
+            hex_color = c.get("hex")
+            if color is None and isinstance(hex_color, str) and len(hex_color.strip().lstrip('#')) == 6:
+                h = hex_color.strip().lstrip('#')
+                color = (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16))
+            if color is not None and isinstance(hex_color, str):
+                normalized.append({"color": tuple(int(v) for v in color), "hex": hex_color.lower()})
+            continue
+
+        if isinstance(c, (tuple, list)) and len(c) >= 2 and isinstance(c[1], str):
+            h = c[1].strip().lstrip('#')
+            if len(h) != 6:
+                continue
+            normalized.append({
+                "color": (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16)),
+                "hex": f"#{h.lower()}"
+            })
+
+    if not normalized:
+        return []
+
+    arr = np.array([c["color"] for c in normalized], dtype=np.float64)
+    b = np.array(base_rgb, dtype=np.float64)
+    dist = np.sqrt(np.sum((arr - b) ** 2, axis=1))
+    idx = np.argsort(dist)[:top_k]
+    return [normalized[i] for i in idx]
+
+
+def _ensure_quantized_image_in_cache(cache):
+    """保证预览缓存中存在 quantized_image，缺失时自动回填。"""
+    if cache.get("quantized_image") is not None:
+        return cache
+
+    dbg = cache.get("debug_data") or {}
+    q = dbg.get("quantized_image")
+    if q is None:
+        q = cache["matched_rgb"].copy()
+
+    cache["quantized_image"] = q
+    return cache
+
+
+def _rgb_to_hex(rgb):
+    """将 RGB 三元组转换为 #RRGGBB。"""
+    r, g, b = [int(x) for x in rgb]
+    return f"#{r:02x}{g:02x}{b:02x}"
+
+
+def _hex_to_rgb_tuple(hex_color):
+    """将 #RRGGBB 转换为 (R, G, B)。"""
+    if not isinstance(hex_color, str):
+        raise ValueError("hex_color must be a string")
+
+    h = hex_color.strip().lower()
+    if h.startswith('#'):
+        h = h[1:]
+    if len(h) != 6:
+        raise ValueError(f"invalid hex color: {hex_color}")
+
+    return (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16))
+
+
+def _build_selection_meta(q_rgb, m_rgb, scope="region"):
+    """构建点击选区元数据（量化色 + 原配准色）。"""
+    return {
+        "selected_quantized_hex": _rgb_to_hex(q_rgb),
+        "selected_matched_hex": _rgb_to_hex(m_rgb),
+        "selection_scope": scope,
+    }
+
+
+def _resolve_highlight_mask(color_match, mask_solid, region_mask=None, scope="global"):
+    """根据选择范围决定高亮掩码：区域优先，否则全图同色。"""
+    if scope == "region" and region_mask is not None:
+        return region_mask & mask_solid
+    return color_match & mask_solid
+
+
+def _normalize_color_replacements_input(color_replacements):
+    """兼容 dict / replacement_regions(list) 两种替换输入，统一为 {hex: hex}。"""
+    if not color_replacements:
+        return {}
+
+    if isinstance(color_replacements, dict):
+        out = {}
+        for src, dst in color_replacements.items():
+            if not isinstance(src, str) or not isinstance(dst, str):
+                continue
+            s = src.strip().lower()
+            d = dst.strip().lower()
+            if s and d:
+                out[s] = d
+        return out
+
+    if isinstance(color_replacements, list):
+        out = {}
+        for item in color_replacements:
+            if not isinstance(item, dict):
+                continue
+            src = (item.get('matched') or item.get('source') or item.get('quantized') or '').strip().lower()
+            dst = (item.get('replacement') or '').strip().lower()
+            if src and dst:
+                out[src] = dst
+        return out
+
+    return {}
+
+
+def _apply_region_replacement(image_rgb, region_mask, replacement_rgb):
+    """仅在 region_mask 覆盖区域应用替换色。"""
+    out = image_rgb.copy()
+    out[region_mask] = np.array(replacement_rgb, dtype=np.uint8)
+    return out
+
+
+def _apply_regions_to_raster_outputs(matched_rgb, material_matrix, mask_solid,
+                                     replacement_regions, lut_index_resolver, ref_stacks):
+    """按 regions 顺序覆盖 raster 输出（matched_rgb + material_matrix）。"""
+    out_rgb = matched_rgb.copy()
+    out_mat = material_matrix.copy()
+
+    for item in (replacement_regions or []):
+        region_mask = item.get('mask')
+        replacement_hex = item.get('replacement')
+        if region_mask is None or not replacement_hex:
+            continue
+
+        effective_mask = region_mask & mask_solid
+        if not np.any(effective_mask):
+            continue
+
+        replacement_rgb = _hex_to_rgb_tuple(replacement_hex)
+        out_rgb[effective_mask] = np.array(replacement_rgb, dtype=np.uint8)
+
+        lut_idx = int(lut_index_resolver(replacement_rgb))
+        out_mat[effective_mask] = ref_stacks[lut_idx]
+
+    return out_rgb, out_mat
+
+
+def _build_dual_recommendations(q_rgb, m_rgb, lut_colors, top_k=10):
+    """构建双基准推荐：按量化色与按原配准色。"""
+    return {
+        "by_quantized": _recommend_lut_colors_by_rgb(q_rgb, lut_colors, top_k=top_k),
+        "by_matched": _recommend_lut_colors_by_rgb(m_rgb, lut_colors, top_k=top_k),
+    }
+
+
+def _resolve_click_selection_hexes(cache, default_hex):
+    """解析点击后的显示色与内部状态色。
+
+    显示色优先使用原配准色，内部状态色保持量化色，
+    以兼容“显示原图色、替换按量化色作用连通域”的设计。
+    """
+    q_hex = (cache or {}).get('selected_quantized_hex') or default_hex
+    m_hex = (cache or {}).get('selected_matched_hex') or q_hex
+    return m_hex, q_hex
 
 
 # ========== Color Palette Functions ==========
@@ -269,7 +459,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                          add_loop, loop_width, loop_length, loop_hole, loop_pos,
                          modeling_mode=ModelingMode.VECTOR, quantize_colors=32,
                          blur_kernel=0, smooth_sigma=10,
-                         color_replacements=None, backing_color_id=0, separate_backing=False,
+                         color_replacements=None, replacement_regions=None, backing_color_id=0, separate_backing=False,
                          enable_relief=False, color_height_map=None,
                          heightmap_path=None, heightmap_max_height=None,
                          enable_cleanup=True,
@@ -352,20 +542,24 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
     # Check if user selected vector mode AND file is SVG
     if modeling_mode == ModelingMode.VECTOR and image_path.lower().endswith('.svg'):
         print("[CONVERTER] 🎨 Using Native Vector Engine (Shapely/Clipper)...")
-        
+
+        vector_replacements = _normalize_color_replacements_input(replacement_regions)
+        if not vector_replacements:
+            vector_replacements = _normalize_color_replacements_input(color_replacements)
+
         try:
             from core.vector_engine import VectorProcessor
-            
+
             # 1. Execute Conversion
             vec_processor = VectorProcessor(actual_lut_path, color_mode)
-            
+
             # Convert SVG to 3D scene
             scene = vec_processor.svg_to_mesh(
                 svg_path=image_path,
                 target_width_mm=target_width_mm,
                 thickness_mm=spacer_thick,
                 structure_mode=structure_mode,
-                color_replacements=color_replacements
+                color_replacements=vector_replacements
             )
             
             # 2. Export 3MF
@@ -397,10 +591,10 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                     preview_rgba = vec_processor.img_processor._load_svg(image_path, target_width_mm)
 
                     # Apply color replacements to preview if provided
-                    if color_replacements:
+                    if vector_replacements:
                         from core.color_replacement import ColorReplacementManager
-                        
-                        manager = ColorReplacementManager.from_dict(color_replacements)
+
+                        manager = ColorReplacementManager.from_dict(vector_replacements)
                         replacements = manager.get_all_replacements()
                         
                         if replacements:
@@ -531,14 +725,15 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
     # Apply color replacements if provided
     if color_replacements:
         from core.color_replacement import ColorReplacementManager
-        manager = ColorReplacementManager.from_dict(color_replacements)
+        normalized_replacements = _normalize_color_replacements_input(color_replacements)
+        manager = ColorReplacementManager.from_dict(normalized_replacements)
         old_rgb = matched_rgb.copy()
         matched_rgb = manager.apply_to_image(matched_rgb)
         print(f"[CONVERTER] Applied {len(manager)} color replacements")
-        
+
         # Update material_matrix: find the replacement color's LUT entry
         # and use its stacking layers (ref_stacks) for correct multi-layer output
-        for orig_hex, repl_hex in color_replacements.items():
+        for orig_hex, repl_hex in normalized_replacements.items():
             orig_rgb_tuple = ColorReplacementManager._hex_to_color(orig_hex)
             repl_rgb_tuple = ColorReplacementManager._hex_to_color(repl_hex)
             # Find pixels that were originally this color
@@ -553,6 +748,22 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
             material_matrix[orig_mask] = new_stacks
             lut_color = processor.lut_rgb[lut_idx]
             print(f"[CONVERTER] material_matrix: {orig_hex} → LUT#{lut_idx} rgb({lut_color[0]},{lut_color[1]},{lut_color[2]}) stacks={new_stacks}")
+
+    # Apply region replacements in-order (later items override earlier items)
+    if replacement_regions:
+        def _resolve_lut_index_for_rgb(replacement_rgb):
+            repl_lab = processor._rgb_to_lab(np.array([replacement_rgb], dtype=np.uint8))
+            _, lut_idx = processor.kdtree.query(repl_lab)
+            return lut_idx[0]
+
+        matched_rgb, material_matrix = _apply_regions_to_raster_outputs(
+            matched_rgb,
+            material_matrix,
+            mask_solid,
+            replacement_regions,
+            _resolve_lut_index_for_rgb,
+            processor.ref_stacks,
+        )
     
     print(f"[CONVERTER] Image processed: {target_w}×{target_h}px, scale={pixel_scale}mm/px")
     
@@ -2156,6 +2367,11 @@ def generate_preview_cached(image_path, lut_path, target_width_mm,
         'is_dark': is_dark,
         'bed_label': BedManager.DEFAULT_BED
     }
+
+    # 统一缓存契约：保证 quantized_image 始终可用
+    cache['debug_data'] = result.get('debug_data') if isinstance(result, dict) else None
+    cache['quantized_image'] = result.get('quantized_image')
+    _ensure_quantized_image_in_cache(cache)
     
     # Extract color palette from cache
     color_palette = extract_color_palette(cache)
@@ -2449,7 +2665,7 @@ def generate_final_model(image_path, lut_path, target_width_mm, spacer_thick,
                         structure_mode, auto_bg, bg_tol, color_mode,
                         add_loop, loop_width, loop_length, loop_hole, loop_pos,
                         modeling_mode=ModelingMode.VECTOR, quantize_colors=64,
-                        color_replacements=None, backing_color_name="White",
+                        color_replacements=None, replacement_regions=None, backing_color_name="White",
                         separate_backing=False, enable_relief=False, color_height_map=None,
                         heightmap_path=None, heightmap_max_height=None,
                         enable_cleanup=True,
@@ -2500,6 +2716,7 @@ def generate_final_model(image_path, lut_path, target_width_mm, spacer_thick,
         blur_kernel=0,
         smooth_sigma=10,
         color_replacements=color_replacements,
+        replacement_regions=replacement_regions,
         backing_color_id=backing_color_id,
         separate_backing=separate_backing,
         enable_relief=enable_relief,
@@ -2643,12 +2860,12 @@ def update_preview_with_backing_color(cache, backing_color_id: int):
         return original_preview, f"⚠️ Preview update failed: {str(e)}. Showing original preview."
 
 
-def update_preview_with_replacements(cache, color_replacements: dict, 
+def update_preview_with_replacements(cache, replacement_regions=None,
                                      loop_pos=None, add_loop=False,
-                                     loop_width=4, loop_length=8, 
+                                     loop_width=4, loop_length=8,
                                      loop_hole=2.5, loop_angle=0,
-                                     merge_map: dict = None,
-                                     lang: str = "zh"):
+                                     lang: str = "zh",
+                                     merge_map: dict = None):
     """
     Update preview image with color replacements and optional color merging applied.
     
@@ -2676,31 +2893,33 @@ def update_preview_with_replacements(cache, color_replacements: dict,
     if cache is None:
         return None, None, ""
     
-    from core.color_replacement import ColorReplacementManager
-    
     # Get original matched_rgb (use stored original if available)
     original_rgb = cache.get('original_matched_rgb', cache['matched_rgb'])
     mask_solid = cache['mask_solid']
     color_conf = cache['color_conf']
     backing_color_id = cache.get('backing_color_id', 0)  # Handle old cache versions
     target_h, target_w = original_rgb.shape[:2]
-    
     # Start with original RGB
     matched_rgb = original_rgb.copy()
-    
-    # Apply merge_map first (if provided)
+
+    # Apply merge map first (if provided)
     if merge_map:
         from core.color_merger import ColorMerger
         from core.image_processing import LuminaImageProcessor
-        
+
         merger = ColorMerger(LuminaImageProcessor._rgb_to_lab)
         matched_rgb = merger.apply_color_merging(matched_rgb, merge_map)
-    
-    # Then apply color replacements (if any)
-    # This allows users to manually override merged colors if needed
-    if color_replacements:
-        manager = ColorReplacementManager.from_dict(color_replacements)
-        matched_rgb = manager.apply_to_image(matched_rgb)
+
+    # Apply region replacements in-order (later items override earlier items)
+    for item in (replacement_regions or []):
+        region_mask = item.get('mask')
+        replacement_hex = item.get('replacement')
+        if region_mask is None or not replacement_hex:
+            continue
+        replacement_rgb = _hex_to_rgb_tuple(replacement_hex)
+        effective_mask = region_mask & mask_solid
+        if np.any(effective_mask):
+            matched_rgb[effective_mask] = np.array(replacement_rgb, dtype=np.uint8)
     
     # Build new preview RGBA
     preview_rgba = np.zeros((target_h, target_w, 4), dtype=np.uint8)
@@ -2732,9 +2951,28 @@ def update_preview_with_replacements(cache, color_replacements: dict,
         is_dark=cache.get('is_dark', True)
     )
     
+    # Build auto pairs (quantized -> matched) for right table display
+    auto_pairs = []
+    q_img = updated_cache.get('quantized_image')
+    if q_img is not None:
+        h, w = matched_rgb.shape[:2]
+        for y in range(h):
+            for x in range(w):
+                if not mask_solid[y, x]:
+                    continue
+                qh = _rgb_to_hex(q_img[y, x])
+                mh = _rgb_to_hex(matched_rgb[y, x])
+                auto_pairs.append({"quantized_hex": qh, "matched_hex": mh})
+
     # Generate palette HTML for display
     from ui.palette_extension import generate_palette_html
-    palette_html = generate_palette_html(color_palette, color_replacements, lang=lang)
+    palette_html = generate_palette_html(
+        color_palette,
+        replacements={},
+        lang=lang,
+        replacement_regions=replacement_regions or [],
+        auto_pairs=auto_pairs,
+    )
     
     return display, updated_cache, palette_html
 
@@ -2814,7 +3052,15 @@ def generate_highlight_preview(cache, highlight_color: str,
     
     # Create highlight mask - pixels matching the highlight color
     color_match = np.all(matched_rgb == highlight_rgb, axis=2)
-    highlight_mask = color_match & mask_solid
+
+    scope = cache.get('selection_scope', 'global')
+    region_mask = cache.get('selected_region_mask')
+    highlight_mask = _resolve_highlight_mask(
+        color_match,
+        mask_solid,
+        region_mask=region_mask,
+        scope=scope,
+    )
     
     # Count highlighted pixels
     highlight_count = np.sum(highlight_mask)
@@ -2941,14 +3187,14 @@ def on_preview_click_select_color(cache, evt: gr.SelectData, bed_label=None):
         bed_label = cache.get('bed_label', BedManager.DEFAULT_BED)
 
     display_click_x, display_click_y = evt.index
-    
+
     target_w = cache.get('target_w')
     target_h = cache.get('target_h')
     target_width_mm = cache.get('target_width_mm')
-    
+
     if target_w is None or target_h is None:
         return gr.update(), gr.update(), gr.update(), "❌ 缓存数据不完整"
-    
+
     bed_w_mm, bed_h_mm = BedManager.get_bed_size(bed_label)
     ppm = BedManager.compute_scale(bed_w_mm, bed_h_mm)
     margin = int(30 * ppm / 3)
@@ -2971,21 +3217,27 @@ def on_preview_click_select_color(cache, evt: gr.SelectData, bed_label=None):
 
     # _scale_preview_image fits canvas into 1200×750 box
     gradio_scale = min(1.0, 1200 / canvas_w, 750 / canvas_h)
-    
+
     canvas_click_x = display_click_x / gradio_scale
     canvas_click_y = display_click_y / gradio_scale
-    
+
     # Convert canvas coords → original image pixel coords
     mm_per_px = model_w_mm / target_w
     img_px_x = (canvas_click_x - offset_x) / (mm_per_px * ppm)
     img_px_y = (canvas_click_y - offset_y) / (mm_per_px * ppm)
-    
+
     orig_x = int(img_px_x)
     orig_y = int(img_px_y)
 
     matched_rgb = cache.get('original_matched_rgb', cache.get('matched_rgb'))
+    quantized_image = cache.get('quantized_image')
     mask_solid = cache.get('mask_solid')
-    if matched_rgb is None or mask_solid is None:
+
+    if quantized_image is None:
+        _ensure_quantized_image_in_cache(cache)
+        quantized_image = cache.get('quantized_image')
+
+    if matched_rgb is None or mask_solid is None or quantized_image is None:
         return None, "未选择", None, "❌ 缓存无效"
 
     h, w = matched_rgb.shape[:2]
@@ -2996,20 +3248,29 @@ def on_preview_click_select_color(cache, evt: gr.SelectData, bed_label=None):
     if not mask_solid[orig_y, orig_x]:
         return gr.update(), gr.update(), gr.update(), "⚠️ 点击了背景区域"
 
-    rgb = matched_rgb[orig_y, orig_x]
-    hex_color = f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"
+    q_rgb = tuple(int(v) for v in quantized_image[orig_y, orig_x])
+    m_rgb = tuple(int(v) for v in matched_rgb[orig_y, orig_x])
 
-    print(f"[CLICK] Coords: ({orig_x}, {orig_y}), Color: {hex_color}")
+    region_mask = _compute_connected_region_mask_4n(quantized_image, mask_solid, orig_x, orig_y)
+    cache['selected_region_mask'] = region_mask
+    cache.update(_build_selection_meta(q_rgb, m_rgb, scope="region"))
+
+    q_hex = cache['selected_quantized_hex']
+    m_hex = cache['selected_matched_hex']
+
+    print(f"[CLICK] Coords: ({orig_x}, {orig_y}), Quantized: {q_hex}, Matched: {m_hex}")
 
     display_img, status_msg = generate_highlight_preview(
         cache,
-        highlight_color=hex_color,
+        highlight_color=q_hex,
         add_loop=False
     )
 
+    display_text = f"量化色 {q_hex} | 原配准色 {m_hex}"
     if display_img is None:
-        return gr.update(), f"{hex_color} (点击处)", hex_color, status_msg
-    return display_img, f"{hex_color} (点击处)", hex_color, status_msg
+        return gr.update(), display_text, q_hex, status_msg
+
+    return display_img, display_text, q_hex, status_msg
 
 
 def generate_lut_grid_html(lut_path, lang: str = "zh"):
