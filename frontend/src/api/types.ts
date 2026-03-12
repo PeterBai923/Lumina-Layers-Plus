@@ -36,6 +36,7 @@ export interface ConvertPreviewRequest {
   modeling_mode: ModelingMode;
   quantize_colors: number;
   enable_cleanup: boolean;
+  is_dark: boolean;
 }
 
 export interface ConvertGenerateRequest extends ConvertPreviewRequest {

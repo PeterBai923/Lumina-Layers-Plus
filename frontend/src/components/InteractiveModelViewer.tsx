@@ -44,7 +44,12 @@ export interface InteractiveModelViewerProps {
   onColorClick: (hex: string | null) => void;
   scaleX?: number;  // X 方向缩放比例，默认 1.0
   scaleY?: number;  // Y 方向缩放比例，默认 1.0
+  spacerThick?: number;    // 底板厚度 (mm)，默认 1.2
+  structureMode?: string;  // "Double-sided" | "Single-sided"
 }
+
+/** Color layer thickness in mm (5 layers × 0.08mm). */
+const COLOR_LAYER_HEIGHT = 0.4;
 
 function InteractiveModelViewer({
   url,
@@ -56,6 +61,8 @@ function InteractiveModelViewer({
   onColorClick,
   scaleX = 1,
   scaleY = 1,
+  spacerThick = 1.2,
+  structureMode = "Double-sided",
 }: InteractiveModelViewerProps) {
   const { scene } = useGLTF(url);
   const groupRef = useRef<THREE.Group>(null);
@@ -102,10 +109,11 @@ function InteractiveModelViewer({
     // Compute bounding box
     const box = new THREE.Box3().setFromObject(clone);
 
-    // Center on X and Y (model centered on bed), center Z (thickness)
+    // Center on X and Y (model centered on bed), but place bottom at Z=0
+    // so the model sits on top of the bed platform (Z = -0.1).
     const center = new THREE.Vector3();
     box.getCenter(center);
-    clone.position.set(-center.x, -center.y, -center.z);
+    clone.position.set(-center.x, -center.y, -box.min.z);
     clone.updateMatrixWorld(true);
 
     // Separate color_ meshes from the rest
@@ -176,8 +184,52 @@ function InteractiveModelViewer({
     useConverterStore.getState().setModelBounds(modelBounds);
   }, [modelBounds]);
 
+  // ---- White backing plate mesh ----
+  const isDoubleSided = structureMode === "Double-sided";
+  const backingMesh = useMemo(() => {
+    if (!modelBounds) return null;
+    const w = modelBounds.maxX - modelBounds.minX;
+    const h = modelBounds.maxY - modelBounds.minY;
+    if (w <= 0 || h <= 0) return null;
+
+    const geo = new THREE.BoxGeometry(w, h, spacerThick);
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0xf5f5f5,
+      roughness: 0.85,
+      metalness: 0.0,
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.name = "__backing_plate";
+
+    const cx = (modelBounds.minX + modelBounds.maxX) / 2;
+    const cy = (modelBounds.minY + modelBounds.maxY) / 2;
+
+    if (isDoubleSided) {
+      // Double-sided: backing plate sits with its top face at the color layer base
+      // Color layers go upward from spacerThick, backing occupies [0, spacerThick]
+      mesh.position.set(cx, cy, spacerThick / 2);
+    } else {
+      // Single-sided: backing at bottom, colors on top
+      mesh.position.set(cx, cy, spacerThick / 2);
+    }
+    return mesh;
+  }, [modelBounds, spacerThick, isDoubleSided]);
+
   // Camera is managed by BedPlatform's default view — skip auto-fit here
   // so the viewport stays stable when a preview model loads.
+
+  // Double-sided mirror meshes: pre-create clones that share the same material
+  // so color remap mutations apply to both sides automatically.
+  const mirrorMeshes = useMemo(() => {
+    if (!isDoubleSided) return [];
+    return colorMeshes.map((mesh) => {
+      const mirror = mesh.clone(true);
+      // Share the same material instance so color remap applies to both
+      mirror.material = mesh.material;
+      mirror.name = `mirror_${mesh.name}`;
+      return mirror;
+    });
+  }, [colorMeshes, isDoubleSided]);
 
   // Raycaster for manual hit-testing on click (avoids per-mesh R3F pointer events).
   const raycasterRef = useRef(new THREE.Raycaster());
@@ -271,12 +323,33 @@ function InteractiveModelViewer({
       mat.opacity = 1.0;
       mat.transparent = false;
 
-      // Height scaling (relief mode)
+      // Compute Z scale: map the GLB's native color height to the target height
+      // GLB color meshes span [0, nativeH] where nativeH ≈ 2.0mm (25 layers × 0.08)
+      mesh.geometry.computeBoundingBox();
+      const nativeH = mesh.geometry.boundingBox
+        ? mesh.geometry.boundingBox.max.z - mesh.geometry.boundingBox.min.z
+        : 1;
+
       if (enableRelief && baseHeight > 0) {
-        const heightMm = colorHeightMap[origHex] ?? baseHeight;
-        mesh.scale.z = heightMm / baseHeight;
+        // Relief mode: each color gets its own height from colorHeightMap
+        const heightMm = colorHeightMap[origHex] ?? COLOR_LAYER_HEIGHT;
+        mesh.scale.z = nativeH > 0 ? heightMm / nativeH : 1;
       } else {
-        mesh.scale.z = 1.0;
+        // Normal mode: scale to COLOR_LAYER_HEIGHT (0.4mm)
+        mesh.scale.z = nativeH > 0 ? COLOR_LAYER_HEIGHT / nativeH : 1;
+      }
+
+      // Position color layer on top of the backing plate
+      mesh.position.z = spacerThick;
+    }
+
+    // Update mirror meshes for double-sided mode
+    for (const mirror of mirrorMeshes) {
+      const origName = mirror.name.replace("mirror_", "");
+      const origMesh = colorMeshes.find((m) => m.name === origName);
+      if (origMesh) {
+        mirror.scale.z = -origMesh.scale.z; // flip Z direction
+        mirror.position.z = 0; // grow downward from bottom of backing plate
       }
     }
 
@@ -285,7 +358,11 @@ function InteractiveModelViewer({
     // The GLB model is centered by subtracting sceneCenter, so apply same offset.
     if (selectedColor && colorContours[selectedColor] && modelBounds) {
       const polygons = colorContours[selectedColor];
-      const topZ = modelBounds.maxZ + 0.1;
+      // Outline sits on top of the color layer (which is on top of the backing plate)
+      const colorTopZ = spacerThick + COLOR_LAYER_HEIGHT + 0.1;
+      const topZ = enableRelief
+        ? spacerThick + (colorHeightMap[selectedColor] ?? COLOR_LAYER_HEIGHT) + 0.1
+        : colorTopZ;
       const offsetX = -sceneCenter.x;
       const offsetY = -sceneCenter.y;
 
@@ -338,7 +415,7 @@ function InteractiveModelViewer({
         outlineArcRef.current.push(arcPairs);
       }
     }
-  }, [colorMeshes, colorRemapMap, colorHeightMap, selectedColor, enableRelief, baseHeight, colorContours, modelBounds, sceneCenter]);
+  }, [colorMeshes, mirrorMeshes, colorRemapMap, colorHeightMap, selectedColor, enableRelief, baseHeight, colorContours, modelBounds, sceneCenter, spacerThick, isDoubleSided]);
 
   // Flowing RGB animation: shift hue offset each frame for a "light strip" effect.
   const tmpColorAnim = useRef(new THREE.Color());
@@ -382,10 +459,19 @@ function InteractiveModelViewer({
     };
   }, []);
 
+  // Double-sided mirror meshes are defined above (before useEffect).
+
   return (
     <group ref={groupRef} scale={[scaleX, scaleY, 1]}>
       <primitive object={nonColorObject} />
+      {/* White backing plate */}
+      {backingMesh && <primitive object={backingMesh} />}
+      {/* Color layers (positioned on top of backing plate via position.z in useEffect) */}
       {colorMeshes.map((mesh) => (
+        <primitive key={mesh.uuid} object={mesh} />
+      ))}
+      {/* Double-sided: mirror color layers below the backing plate */}
+      {mirrorMeshes.map((mesh) => (
         <primitive key={mesh.uuid} object={mesh} />
       ))}
     </group>

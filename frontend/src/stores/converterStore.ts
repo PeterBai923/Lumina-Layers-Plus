@@ -30,6 +30,7 @@ import {
   computeAutoHeightMap,
   colorRemapToReplacementRegions,
 } from "../utils/colorUtils";
+import { useSettingsStore } from "./settingsStore";
 
 // ========== Helpers ==========
 
@@ -750,6 +751,7 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
           modeling_mode: state.modeling_mode,
           quantize_colors: state.quantize_colors,
           enable_cleanup: state.enable_cleanup,
+          is_dark: useSettingsStore.getState().theme === 'dark',
         }, signal);
         // 后端返回 JSON，preview_url 是相对路径如 /api/files/xxx
         const previewUrl = `http://localhost:8000${response.preview_url}`;

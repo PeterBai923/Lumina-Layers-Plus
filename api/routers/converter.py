@@ -199,6 +199,7 @@ async def convert_preview(
     modeling_mode: str = Form("high-fidelity", description="建模模式"),
     quantize_colors: int = Form(48, description="K-Means 色彩细节"),
     enable_cleanup: bool = Form(True, description="孤立像素清理"),
+    is_dark: bool = Form(True, description="深色主题"),
     store: SessionStore = Depends(get_session_store),
     registry: FileRegistry = Depends(get_file_registry),
     pool: WorkerPoolManager = Depends(get_worker_pool),
@@ -232,6 +233,7 @@ async def convert_preview(
             modeling_mode,
             quantize_colors,
             enable_cleanup,
+            is_dark,
         )
     except asyncio.TimeoutError:
         raise HTTPException(status_code=504, detail="Preview generation timed out")

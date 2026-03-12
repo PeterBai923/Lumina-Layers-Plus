@@ -74,10 +74,11 @@ function ModelViewer({ url }: ModelViewerProps) {
     // Compute bounding box
     const box = new THREE.Box3().setFromObject(clone);
 
-    // Center on X and Y (model centered on bed), center Z (thickness)
+    // Center on X and Y (model centered on bed), place bottom at Z=0
+    // so the model sits on top of the bed platform.
     const center = new THREE.Vector3();
     box.getCenter(center);
-    clone.position.set(-center.x, -center.y, -center.z);
+    clone.position.set(-center.x, -center.y, -box.min.z);
 
     return clone;
   }, [scene]);

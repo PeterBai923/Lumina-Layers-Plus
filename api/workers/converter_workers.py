@@ -25,6 +25,7 @@ def worker_generate_preview(
     modeling_mode: str,
     quantize_colors: int,
     enable_cleanup: bool,
+    is_dark: bool = True,
 ) -> dict:
     """Execute preview generation in a worker process.
     在工作进程中执行预览生成。
@@ -43,6 +44,7 @@ def worker_generate_preview(
         modeling_mode (str): Modeling mode string value, e.g. "high-fidelity". (建模模式字符串)
         quantize_colors (int): Number of K-Means quantization colors. (K-Means 量化颜色数)
         enable_cleanup (bool): Enable isolated-pixel cleanup. (启用孤立像素清理)
+        is_dark (bool): Dark theme flag for 2D preview bed colors. (深色主题标志)
 
     Returns:
         dict: Result dictionary with keys: (结果字典，包含以下键)
@@ -74,6 +76,7 @@ def worker_generate_preview(
         modeling_mode=mode_enum,
         quantize_colors=quantize_colors,
         enable_cleanup=enable_cleanup,
+        is_dark=is_dark,
     )
 
     result: dict = {
