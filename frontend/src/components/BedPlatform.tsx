@@ -82,6 +82,45 @@ function createBedTexture(
   return texture;
 }
 
+/**
+ * Create a rounded-rectangle ShapeGeometry matching the bed texture corners.
+ * 创建与热床纹理圆角匹配的圆角矩形几何体。
+ */
+function createRoundedBedGeometry(
+  widthMm: number,
+  heightMm: number,
+  radius: number = 8
+): THREE.ShapeGeometry {
+  const hw = widthMm / 2;
+  const hh = heightMm / 2;
+  const r = Math.min(radius, hw, hh);
+
+  const shape = new THREE.Shape();
+  shape.moveTo(-hw + r, -hh);
+  shape.lineTo(hw - r, -hh);
+  shape.quadraticCurveTo(hw, -hh, hw, -hh + r);
+  shape.lineTo(hw, hh - r);
+  shape.quadraticCurveTo(hw, hh, hw - r, hh);
+  shape.lineTo(-hw + r, hh);
+  shape.quadraticCurveTo(-hw, hh, -hw, hh - r);
+  shape.lineTo(-hw, -hh + r);
+  shape.quadraticCurveTo(-hw, -hh, -hw + r, -hh);
+
+  const geo = new THREE.ShapeGeometry(shape, 16);
+
+  // Remap UV from shape coords to [0,1] range
+  const pos = geo.attributes.position;
+  const uvAttr = geo.attributes.uv;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    const y = pos.getY(i);
+    uvAttr.setXY(i, (x + hw) / widthMm, 1 - (y + hh) / heightMm);
+  }
+  uvAttr.needsUpdate = true;
+
+  return geo;
+}
+
 export default function BedPlatform() {
   const bed_label = useConverterStore((s) => s.bed_label);
   const bedSizes = useConverterStore((s) => s.bedSizes);
@@ -98,11 +137,10 @@ export default function BedPlatform() {
 
   // Create bed geometry + material
   const bedMesh = useMemo(() => {
-    const geo = new THREE.PlaneGeometry(bedDims.w, bedDims.h);
+    const geo = createRoundedBedGeometry(bedDims.w, bedDims.h, 8);
     const texture = createBedTexture(bedDims.w, bedDims.h, themeColors);
     const mat = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.8 });
     const mesh = new THREE.Mesh(geo, mat);
-    // Bed stands upright in XY plane, centered at origin, pushed slightly behind the model
     mesh.position.set(0, 0, -0.1);
     return mesh;
   }, [bedDims, themeColors]);

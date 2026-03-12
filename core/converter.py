@@ -2216,16 +2216,24 @@ def _build_voxel_matrix_faceup(material_matrix, mask_solid, spacer_thick, backin
 
 
 def _create_bed_mesh(bed_w_mm, bed_h_mm, is_dark=True):
-    """Create a realistic print bed mesh with UV-mapped texture.
-    
-    Two themes:
-    - Dark (is_dark=True): PEI heated bed style, dark charcoal with subtle grid
-    - Light (is_dark=False): Marble/ceramic style, white with dark grid lines
-    
-    Returns a trimesh.Trimesh with TextureVisuals, or None on error.
+    """Create a rounded-corner print bed mesh with UV-mapped texture.
+    创建圆角打印热床网格，带 UV 贴图纹理。
+
+    The geometry outline matches the texture's rounded rectangle so that
+    no sharp-corner artifacts remain visible in the 3D preview.
+    几何轮廓与纹理的圆角矩形一致，避免 3D 预览中出现直角残留。
+
+    Args:
+        bed_w_mm (int): Bed width in mm. (热床宽度 mm)
+        bed_h_mm (int): Bed height in mm. (热床高度 mm)
+        is_dark (bool): Use dark PEI theme. (使用深色 PEI 主题)
+
+    Returns:
+        trimesh.Trimesh: Textured bed mesh, or None on error. (带纹理的热床网格)
     """
     try:
         from PIL import Image as PILImage, ImageDraw as PILDraw
+        from mapbox_earcut import triangulate_float64
 
         tex_scale = 4  # pixels per mm
         tex_w = int(bed_w_mm * tex_scale)
@@ -2233,26 +2241,23 @@ def _create_bed_mesh(bed_w_mm, bed_h_mm, is_dark=True):
         corner_r = int(8 * tex_scale)
         margin = max(2, corner_r // 4)
 
+        # Corner radius in world mm (matches texture margin/radius ratio)
+        r_mm = margin / tex_scale + corner_r / tex_scale
+
         if is_dark:
-            edge_color = (38, 38, 44)
             base_color = (58, 58, 66)
             fine_color = (42, 42, 48)
             bold_color = (90, 90, 100)
             border_color = (45, 45, 52)
         else:
-            edge_color = (215, 215, 220)
             base_color = (242, 242, 245)
             fine_color = (225, 225, 230)
             bold_color = (180, 180, 190)
             border_color = (195, 195, 205)
 
-        img = PILImage.new('RGB', (tex_w, tex_h), edge_color)
+        # --- Texture (fill entire image with base_color, no edge_color needed) ---
+        img = PILImage.new('RGB', (tex_w, tex_h), base_color)
         draw = PILDraw.Draw(img)
-
-        draw.rounded_rectangle(
-            [margin, margin, tex_w - margin, tex_h - margin],
-            radius=corner_r, fill=base_color
-        )
 
         step_10 = int(10 * tex_scale)
         for x in range(0, tex_w, step_10):
@@ -2271,22 +2276,51 @@ def _create_bed_mesh(bed_w_mm, bed_h_mm, is_dark=True):
             radius=corner_r, outline=border_color, width=3
         )
 
-        # Textured top quad
-        verts = np.array([
-            [0, 0, 0], [bed_w_mm, 0, 0],
-            [bed_w_mm, bed_h_mm, 0], [0, bed_h_mm, 0],
-        ], dtype=np.float64)
-        faces = np.array([[0, 1, 2], [0, 2, 3]], dtype=np.int64)
-        uv = np.array([[0, 1], [1, 1], [1, 0], [0, 0]], dtype=np.float64)
+        # --- Rounded-rectangle geometry outline (world coords, mm) ---
+        arc_segs = 16
+        angles = np.linspace(0, np.pi / 2, arc_segs + 1)
+        cos_a = np.cos(angles)
+        sin_a = np.sin(angles)
+
+        outline_pts = []
+        # Bottom-left corner (origin side)
+        for i in range(arc_segs + 1):
+            outline_pts.append([r_mm - r_mm * cos_a[i], r_mm - r_mm * sin_a[i]])
+        # Bottom-right corner
+        for i in range(arc_segs + 1):
+            outline_pts.append([bed_w_mm - r_mm + r_mm * sin_a[i], r_mm - r_mm * cos_a[i]])
+        # Top-right corner
+        for i in range(arc_segs + 1):
+            outline_pts.append([bed_w_mm - r_mm + r_mm * cos_a[i], bed_h_mm - r_mm + r_mm * sin_a[i]])
+        # Top-left corner
+        for i in range(arc_segs + 1):
+            outline_pts.append([r_mm - r_mm * sin_a[i], bed_h_mm - r_mm + r_mm * cos_a[i]])
+
+        outline_pts = np.array(outline_pts, dtype=np.float64)
+
+        # Triangulate the rounded-rect polygon via mapbox-earcut
+        rings = np.array([len(outline_pts)], dtype=np.int32)
+        tri_flat = triangulate_float64(outline_pts, rings)
+        tri_indices = np.array(tri_flat, dtype=np.int64).reshape(-1, 3)
+
+        # Build 3D vertices (Z=0) and UV coords
+        n_pts = len(outline_pts)
+        verts_3d = np.zeros((n_pts, 3), dtype=np.float64)
+        verts_3d[:, 0] = outline_pts[:, 0]
+        verts_3d[:, 1] = outline_pts[:, 1]
+
+        uv = np.zeros((n_pts, 2), dtype=np.float64)
+        uv[:, 0] = outline_pts[:, 0] / bed_w_mm
+        uv[:, 1] = 1.0 - outline_pts[:, 1] / bed_h_mm
 
         from trimesh.visual.material import SimpleMaterial
         from trimesh.visual import TextureVisuals
 
-        mesh = trimesh.Trimesh(vertices=verts, faces=faces, process=False)
+        mesh = trimesh.Trimesh(vertices=verts_3d, faces=tri_indices, process=False)
         mesh.visual = TextureVisuals(uv=uv, material=SimpleMaterial(image=img))
 
         theme_name = "dark" if is_dark else "light"
-        print(f"[BED] Created {theme_name} {bed_w_mm}×{bed_h_mm}mm bed")
+        print(f"[BED] Created {theme_name} {bed_w_mm}×{bed_h_mm}mm rounded bed ({n_pts} verts)")
         return mesh
 
     except Exception as e:
