@@ -3,8 +3,10 @@ import { useFiveColorStore } from "../stores/fiveColorStore";
 import { useConverterStore } from "../stores/converterStore";
 import Dropdown from "./ui/Dropdown";
 import Button from "./ui/Button";
+import { useI18n } from "../i18n/context";
 
 export default function FiveColorQueryPanel() {
+  const { t } = useI18n();
   const {
     lutName,
     baseColors,
@@ -46,35 +48,35 @@ export default function FiveColorQueryPanel() {
         {/* Left column: LUT selector, action buttons, result */}
         <div className="w-64 flex flex-col gap-4 shrink-0">
           <Dropdown
-            label="LUT 选择"
+            label={t("five_color_lut_label")}
             value={lutName}
             options={lutList.map((n) => ({ label: n, value: n }))}
             onChange={handleLutChange}
-            placeholder="请选择 LUT"
+            placeholder={t("five_color_lut_placeholder")}
           />
 
           {/* Action buttons */}
           <div className="flex flex-col gap-2">
             <Button
-              label="清除"
+              label={t("five_color_clear")}
               variant="secondary"
               onClick={clearSelection}
               disabled={!hasSelection}
             />
             <Button
-              label="撤销"
+              label={t("five_color_undo")}
               variant="secondary"
               onClick={removeLastSelection}
               disabled={!hasSelection}
             />
             <Button
-              label="反序"
+              label={t("five_color_reverse")}
               variant="secondary"
               onClick={reverseSelection}
               disabled={!isFull}
             />
             <Button
-              label="查询"
+              label={t("five_color_query")}
               variant="primary"
               onClick={() => void submitQuery()}
               disabled={!isFull || isLoading}
@@ -89,7 +91,7 @@ export default function FiveColorQueryPanel() {
               <button
                 onClick={clearError}
                 className="ml-auto shrink-0 text-red-400 hover:text-red-200"
-                aria-label="关闭错误"
+                aria-label={t("five_color_close_error")}
               >
                 ×
               </button>
@@ -104,20 +106,20 @@ export default function FiveColorQueryPanel() {
                   <div
                     className="w-full h-20 rounded-md border border-gray-500"
                     style={{ backgroundColor: queryResult.result_hex ?? undefined }}
-                    aria-label={`结果颜色 ${queryResult.result_hex}`}
+                    aria-label={t("five_color_result_color").replace("{hex}", queryResult.result_hex ?? "")}
                   />
                   <p className="text-sm text-gray-200">
-                    Hex: {queryResult.result_hex}
+                    {t("five_color_result_hex")}: {queryResult.result_hex}
                   </p>
                   <p className="text-sm text-gray-200">
-                    RGB: {queryResult.result_rgb?.join(", ")}
+                    {t("five_color_result_rgb")}: {queryResult.result_rgb?.join(", ")}
                   </p>
                   <p className="text-xs text-gray-400">
-                    Row: {queryResult.row_index}
+                    {t("five_color_result_row")}: {queryResult.row_index}
                   </p>
                 </>
               ) : (
-                <p className="text-sm text-yellow-400">未找到匹配</p>
+                <p className="text-sm text-yellow-400">{t("five_color_not_found")}</p>
               )}
             </div>
           )}
@@ -137,7 +139,7 @@ export default function FiveColorQueryPanel() {
                   <div
                     className="w-10 h-10 rounded-full border-2 border-gray-500 flex items-center justify-center text-xs text-gray-400"
                     style={color ? { backgroundColor: color.hex, borderColor: color.hex } : undefined}
-                    aria-label={color ? `已选颜色 ${i + 1}: ${color.name}` : `颜色槽 ${i + 1}: 空`}
+                    aria-label={color ? t("five_color_selected").replace("{n}", String(i + 1)).replace("{name}", color.name) : t("five_color_slot_empty").replace("{n}", String(i + 1))}
                   >
                     {!color && (i + 1)}
                   </div>
@@ -156,7 +158,7 @@ export default function FiveColorQueryPanel() {
                   onClick={() => addSelection(color.index)}
                   disabled={isFull}
                   className="flex flex-col items-center gap-1 rounded-md border border-gray-600 p-2 hover:border-blue-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  aria-label={`选择颜色 ${color.name} (${color.hex})`}
+                  aria-label={t("five_color_select_color").replace("{name}", color.name).replace("{hex}", color.hex)}
                 >
                   <div
                     className="w-10 h-10 rounded-md border border-gray-500"
@@ -173,13 +175,13 @@ export default function FiveColorQueryPanel() {
 
           {baseColors.length === 0 && lutName && !isLoading && (
             <p className="text-sm text-gray-500 text-center py-8">
-              未加载到基础颜色
+              {t("five_color_no_base_colors")}
             </p>
           )}
 
           {baseColors.length === 0 && !lutName && (
             <p className="text-sm text-gray-500 text-center py-8">
-              请先选择 LUT 以加载基础颜色
+              {t("five_color_select_lut_first")}
             </p>
           )}
         </div>

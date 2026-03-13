@@ -76,7 +76,7 @@ function WidgetToggles() {
         data-testid="widget-reset-layout"
         className="px-3 py-1.5 rounded text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors"
         onClick={resetLayout}
-        title="Reset Layout"
+        title={t("app_reset_layout")}
       >
         ↺
       </button>
@@ -84,9 +84,10 @@ function WidgetToggles() {
   );
 }
 
-/* ---------- App ---------- */
+/* ---------- App Content (inside I18nProvider) ---------- */
 
-function App() {
+function AppContent() {
+  const { t } = useI18n();
   useAutoPreview();
 
   const [connected, setConnected] = useState<boolean | null>(null);
@@ -101,65 +102,73 @@ function App() {
   }, []);
 
   return (
+    <div className="h-screen bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-white flex flex-col overflow-hidden">
+      <header className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+        <h1 className="text-xl font-semibold tracking-tight">
+          {t("app_header_title")}
+        </h1>
+
+        <TabNavBar
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
+
+        <WidgetToggles />
+
+        <div className="flex items-center gap-2">
+          <LanguageToggle />
+          <ThemeToggle />
+          {connected === null ? (
+            <span className="text-sm text-gray-500 dark:text-gray-400">{t("app_checking_backend")}</span>
+          ) : connected ? (
+            <span
+              data-testid="health-badge-ok"
+              className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1 text-sm text-green-700 dark:bg-green-900/60 dark:text-green-300"
+            >
+              <span className="h-2 w-2 rounded-full bg-green-400" />
+              {t("app_backend_connected")}
+            </span>
+          ) : (
+            <span
+              data-testid="health-badge-fail"
+              className="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-3 py-1 text-sm text-red-700 dark:bg-red-900/60 dark:text-red-300"
+            >
+              <span className="h-2 w-2 rounded-full bg-red-400" />
+              {t("app_backend_unreachable")}
+            </span>
+          )}
+        </div>
+      </header>
+
+      <main className="flex-1 overflow-hidden">
+        <WidgetWorkspace>
+          {activeTab === 'extractor' ? (
+            <ExtractorCanvas />
+          ) : (
+            <SceneErrorBoundary
+              fallback={
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-950">
+                  <p className="text-red-400 text-sm">{t("app_3d_scene_error")}</p>
+                </div>
+              }
+            >
+              <Suspense fallback={<LoadingSpinner />}>
+                <Scene3D />
+              </Suspense>
+            </SceneErrorBoundary>
+          )}
+        </WidgetWorkspace>
+      </main>
+    </div>
+  );
+}
+
+/* ---------- App ---------- */
+
+function App() {
+  return (
     <I18nProvider>
-      <div className="h-screen bg-gray-100 dark:bg-gray-950 text-gray-900 dark:text-white flex flex-col overflow-hidden">
-        <header className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
-          <h1 className="text-xl font-semibold tracking-tight">
-            Lumina Studio 2.0
-          </h1>
-
-          <TabNavBar
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-          />
-
-          <WidgetToggles />
-
-          <div className="flex items-center gap-2">
-            <LanguageToggle />
-            <ThemeToggle />
-            {connected === null ? (
-              <span className="text-sm text-gray-500 dark:text-gray-400">Checking backend…</span>
-            ) : connected ? (
-              <span
-                data-testid="health-badge-ok"
-                className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1 text-sm text-green-700 dark:bg-green-900/60 dark:text-green-300"
-              >
-                <span className="h-2 w-2 rounded-full bg-green-400" />
-                Backend Connected
-              </span>
-            ) : (
-              <span
-                data-testid="health-badge-fail"
-                className="inline-flex items-center gap-1.5 rounded-full bg-red-100 px-3 py-1 text-sm text-red-700 dark:bg-red-900/60 dark:text-red-300"
-              >
-                <span className="h-2 w-2 rounded-full bg-red-400" />
-                Backend Unreachable
-              </span>
-            )}
-          </div>
-        </header>
-
-        <main className="flex-1 overflow-hidden">
-          <WidgetWorkspace>
-            {activeTab === 'extractor' ? (
-              <ExtractorCanvas />
-            ) : (
-              <SceneErrorBoundary
-                fallback={
-                  <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-950">
-                    <p className="text-red-400 text-sm">3D 场景加载失败</p>
-                  </div>
-                }
-              >
-                <Suspense fallback={<LoadingSpinner />}>
-                  <Scene3D />
-                </Suspense>
-              </SceneErrorBoundary>
-            )}
-          </WidgetWorkspace>
-        </main>
-      </div>
+      <AppContent />
     </I18nProvider>
   );
 }
