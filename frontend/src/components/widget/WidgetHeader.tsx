@@ -17,7 +17,6 @@ interface WidgetHeaderProps {
 }
 
 export function WidgetHeader({
-  widgetId,
   titleKey,
   collapsed,
   onToggleCollapse,
@@ -39,7 +38,7 @@ export function WidgetHeader({
       aria-expanded={!collapsed}
       aria-label={t(titleKey)}
       tabIndex={0}
-      className="flex items-center justify-between px-3 py-1.5 cursor-grab active:cursor-grabbing select-none"
+      className="flex items-center justify-between px-3 py-1.5 cursor-grab active:cursor-grabbing select-none touch-none"
       onDoubleClick={onToggleCollapse}
       onKeyDown={handleKeyDown}
       {...dragListeners}

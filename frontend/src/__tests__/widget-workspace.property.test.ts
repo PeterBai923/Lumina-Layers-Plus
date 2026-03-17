@@ -162,6 +162,7 @@ describe('Widget Workspace Property-Based Tests', () => {
               visible: true,
               snapEdge: edge,
               stackOrder: i,
+              expandedHeight: EXPANDED_HEIGHT,
             }));
 
             const positions = computeStackPositions(widgets, edge, containerWidth);
@@ -197,6 +198,7 @@ describe('Widget Workspace Property-Based Tests', () => {
       visible: fc.boolean(),
       snapEdge: fc.constantFrom('left' as const, 'right' as const, null),
       stackOrder: fc.integer({ min: -1, max: 10 }),
+      expandedHeight: fc.integer({ min: COLLAPSED_HEIGHT + 10, max: 800 }),
     });
 
     it('JSON round-trip preserves widget layout state', () => {

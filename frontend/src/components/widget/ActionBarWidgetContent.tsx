@@ -7,7 +7,7 @@ import ActionBar from '../sections/ActionBar';
 
 export default function ActionBarWidgetContent() {
   return (
-    <div className="overflow-y-auto max-h-[60vh] p-3">
+    <div className="p-3">
       <ActionBar />
     </div>
   );

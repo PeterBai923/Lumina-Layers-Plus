@@ -7,7 +7,7 @@ import FiveColorQueryPanel from '../FiveColorQueryPanel';
 
 export default function FiveColorWidgetContent() {
   return (
-    <div className="overflow-y-auto max-h-[60vh]">
+    <div>
       <FiveColorQueryPanel />
     </div>
   );

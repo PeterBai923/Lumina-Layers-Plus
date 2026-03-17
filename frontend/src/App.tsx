@@ -19,6 +19,7 @@ import LutManagerPanel from "./components/LutManagerPanel";
 import FiveColorQueryPanel from "./components/FiveColorQueryPanel";
 import SettingsPanel from "./components/SettingsPanel";
 import type { TabId } from "./types/widget";
+import { useShallow } from "zustand/react/shallow";
 
 /* ---------- Error Boundary ---------- */
 
@@ -53,13 +54,15 @@ class SceneErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryStat
 
 function WidgetToggles() {
   const { t } = useI18n();
-  const widgets = useWidgetStore((s) => s.widgets);
   const toggleVisible = useWidgetStore((s) => s.toggleVisible);
   const resetLayout = useWidgetStore((s) => s.resetLayout);
   const activeTab = useWidgetStore((s) => s.activeTab);
 
   // Filter to only show widgets belonging to the current TAB page
   const activeWidgetIds = TAB_WIDGET_MAP[activeTab];
+  const visibleWidgetIds = useWidgetStore(
+    useShallow((s) => activeWidgetIds.filter((id) => s.widgets[id].visible))
+  );
   const filteredRegistry = WIDGET_REGISTRY.filter((c) => activeWidgetIds.includes(c.id));
 
   return (
@@ -69,7 +72,7 @@ function WidgetToggles() {
           key={config.id}
           data-testid={`widget-toggle-${config.id}`}
           className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
-            widgets[config.id].visible
+            visibleWidgetIds.includes(config.id)
               ? "bg-blue-600 text-white"
               : "bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
           }`}

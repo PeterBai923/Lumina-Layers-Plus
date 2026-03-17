@@ -5,3 +5,38 @@
 body {
   transition: background-color 200ms ease, color 200ms ease;
 }
+
+.dock-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.22) transparent;
+}
+
+.dock-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.dock-scrollbar::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.22);
+  border-radius: 9999px;
+}
+
+.dock-scrollbar:hover {
+  scrollbar-color: rgba(59, 130, 246, 0.55) transparent;
+}
+
+.dock-scrollbar:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(59, 130, 246, 0.55);
+}
+
+.dark .dock-scrollbar {
+  scrollbar-color: rgba(148, 163, 184, 0.2) transparent;
+}
+
+.dark .dock-scrollbar:hover {
+  scrollbar-color: rgba(96, 165, 250, 0.5) transparent;
+}
+
+.dark .dock-scrollbar:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(96, 165, 250, 0.5);
+}

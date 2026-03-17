@@ -140,4 +140,33 @@ describe('Widget Workspace Unit Tests', () => {
       expect(widgetIds).not.toContain('lut-color-grid');
     });
   });
+
+  // ===== 批量位置更新 =====
+  describe('Widget store batched position updates', () => {
+    it('updates multiple widget positions in one action', () => {
+      const { setWidgetPositions } = useWidgetStore.getState();
+
+      setWidgetPositions({
+        'basic-settings': { x: 12, y: 24 },
+        'action-bar': { x: 240, y: 360 },
+      });
+
+      const state = useWidgetStore.getState();
+      expect(state.widgets['basic-settings'].position).toEqual({ x: 12, y: 24 });
+      expect(state.widgets['action-bar'].position).toEqual({ x: 240, y: 360 });
+    });
+
+    it('keeps unrelated widget positions unchanged during batched updates', () => {
+      const { widgets, setWidgetPositions } = useWidgetStore.getState();
+      const originalExtractorPosition = widgets.extractor.position;
+
+      setWidgetPositions({
+        'basic-settings': { x: 64, y: 96 },
+      });
+
+      const state = useWidgetStore.getState();
+      expect(state.widgets.extractor.position).toEqual(originalExtractorPosition);
+      expect(state.widgets['basic-settings'].position).toEqual({ x: 64, y: 96 });
+    });
+  });
 });
