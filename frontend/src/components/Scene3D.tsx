@@ -107,6 +107,10 @@ function Scene3D({ modelUrl }: Scene3DProps) {
   const loopWidth = useConverterStore((s) => s.loop_width);
   const loopLength = useConverterStore((s) => s.loop_length);
   const loopHole = useConverterStore((s) => s.loop_hole);
+  const loopAngle = useConverterStore((s) => s.loop_angle);
+  const loopOffsetX = useConverterStore((s) => s.loop_offset_x);
+  const loopOffsetY = useConverterStore((s) => s.loop_offset_y);
+  const loopPositionPreset = useConverterStore((s) => s.loop_position_preset);
   const modelBounds = useConverterStore((s) => s.modelBounds);
 
   // Listen to fullscreenchange event
@@ -281,6 +285,10 @@ function Scene3D({ modelUrl }: Scene3DProps) {
             width={loopWidth}
             length={loopLength}
             hole={loopHole}
+            angle={loopAngle}
+            offsetX={loopOffsetX}
+            offsetY={loopOffsetY}
+            positionPreset={loopPositionPreset}
             modelBounds={modelBounds}
           />
         )}

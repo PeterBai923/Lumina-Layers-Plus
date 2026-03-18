@@ -211,6 +211,14 @@ class ConvertGenerateRequest(BaseModel):
             环孔直径 (mm)。
         loop_pos: Keychain loop position as (x, y) coordinates.
             环位置 (x, y)。
+        loop_angle: Keychain loop rotation angle in degrees (-180 to 180).
+            环旋转角度 (度)。
+        loop_offset_x: Keychain loop X offset in millimeters (-20 to 20).
+            环 X 偏移 (mm)。
+        loop_offset_y: Keychain loop Y offset in millimeters (-20 to 20).
+            环 Y 偏移 (mm)。
+        loop_position_preset: Keychain loop position preset name.
+            环位置预设名称。
         enable_relief: Whether to enable 2.5D relief mode.
             是否启用 2.5D 浮雕模式。
         color_height_map: Color-to-height mapping for relief mode.
@@ -272,6 +280,19 @@ class ConvertGenerateRequest(BaseModel):
     )
     loop_pos: Optional[Tuple[float, float]] = Field(
         None, description="环位置 (x, y)"
+    )
+    loop_angle: float = Field(
+        0.0, ge=-180, le=180, description="环旋转角度 (度)"
+    )
+    loop_offset_x: float = Field(
+        0.0, ge=-200, le=200, description="环 X 偏移 (mm)"
+    )
+    loop_offset_y: float = Field(
+        0.0, ge=-200, le=200, description="环 Y 偏移 (mm)"
+    )
+    loop_position_preset: Optional[str] = Field(
+        "top-center",
+        description="环位置预设: top-center, top-left, top-right, left-center, right-center, bottom-center",
     )
     enable_relief: bool = Field(False, description="启用 2.5D 浮雕模式")
     height_mode: Optional[str] = Field(

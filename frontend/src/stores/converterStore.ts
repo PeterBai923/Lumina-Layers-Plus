@@ -117,6 +117,10 @@ export interface ConverterState {
   loop_width: number;
   loop_length: number;
   loop_hole: number;
+  loop_angle: number;              // -180 到 180 度，默认 0
+  loop_offset_x: number;           // -20 到 20 mm，默认 0
+  loop_offset_y: number;           // -20 到 20 mm，默认 0
+  loop_position_preset: string;    // 默认 "top-center"
 
   // 浮雕
   enable_relief: boolean;
@@ -262,6 +266,10 @@ export interface ConverterActions {
   setLoopWidth: (width: number) => void;
   setLoopLength: (length: number) => void;
   setLoopHole: (hole: number) => void;
+  setLoopAngle: (angle: number) => void;
+  setLoopOffsetX: (x: number) => void;
+  setLoopOffsetY: (y: number) => void;
+  setLoopPositionPreset: (preset: string) => void;
   setEnableRelief: (enabled: boolean) => void;
   setColorHeightMap: (map: Record<string, number>) => void;
   setHeightmapMaxHeight: (height: number) => void;
@@ -406,6 +414,10 @@ const DEFAULT_STATE: ConverterState = {
   loop_width: 4.0,
   loop_length: 8.0,
   loop_hole: 2.5,
+  loop_angle: 0,
+  loop_offset_x: 0,
+  loop_offset_y: 0,
+  loop_position_preset: "top-center",
   enable_relief: false,
   color_height_map: {},
   heightmap_max_height: 3.0,
@@ -627,6 +639,15 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
     setLoopLength: (length: number) =>
       set({ loop_length: clampValue(length, 4, 15) }),
     setLoopHole: (hole: number) => set({ loop_hole: clampValue(hole, 1, 5) }),
+    setLoopAngle: (angle: number) =>
+      set({ loop_angle: clampValue(angle, -180, 180) }),
+    setLoopOffsetX: (x: number) =>
+      set({ loop_offset_x: clampValue(x, -200, 200) }),
+    setLoopOffsetY: (y: number) =>
+      set({ loop_offset_y: clampValue(y, -200, 200) }),
+    setLoopPositionPreset: (preset: string) => {
+      set({ loop_position_preset: preset });
+    },
 
     // --- 浮雕（互斥） ---
     setEnableRelief: (enabled: boolean) => {
@@ -1311,6 +1332,10 @@ export const useConverterStore = create<ConverterState & ConverterActions>(
           loop_width: state.loop_width,
           loop_length: state.loop_length,
           loop_hole: state.loop_hole,
+          loop_angle: state.loop_angle,
+          loop_offset_x: state.loop_offset_x,
+          loop_offset_y: state.loop_offset_y,
+          loop_position_preset: state.loop_position_preset,
           enable_relief: state.enable_relief,
           height_mode: state.enable_relief
             ? state.autoHeightMode === "use-heightmap"

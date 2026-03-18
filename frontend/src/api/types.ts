@@ -51,6 +51,10 @@ export interface ConvertGenerateRequest extends ConvertPreviewRequest {
   loop_width: number;
   loop_length: number;
   loop_hole: number;
+  loop_angle?: number;
+  loop_offset_x?: number;
+  loop_offset_y?: number;
+  loop_position_preset?: string;
   loop_pos?: [number, number];
   enable_relief: boolean;
   height_mode?: string;

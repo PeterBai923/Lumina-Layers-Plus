@@ -1727,6 +1727,46 @@ export const translations: Record<string, Record<"zh" | "en", string>> = {
     zh: "环孔直径",
     en: "Loop Hole Diameter",
   },
+  loop_angle: {
+    zh: "旋转角度",
+    en: "Rotation Angle",
+  },
+  loop_position_preset: {
+    zh: "位置预设",
+    en: "Position Preset",
+  },
+  loop_offset_x: {
+    zh: "X 偏移",
+    en: "X Offset",
+  },
+  loop_offset_y: {
+    zh: "Y 偏移",
+    en: "Y Offset",
+  },
+  loop_preset_top_center: {
+    zh: "上中",
+    en: "Top Center",
+  },
+  loop_preset_top_left: {
+    zh: "左上",
+    en: "Top Left",
+  },
+  loop_preset_top_right: {
+    zh: "右上",
+    en: "Top Right",
+  },
+  loop_preset_left_center: {
+    zh: "左中",
+    en: "Left Center",
+  },
+  loop_preset_right_center: {
+    zh: "右中",
+    en: "Right Center",
+  },
+  loop_preset_bottom_center: {
+    zh: "下中",
+    en: "Bottom Center",
+  },
 
   // ==================== Action Bar ====================
   action_upload_hint: {

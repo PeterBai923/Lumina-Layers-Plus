@@ -489,6 +489,10 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                          hue_weight: float = 0.0,
                          chroma_gate: float = 15.0,
                          matched_rgb_path: Optional[str] = None,
+                         loop_angle: float = 0.0,
+                         loop_offset_x: float = 0.0,
+                         loop_offset_y: float = 0.0,
+                         loop_position_preset: Optional[str] = "top-center",
                          progress=None):
     """
     Main conversion function: Convert image to 3D model.
@@ -958,10 +962,14 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
     
     # Step 4: Handle Keychain Loop
     loop_info = None
-    if add_loop and loop_pos is not None:
+    if add_loop:
         loop_info = _calculate_loop_info(
             loop_pos, loop_width, loop_length, loop_hole,
-            mask_solid, material_matrix, target_w, target_h, pixel_scale
+            mask_solid, material_matrix, target_w, target_h, pixel_scale,
+            angle_deg=loop_angle,
+            offset_x=loop_offset_x,
+            offset_y=loop_offset_y,
+            position_preset=loop_position_preset or "top-center",
         )
         
         if loop_info:
@@ -1261,7 +1269,8 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                 hole_dia_mm=loop_info['hole_dia_mm'],
                 thickness_mm=loop_thickness,
                 attach_x_mm=loop_info['attach_x_mm'],
-                attach_y_mm=loop_info['attach_y_mm']
+                attach_y_mm=loop_info['attach_y_mm'],
+                angle_deg=loop_info.get('angle_deg', 0.0),
             )
             
             if loop_mesh is not None:
@@ -1512,7 +1521,8 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                     hole_dia_mm=loop_info['hole_dia_mm'],
                     thickness_mm=loop_thickness,
                     attach_x_mm=loop_info['attach_x_mm'],
-                    attach_y_mm=loop_info['attach_y_mm']
+                    attach_y_mm=loop_info['attach_y_mm'],
+                    angle_deg=loop_info.get('angle_deg', 0.0),
                 )
                 if preview_loop:
                     loop_color = preview_colors[loop_info['color_id']]
@@ -1728,37 +1738,196 @@ def _generate_outline_mesh(mask_solid, pixel_scale, outline_width_mm, outline_th
     return mesh
 
 
-def _calculate_loop_info(loop_pos, loop_width, loop_length, loop_hole,
-                         mask_solid, material_matrix, target_w, target_h, pixel_scale):
-    """Calculate keychain loop information."""
+def _calculate_loop_position(
+    position_preset: str,
+    offset_x: float,
+    offset_y: float,
+    mask_solid: np.ndarray,
+    target_w: int,
+    target_h: int,
+    pixel_scale: float,
+) -> tuple:
+    """Calculate keychain loop attach position based on preset and offset.
+    根据位置预设和偏移量计算钥匙扣挂孔的吸附位置。
+
+    Extracts model bounds from mask_solid, selects an edge snap point based on
+    the position preset, then adds the user-specified offset.
+    从 mask_solid 提取模型边界，根据预设选择边缘吸附点，叠加偏移量。
+
+    Args:
+        position_preset (str): Preset name for snap position.
+            (预设位置名称，如 'top-center', 'top-left' 等)
+        offset_x (float): X offset in mm to add to the base position.
+            (叠加到基准位置的 X 偏移量，单位 mm)
+        offset_y (float): Y offset in mm to add to the base position.
+            (叠加到基准位置的 Y 偏移量，单位 mm)
+        mask_solid (np.ndarray): Boolean 2D array (H, W) indicating solid pixels.
+            (布尔二维数组，标识实体像素)
+        target_w (int): Image width in pixels. (图像宽度，像素)
+        target_h (int): Image height in pixels. (图像高度，像素)
+        pixel_scale (float): mm per pixel conversion factor. (像素到 mm 的缩放因子)
+
+    Returns:
+        tuple[float, float]: (attach_x_mm, attach_y_mm) position in mm.
+            (吸附点坐标，单位 mm)
+    """
+    # Extract model bounds from mask_solid
+    solid_rows = np.any(mask_solid, axis=1)
+    solid_cols = np.any(mask_solid, axis=0)
+
+    if not np.any(solid_rows) or not np.any(solid_cols):
+        # No solid pixels — return model center as fallback
+        center_x_mm = (target_w / 2.0) * pixel_scale
+        center_y_mm = (target_h / 2.0) * pixel_scale
+        return (center_x_mm + offset_x, center_y_mm + offset_y)
+
+    row_indices = np.where(solid_rows)[0]
+    col_indices = np.where(solid_cols)[0]
+
+    min_row = int(row_indices[0])
+    max_row = int(row_indices[-1])
+    min_col = int(col_indices[0])
+    max_col = int(col_indices[-1])
+
+    # Convert pixel bounds to mm coordinates.
+    # In the image coordinate system, row 0 is the top.
+    # In the mm coordinate system used by the 3D model,
+    # Y increases upward: y_mm = (target_h - 1 - row) * pixel_scale
+    min_x_mm = min_col * pixel_scale
+    max_x_mm = max_col * pixel_scale
+    # max_row (bottom in image) → minY in mm; min_row (top in image) → maxY in mm
+    min_y_mm = (target_h - 1 - max_row) * pixel_scale
+    max_y_mm = (target_h - 1 - min_row) * pixel_scale
+
+    center_x_mm = (min_x_mm + max_x_mm) / 2.0
+    center_y_mm = (min_y_mm + max_y_mm) / 2.0
+
+    # Select base snap point based on preset
+    preset = position_preset if position_preset else "top-center"
+
+    if preset == "top-center":
+        base_x = center_x_mm
+        base_y = max_y_mm
+    elif preset == "top-left":
+        base_x = min_x_mm
+        base_y = max_y_mm
+    elif preset == "top-right":
+        base_x = max_x_mm
+        base_y = max_y_mm
+    elif preset == "left-center":
+        base_x = min_x_mm
+        base_y = center_y_mm
+    elif preset == "right-center":
+        base_x = max_x_mm
+        base_y = center_y_mm
+    elif preset == "bottom-center":
+        base_x = center_x_mm
+        base_y = min_y_mm
+    else:
+        # Unknown preset — fall back to top-center
+        base_x = center_x_mm
+        base_y = max_y_mm
+
+    return (base_x + offset_x, base_y + offset_y)
+
+
+def _calculate_loop_info(
+    loop_pos: Optional[Tuple[float, float]],
+    loop_width: float,
+    loop_length: float,
+    loop_hole: float,
+    mask_solid: np.ndarray,
+    material_matrix: np.ndarray,
+    target_w: int,
+    target_h: int,
+    pixel_scale: float,
+    angle_deg: float = 0.0,
+    offset_x: float = 0.0,
+    offset_y: float = 0.0,
+    position_preset: str = "top-center",
+) -> Optional[Dict]:
+    """Calculate keychain loop information including position and angle.
+    计算钥匙扣挂孔信息，包括位置和旋转角度。
+
+    When loop_pos is provided, snaps to the nearest solid pixel from the
+    click point. When loop_pos is None, delegates to _calculate_loop_position()
+    to compute a default position based on the preset and offset.
+    当 loop_pos 有值时，吸附到点击点最近的实体像素；当 loop_pos 为 None 时，
+    委托 _calculate_loop_position() 根据预设和偏移计算默认位置。
+
+    Args:
+        loop_pos (Optional[Tuple[float, float]]): Click position (x, y) in pixels,
+            or None to use preset-based calculation. (点击位置像素坐标，None 则使用预设计算)
+        loop_width (float): Loop width in mm. (环宽度，mm)
+        loop_length (float): Loop length in mm. (环长度，mm)
+        loop_hole (float): Hole diameter in mm. (孔径，mm)
+        mask_solid (np.ndarray): Boolean 2D array (H, W) of solid pixels. (实体像素掩码)
+        material_matrix (np.ndarray): Material assignment matrix. (材料分配矩阵)
+        target_w (int): Image width in pixels. (图像宽度，像素)
+        target_h (int): Image height in pixels. (图像高度，像素)
+        pixel_scale (float): mm per pixel. (像素到 mm 缩放因子)
+        angle_deg (float): Rotation angle in degrees, default 0. (旋转角度，度，默认 0)
+        offset_x (float): X offset in mm, default 0. (X 偏移量，mm，默认 0)
+        offset_y (float): Y offset in mm, default 0. (Y 偏移量，mm，默认 0)
+        position_preset (str): Position preset name, default "top-center".
+            (位置预设名称，默认 "top-center")
+
+    Returns:
+        Optional[Dict]: Loop info dict with keys attach_x_mm, attach_y_mm,
+            width_mm, length_mm, hole_dia_mm, color_id, angle_deg; or None
+            if no solid pixels exist. (挂孔信息字典，或 None)
+    """
     solid_rows = np.any(mask_solid, axis=1)
     if not np.any(solid_rows):
         return None
-    
-    click_x, click_y = loop_pos
-    attach_col = int(click_x)
-    attach_row = int(click_y)
-    attach_col = max(0, min(target_w - 1, attach_col))
-    attach_row = max(0, min(target_h - 1, attach_row))
-    
-    col_mask = mask_solid[:, attach_col]
-    if np.any(col_mask):
-        solid_rows_in_col = np.where(col_mask)[0]
-        distances = np.abs(solid_rows_in_col - attach_row)
-        nearest_idx = np.argmin(distances)
-        top_row = solid_rows_in_col[nearest_idx]
-    else:
-        top_row = np.argmax(solid_rows)
-        solid_cols_in_top = np.where(mask_solid[top_row])[0]
-        if len(solid_cols_in_top) > 0:
-            distances = np.abs(solid_cols_in_top - attach_col)
+
+    if loop_pos is not None:
+        # Original click-based position logic
+        click_x, click_y = loop_pos
+        attach_col = int(click_x)
+        attach_row = int(click_y)
+        attach_col = max(0, min(target_w - 1, attach_col))
+        attach_row = max(0, min(target_h - 1, attach_row))
+
+        col_mask = mask_solid[:, attach_col]
+        if np.any(col_mask):
+            solid_rows_in_col = np.where(col_mask)[0]
+            distances = np.abs(solid_rows_in_col - attach_row)
             nearest_idx = np.argmin(distances)
-            attach_col = solid_cols_in_top[nearest_idx]
+            top_row = solid_rows_in_col[nearest_idx]
         else:
-            attach_col = target_w // 2
-    
-    attach_col = max(0, min(target_w - 1, attach_col))
-    
+            top_row = np.argmax(solid_rows)
+            solid_cols_in_top = np.where(mask_solid[top_row])[0]
+            if len(solid_cols_in_top) > 0:
+                distances = np.abs(solid_cols_in_top - attach_col)
+                nearest_idx = np.argmin(distances)
+                attach_col = solid_cols_in_top[nearest_idx]
+            else:
+                attach_col = target_w // 2
+
+        attach_col = max(0, min(target_w - 1, attach_col))
+
+        attach_x_mm = attach_col * pixel_scale
+        attach_y_mm = (target_h - 1 - top_row) * pixel_scale
+    else:
+        # Preset-based position calculation
+        attach_x_mm, attach_y_mm = _calculate_loop_position(
+            position_preset=position_preset,
+            offset_x=offset_x,
+            offset_y=offset_y,
+            mask_solid=mask_solid,
+            target_w=target_w,
+            target_h=target_h,
+            pixel_scale=pixel_scale,
+        )
+        # Convert mm back to pixel coords for color sampling
+        attach_col = int(attach_x_mm / pixel_scale) if pixel_scale > 0 else target_w // 2
+        attach_col = max(0, min(target_w - 1, attach_col))
+        top_row_mm = attach_y_mm / pixel_scale if pixel_scale > 0 else 0
+        top_row = int(target_h - 1 - top_row_mm)
+        top_row = max(0, min(target_h - 1, top_row))
+
+    # Determine loop color from nearby material
     loop_color_id = 0
     search_area = material_matrix[
         max(0, top_row-2):top_row+3,
@@ -1771,14 +1940,15 @@ def _calculate_loop_info(loop_pos, loop_width, loop_length, loop_hole,
             if mat_id != 0:
                 loop_color_id = int(mat_id)
                 break
-    
+
     return {
-        'attach_x_mm': attach_col * pixel_scale,
-        'attach_y_mm': (target_h - 1 - top_row) * pixel_scale,
+        'attach_x_mm': attach_x_mm,
+        'attach_y_mm': attach_y_mm,
         'width_mm': loop_width,
         'length_mm': loop_length,
         'hole_dia_mm': loop_hole,
-        'color_id': loop_color_id
+        'color_id': loop_color_id,
+        'angle_deg': angle_deg,
     }
 
 
@@ -3390,6 +3560,10 @@ def generate_final_model(image_path, lut_path, target_width_mm, spacer_thick,
                         hue_weight: float = 0.0,
                         chroma_gate: float = 15.0,
                         matched_rgb_path: Optional[str] = None,
+                        loop_angle: float = 0.0,
+                        loop_offset_x: float = 0.0,
+                        loop_offset_y: float = 0.0,
+                        loop_position_preset: Optional[str] = "top-center",
                         progress=None):
     """Wrapper function for generating final model.
     生成最终模型的包装函数。
@@ -3456,6 +3630,10 @@ def generate_final_model(image_path, lut_path, target_width_mm, spacer_thick,
         hue_weight=hue_weight,
         chroma_gate=chroma_gate,
         matched_rgb_path=matched_rgb_path,
+        loop_angle=loop_angle,
+        loop_offset_x=loop_offset_x,
+        loop_offset_y=loop_offset_y,
+        loop_position_preset=loop_position_preset,
         progress=progress,
     )
 
