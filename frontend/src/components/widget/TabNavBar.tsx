@@ -9,7 +9,6 @@ import { motion } from 'framer-motion';
 
 interface TabNavBarProps {
   activeTab: TabId;
-  modalTab?: TabId | null;
   onTabChange: (tab: TabId) => void;
 }
 
@@ -56,14 +55,13 @@ const TAB_LIST: { id: TabId; titleKey: string }[] = [
   { id: 'settings',    titleKey: 'tab.settings' },
 ];
 
-export default function TabNavBar({ activeTab, modalTab, onTabChange }: TabNavBarProps) {
+export default function TabNavBar({ activeTab, onTabChange }: TabNavBarProps) {
   const { t } = useI18n();
-  const currentTab = modalTab || activeTab;
 
   return (
     <nav className="relative flex items-center p-1.5 bg-gray-200/60 dark:bg-gray-800/60 backdrop-blur-xl rounded-2xl shadow-[inset_0_1px_4px_rgba(0,0,0,0.05)] dark:shadow-[inset_0_1px_4px_rgba(0,0,0,0.4)] border border-white/40 dark:border-white/5 mx-2 xl:mx-8">
       {TAB_LIST.map(({ id, titleKey }) => {
-        const isActive = id === currentTab;
+        const isActive = id === activeTab;
         
         return (
           <button

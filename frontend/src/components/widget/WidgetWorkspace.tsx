@@ -87,9 +87,11 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
   const activeWidgetId = useWidgetStore((s) => s.activeWidgetId);
   const activeTab = useWidgetStore((s) => s.activeTab);
 
-  // Filter registry to only show widgets for the active tab
-  const activeWidgetIds = TAB_WIDGET_MAP[activeTab];
-  const activeRegistry = WIDGET_REGISTRY.filter((c) => activeWidgetIds.includes(c.id));
+  // Always render converter widgets only; other tabs have their own
+  // page-level rendering and do not use the widget dock system.
+  const converterWidgetIds = TAB_WIDGET_MAP['converter'];
+  const activeWidgetIds = converterWidgetIds;
+  const activeRegistry = WIDGET_REGISTRY.filter((c) => converterWidgetIds.includes(c.id));
   const activeWidgets = useWidgetStore(
     useShallow((s) => activeWidgetIds.map((id) => s.widgets[id]))
   );
@@ -126,7 +128,7 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
 
     const { width } = container.getBoundingClientRect();
     const state = useWidgetStore.getState();
-    const currentTabIds = TAB_WIDGET_MAP[state.activeTab];
+    const currentTabIds = TAB_WIDGET_MAP['converter'];
     const tabWidgets = currentTabIds.map((id) => state.widgets[id]);
 
     // Force any free-floating widgets in current tab to snap to left edge
@@ -331,7 +333,7 @@ export function WidgetWorkspace({ children }: WidgetWorkspaceProps) {
   const computeInsertion = useCallback(
     (draggedId: WidgetId, targetEdge: 'left' | 'right', contentDropY: number) => {
       const state = useWidgetStore.getState();
-      const currentTabIds = TAB_WIDGET_MAP[state.activeTab];
+      const currentTabIds = TAB_WIDGET_MAP['converter'];
       const siblings = currentTabIds
         .map((wid) => state.widgets[wid])
         .filter((w) => w.snapEdge === targetEdge && w.visible && w.id !== draggedId)

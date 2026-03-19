@@ -542,12 +542,7 @@ export const useWidgetStore = create<WidgetStore>()(
         activeTab: state.activeTab,
         colorWorkstationCollapsed: state.colorWorkstationCollapsed,
       }),
-      onRehydrateStorage: () => (state) => {
-        // 四个独立操作 Tab 现在走弹窗，activeTab 始终保持 converter
-        if (state && state.activeTab !== "converter") {
-          state.activeTab = "converter" as TabId;
-        }
-      },
+      onRehydrateStorage: () => () => {},
     },
   ),
 );
