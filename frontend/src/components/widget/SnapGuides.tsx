@@ -23,6 +23,7 @@ interface HighlightBounds {
 }
 
 interface GuideOverlayState {
+  effectiveWidth: number;
   nearLeft: boolean;
   nearRight: boolean;
   insertPreview: InsertPreviewState | null;
@@ -43,12 +44,22 @@ const INSERT_LINE_HEIGHT = 6;
 const INSERT_LINE_INSET = 8;
 
 const EMPTY_OVERLAY_STATE: GuideOverlayState = {
+  effectiveWidth: 0,
   nearLeft: false,
   nearRight: false,
   insertPreview: null,
   upperHighlight: null,
   lowerHighlight: null,
 };
+
+export function resolvePreviewLineLeft(
+  edge: 'left' | 'right' | undefined,
+  effectiveWidth: number
+): number {
+  return edge === 'right'
+    ? Math.max(0, effectiveWidth - WIDGET_WIDTH)
+    : 0;
+}
 
 function getWidgetBounds(
   container: HTMLDivElement,
@@ -91,6 +102,7 @@ function isSamePreview(
 
 function isSameOverlayState(prev: GuideOverlayState, next: GuideOverlayState): boolean {
   return (
+    prev.effectiveWidth === next.effectiveWidth &&
     prev.nearLeft === next.nearLeft &&
     prev.nearRight === next.nearRight &&
     isSameBounds(prev.upperHighlight, next.upperHighlight) &&
@@ -160,6 +172,7 @@ export function SnapGuides({
       }
 
       const nextState: GuideOverlayState = {
+        effectiveWidth,
         nearLeft,
         nearRight,
         insertPreview: insertPreview ?? null,
@@ -175,14 +188,12 @@ export function SnapGuides({
     return () => cancelAnimationFrame(rafId);
   }, [isDragging, dragPositionRef, insertPreviewRef, containerRef, containerWidth]);
 
-  const { nearLeft, nearRight, insertPreview, lowerHighlight, upperHighlight } = overlayState;
+  const { effectiveWidth, nearLeft, nearRight, insertPreview, lowerHighlight, upperHighlight } = overlayState;
   if (!nearLeft && !nearRight && !insertPreview && !lowerHighlight && !upperHighlight) {
     return null;
   }
 
-  const previewLineLeft = insertPreview?.edge === 'left'
-    ? 0
-    : Math.max(0, containerWidth - WIDGET_WIDTH);
+  const previewLineLeft = resolvePreviewLineLeft(insertPreview?.edge, effectiveWidth);
 
   const createEdgeHighlightStyle = (
     bounds: HighlightBounds,

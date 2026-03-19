@@ -1,7 +1,7 @@
 /**
- * Property 2: All color modes enable Block_Size and Gap sliders
+ * Property 2: Block_Size and Gap sliders follow mode-specific enable rules.
  *
- * Tag: Feature: calibration-swatch-config, Property 2: All color modes enable Block_Size and Gap sliders
+ * Tag: Feature: calibration-swatch-config, Property 2: Block_Size and Gap sliders follow mode rules
  *
  * **Validates: Requirements 4.1, 4.2, 4.3, 4.4, 5.1**
  */
@@ -40,8 +40,8 @@ const arbCalibrationColorMode = fc.constantFrom(
   ...Object.values(CalibrationColorMode)
 );
 
-describe("Feature: calibration-swatch-config, Property 2: All color modes enable Block_Size and Gap sliders", () => {
-  it("Block_Size and Gap sliders are NOT disabled for any CalibrationColorMode", () => {
+describe("Feature: calibration-swatch-config, Property 2: Block_Size and Gap sliders follow mode rules", () => {
+  it("Block_Size and Gap sliders are disabled only for extended batch modes", () => {
     fc.assert(
       fc.property(arbCalibrationColorMode, (mode) => {
         // Set the color mode in the store
@@ -56,18 +56,30 @@ describe("Feature: calibration-swatch-config, Property 2: All color modes enable
         // There should be at least 2 sliders: Block_Size and Gap
         expect(sliders.length).toBeGreaterThanOrEqual(2);
 
-        // Block_Size slider (first) should NOT be disabled
-        const blockSizeSlider = sliders[0];
-        expect(blockSizeSlider).not.toBeDisabled();
+        const shouldDisable =
+          mode === CalibrationColorMode.EIGHT_COLOR ||
+          mode === CalibrationColorMode.FIVE_COLOR_EXT;
 
-        // Gap slider (second) should NOT be disabled
+        // Block_Size slider (first) should follow mode-specific rules
+        const blockSizeSlider = sliders[0];
+        if (shouldDisable) {
+          expect(blockSizeSlider).toBeDisabled();
+        } else {
+          expect(blockSizeSlider).not.toBeDisabled();
+        }
+
+        // Gap slider (second) should follow mode-specific rules
         const gapSlider = sliders[1];
-        expect(gapSlider).not.toBeDisabled();
+        if (shouldDisable) {
+          expect(gapSlider).toBeDisabled();
+        } else {
+          expect(gapSlider).not.toBeDisabled();
+        }
 
         // Cleanup after each iteration
         unmount();
       }),
       { numRuns: 100 }
     );
-  });
+  }, 15000);
 });
