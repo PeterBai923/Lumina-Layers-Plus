@@ -39,7 +39,9 @@ const ColorWorkstation = forwardRef<HTMLDivElement>(function ColorWorkstation(_,
       data-testid="color-workstation"
       initial={false}
       animate={{
-        height: collapsed ? COLOR_WORKSTATION_TITLE_BAR_HEIGHT : `calc(30vh + ${COLOR_WORKSTATION_TITLE_BAR_HEIGHT}px)`,
+        height: collapsed
+          ? COLOR_WORKSTATION_TITLE_BAR_HEIGHT
+          : `calc(30vh + ${COLOR_WORKSTATION_TITLE_BAR_HEIGHT}px)`,
       }}
       transition={{ type: 'spring', damping: 25, stiffness: 350, mass: 0.8 }}
       onAnimationComplete={() => {
@@ -53,28 +55,29 @@ const ColorWorkstation = forwardRef<HTMLDivElement>(function ColorWorkstation(_,
         transform: 'translateX(-50%)',
         width: COLOR_WORKSTATION_WIDTH,
         zIndex: 35,
+        overflow: 'hidden',
       }}
       className={cx(
-        "overflow-hidden border-x border-t border-slate-200/80 dark:border-slate-800/80",
+        "border-x border-t border-slate-200/80 dark:border-slate-800/80",
         "bg-slate-50/98 shadow-[var(--shadow-panel-top)] dark:bg-slate-950/98",
         enableBlur && "backdrop-blur-[2px]"
       )}
     >
+      {/* iOS-Style Drag Handle Area */}
       <div
         onClick={toggle}
-        className="flex w-full cursor-pointer select-none items-center justify-center gap-2 border-b border-slate-200/70 bg-slate-50 transition-colors hover:bg-white dark:border-slate-800/80 dark:bg-slate-950 dark:hover:bg-slate-900"
+        className="flex w-full cursor-pointer select-none items-center justify-center border-b border-slate-200/70 bg-slate-50 transition-colors hover:bg-white dark:border-slate-800/80 dark:bg-slate-950 dark:hover:bg-slate-900"
         style={{ height: COLOR_WORKSTATION_TITLE_BAR_HEIGHT }}
         aria-expanded={!collapsed}
         aria-label={t('widget.colorWorkstation')}
       >
         <div className="h-1.5 w-12 rounded-full bg-slate-400/60 transition-transform hover:scale-x-110 hover:bg-slate-500 dark:bg-slate-500/60 dark:hover:bg-slate-400" />
         {collapsed && (
-          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-            {t('widget.colorWorkstation')}
-          </span>
+          <span className="ml-2 text-xs text-slate-500 dark:text-slate-400">{t('widget.colorWorkstation')}</span>
         )}
       </div>
 
+      {/* Content area (only rendered when expanded) */}
       {!collapsed && (
         <div
           className="flex gap-3 px-3 pb-3 pt-2"

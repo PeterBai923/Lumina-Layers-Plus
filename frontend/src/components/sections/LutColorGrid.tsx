@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, memo } from "react";
 import { useConverterStore } from "../../stores/converterStore";
 import { useSettingsStore } from "../../stores/settingsStore";
 import { hexToRgb, sortByColorDistance } from "../../utils/colorUtils";
@@ -89,7 +89,7 @@ function saveFavorites(lutKey: string, favs: Set<string>) {
 
 // ========== Compact ColorSwatch ==========
 
-const ColorSwatch = React.memo(function ColorSwatch({
+const ColorSwatch = memo(function ColorSwatch({
   entry,
   isTarget,
   isFav,

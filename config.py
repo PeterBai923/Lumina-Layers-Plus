@@ -175,8 +175,8 @@ class ColorSystem:
             3: [0, 100, 240, 255]
         },
         'map': {"White": 0, "Red": 1, "Yellow": 2, "Blue": 3},
-        'corner_labels': ["白色 (左上)", "红色 (右上)", "蓝色 (右下)", "黄色 (左下)"],
-        'corner_labels_en': ["White (TL)", "Red (TR)", "Blue (BR)", "Yellow (BL)"]
+        'corner_labels': ["左上", "右上", "右下", "左下"],
+        'corner_labels_en': ["Top-Left", "Top-Right", "Bottom-Right", "Bottom-Left"]
     }
 
     SIX_COLOR = {
