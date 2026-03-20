@@ -298,36 +298,6 @@ def kill_process_tree(pid: int, force: bool = False) -> bool:
         return False
 
 
-def kill_processes_by_name(name: str) -> int:
-    """通过名称终止进程，返回终止的进程数"""
-    killed = 0
-    try:
-        if os.name == "nt":
-            # Windows: 使用 wmic 或 taskkill
-            # 先尝试 taskkill
-            result = subprocess.run(
-                ["taskkill", "/F", "/IM", f"{name}.exe", "/T"],
-                capture_output=True,
-                creationflags=subprocess.CREATE_NO_WINDOW
-            )
-            if result.returncode == 0:
-                # 解析输出统计终止的进程数
-                output = result.stdout.decode("gbk", errors="ignore")
-                match = re.search(r"(\d+)\s*个进程", output)
-                if match:
-                    killed = int(match.group(1))
-        else:
-            # Linux/macOS: 使用 pkill
-            result = subprocess.run(
-                ["pkill", "-f", name],
-                capture_output=True
-            )
-            if result.returncode == 0:
-                killed = 1  # pkill 不返回计数，假设至少一个
-    except Exception as e:
-        log_err(f"终止进程 {name} 失败: {e}")
-    return killed
-
 
 def cleanup_residual_processes() -> None:
     """清理可能残留的进程"""

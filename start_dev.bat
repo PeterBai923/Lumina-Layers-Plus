@@ -46,13 +46,6 @@ for /f "skip=1 tokens=1" %%a in ('wmic process where "CommandLine like '%%api_se
     call :trim_pid
 )
 
-:: 尝试清理残留的 Node 进程
-tasklist | findstr "node.exe" >nul 2>&1
-if %errorlevel% == 0 (
-    echo [清理] 发现残留 Node 进程，正在终止...
-    taskkill /F /IM node.exe >nul 2>&1
-)
-
 :: 短暂延迟确保端口释放
 timeout /t 1 /nobreak >nul 2>&1
 
