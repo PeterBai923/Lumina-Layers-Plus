@@ -14,7 +14,7 @@
   </a>
   &nbsp;
   <a href="https://github.com/MOVIBALE/Lumina-Layers/releases/latest">
-    <img src="https://img.shields.io/github/v/release/MOVIBALE/Lumina-Layers?label=最新版本" alt="Release">
+    <img src="https://img.shields.io/github/v/release/MOVIBALE/Lumina-Layers?label=最新版本&amp;include_prereleases" alt="Release">
   </a>
   &nbsp;
   <a href="LICENSE">
@@ -34,6 +34,27 @@
 <p align="center">
   <a href="https://github.com/MOVIBALE/Lumina-Layers">
     <img src="https://img.shields.io/badge/GitHub-Lumina--Layers-181717?style=for-the-badge&logo=github" alt="GitHub">
+  </a>
+</p>
+
+<p align="center"><b>加入 Discord 社区：</b></p>
+<p align="center">
+  <a href="https://discord.gg/57whRe3C8G">
+    <img src="https://img.shields.io/badge/Discord-Lumina%20Studio-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord">
+  </a>
+</p>
+
+<p align="center"><b>订阅 YouTube 频道：</b></p>
+<p align="center">
+  <a href="https://www.youtube.com/channel/UCyP2Euw9whk1j-MT8d652Kw">
+    <img src="https://img.shields.io/badge/YouTube-Lumina%20Studio-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="YouTube">
+  </a>
+</p>
+
+<p align="center"><b>在 Patreon 支持我们：</b></p>
+<p align="center">
+  <a href="https://www.patreon.com/Lumina_studio">
+    <img src="https://img.shields.io/badge/Patreon-Lumina%20Studio-FF424D?style=for-the-badge&logo=patreon&logoColor=white" alt="Patreon">
   </a>
 </p>
 
