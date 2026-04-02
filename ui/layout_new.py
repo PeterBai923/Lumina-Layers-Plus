@@ -4744,7 +4744,7 @@ def create_calibration_tab_content(lang: str) -> dict:
             return generate_8color_batch_zip()
         if color_mode == "5-Color Extended (Dual Page)":
             from core.calibration import generate_5color_extended_batch_zip
-            return generate_5color_extended_batch_zip()
+            return generate_5color_extended_batch_zip(block_size, gap)
         if "5-Color Extended" in color_mode:
             from core.calibration import generate_5color_extended_board
             return generate_5color_extended_board(block_size, gap)
