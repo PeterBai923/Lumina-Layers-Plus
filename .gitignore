@@ -281,3 +281,4 @@ assets/temp_*.npy
 # Local temporary files
 .trae/
 OPTIMIZATION_LOG.md
+run.bat
