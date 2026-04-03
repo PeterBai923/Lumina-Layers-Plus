@@ -2692,34 +2692,22 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
                             size="lg"
                         )
 
-                    # Split button: [Open in Slicer] [▼]
-                    default_slicer = _get_default_slicer()
+                    # Individual slicer buttons (one per installed slicer + download)
                     slicer_choices = _get_slicer_choices(lang)
-                    default_slicer_label = ""
-                    for label, sid in slicer_choices:
-                        if sid == default_slicer:
-                            default_slicer_label = label
-                            break
+                    default_slicer = _get_default_slicer()
 
                     with gr.Row(elem_id="conv-slicer-split-btn"):
-                        components['btn_conv_open_slicer'] = gr.Button(
-                            value=default_slicer_label or "📥 下载 3MF",
-                            variant="secondary",
-                            size="lg",
-                            elem_id="conv-open-slicer-btn",
-                            elem_classes=[_slicer_css_class(default_slicer)],
-                            scale=5
-                        )
-                        components['btn_conv_slicer_arrow'] = gr.Button(
-                            value="▾",
-                            variant="secondary",
-                            size="lg",
-                            elem_id="conv-slicer-arrow-btn",
-                            elem_classes=[_slicer_css_class(default_slicer)],
-                            scale=1,
-                            min_width=40
-                        )
-                    # Hidden dropdown (shown/hidden by arrow button)
+                        for label, sid in slicer_choices:
+                            css_cls = _slicer_css_class(sid)
+                            btn_key = f'btn_conv_slicer_{sid}'
+                            components[btn_key] = gr.Button(
+                                value=label,
+                                variant="primary" if sid == default_slicer else "secondary",
+                                size="lg",
+                                elem_classes=[css_cls],
+                                scale=1,
+                            )
+                    # Hidden state for dropdown compatibility (kept as hidden)
                     components['dropdown_conv_slicer'] = gr.Dropdown(
                         choices=slicer_choices,
                         value=default_slicer,
@@ -4379,50 +4367,7 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
     components['state_conv_lut_path'] = conv_lut_path
 
     # ========== Slicer Integration Events ==========
-    conv_slicer_dropdown_vis = gr.State(value=False)
-
-    def on_slicer_dropdown_change(slicer_id):
-        """Update both buttons' label/color and save preference."""
-        _save_user_setting("last_slicer", slicer_id)
-        show_file = (slicer_id == "download")
-        css_cls = _slicer_css_class(slicer_id)
-        for label, sid in _get_slicer_choices(lang):
-            if sid == slicer_id:
-                return (
-                    gr.update(value=label, elem_classes=[css_cls]),
-                    gr.update(elem_classes=[css_cls]),
-                    gr.update(visible=show_file),
-                    gr.update(visible=show_file),
-                )
-        return (
-            gr.update(value="📥 下载 3MF", elem_classes=["slicer-download"]),
-            gr.update(elem_classes=["slicer-download"]),
-            gr.update(visible=True),
-            gr.update(visible=True),
-        )
-
-    components['dropdown_conv_slicer'].change(
-        fn=on_slicer_dropdown_change,
-        inputs=[components['dropdown_conv_slicer']],
-        outputs=[
-            components['btn_conv_open_slicer'],
-            components['btn_conv_slicer_arrow'],
-            components['file_conv_download_file'],
-            components['file_conv_color_recipe'],
-        ]
-    )
-
-    # Arrow button toggles dropdown visibility
-    def on_slicer_arrow_click(vis):
-        """Toggle dropdown visibility."""
-        new_vis = not vis
-        return gr.update(visible=new_vis), new_vis
-
-    components['btn_conv_slicer_arrow'].click(
-        fn=on_slicer_arrow_click,
-        inputs=[conv_slicer_dropdown_vis],
-        outputs=[components['dropdown_conv_slicer'], conv_slicer_dropdown_vis]
-    )
+    # Each slicer button binds directly to on_open_slicer_click with its slicer_id
 
     # ========== Invalidate cached 3MF when any generation parameter changes ==========
     # When user changes image, dimensions, color mode, modeling mode, or any other
@@ -4464,7 +4409,7 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
             outputs=[components['file_conv_download_file']]
         )
 
-    def on_open_slicer_click(file_obj, slicer_id, batch_files, is_batch, single_image, lut_path, 
+    def on_open_slicer_click(slicer_id, file_obj, batch_files, is_batch, single_image, lut_path,
                             target_width_mm, spacer_thick, structure_mode, auto_bg, bg_tol, color_mode,
                             add_loop, loop_width, loop_length, loop_hole, loop_pos,
                             modeling_mode, quantize_colors, color_replacements,
@@ -4549,58 +4494,66 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
         status = open_in_slicer(actual_path, slicer_id)
         return file_obj, gr.update(), color_recipe_path, gr.update(), status
 
-    components['btn_conv_open_slicer'].click(
-        fn=on_open_slicer_click,
-        inputs=[
-            components['file_conv_download_file'], 
-            components['dropdown_conv_slicer'],
-            # All generation parameters
-            components['file_conv_batch_input'],
-            components['checkbox_conv_batch_mode'],
-            components['image_conv_image_label'],
-            conv_lut_path,
-            components['slider_conv_width'],
-            components['slider_conv_thickness'],
-            components['radio_conv_structure'],
-            components['checkbox_conv_auto_bg'],
-            components['slider_conv_tolerance'],
-            components['radio_conv_color_mode'],
-            components['checkbox_conv_loop_enable'],
-            components['slider_conv_loop_width'],
-            components['slider_conv_loop_length'],
-            components['slider_conv_loop_hole'],
-            conv_loop_pos,
-            components['radio_conv_modeling_mode'],
-            components['slider_conv_quantize_colors'],
-            conv_replacement_regions,
-            components['checkbox_conv_separate_backing'],
-            components['checkbox_conv_relief_mode'],
-            conv_color_height_map,
-            components['image_conv_heightmap'],
-            components['slider_conv_auto_height_max'],
-            components['checkbox_conv_cleanup'],
-            components['checkbox_conv_outline_enable'],
-            components['slider_conv_outline_width'],
-            components['checkbox_conv_cloisonne_enable'],
-            components['slider_conv_wire_width'],
-            components['slider_conv_wire_height'],
-            conv_free_color_set,
-            components['checkbox_conv_coating_enable'],
-            components['slider_conv_coating_height'],
-            components['radio_conv_auto_height_mode'],
-            conv_preview_cache,
-            theme_state,
-            preprocess_processed_path,
-            components['slider_conv_hue_weight'],
-        ],
-        outputs=[
-            components['file_conv_download_file'],
-            components['file_conv_download_file'],
-            components['file_conv_color_recipe'],
-            conv_3d_preview,
-            components['textbox_conv_status']
-        ]
-    )
+    # Bind each slicer button to the same handler with its own slicer_id
+    _slicer_common_inputs = [
+        # All generation parameters
+        components['file_conv_batch_input'],
+        components['checkbox_conv_batch_mode'],
+        components['image_conv_image_label'],
+        conv_lut_path,
+        components['slider_conv_width'],
+        components['slider_conv_thickness'],
+        components['radio_conv_structure'],
+        components['checkbox_conv_auto_bg'],
+        components['slider_conv_tolerance'],
+        components['radio_conv_color_mode'],
+        components['checkbox_conv_loop_enable'],
+        components['slider_conv_loop_width'],
+        components['slider_conv_loop_length'],
+        components['slider_conv_loop_hole'],
+        conv_loop_pos,
+        components['radio_conv_modeling_mode'],
+        components['slider_conv_quantize_colors'],
+        conv_replacement_regions,
+        components['checkbox_conv_separate_backing'],
+        components['checkbox_conv_relief_mode'],
+        conv_color_height_map,
+        components['image_conv_heightmap'],
+        components['slider_conv_auto_height_max'],
+        components['checkbox_conv_cleanup'],
+        components['checkbox_conv_outline_enable'],
+        components['slider_conv_outline_width'],
+        components['checkbox_conv_cloisonne_enable'],
+        components['slider_conv_wire_width'],
+        components['slider_conv_wire_height'],
+        conv_free_color_set,
+        components['checkbox_conv_coating_enable'],
+        components['slider_conv_coating_height'],
+        components['radio_conv_auto_height_mode'],
+        conv_preview_cache,
+        theme_state,
+        preprocess_processed_path,
+        components['slider_conv_hue_weight'],
+    ]
+    _slicer_common_outputs = [
+        components['file_conv_download_file'],
+        components['file_conv_download_file'],
+        components['file_conv_color_recipe'],
+        conv_3d_preview,
+        components['textbox_conv_status']
+    ]
+
+    for _label, _sid in _get_slicer_choices(lang):
+        _btn_key = f'btn_conv_slicer_{_sid}'
+        _btn = components.get(_btn_key)
+        if _btn is not None:
+            # Create closure to capture slicer_id
+            _make_fn = lambda sid=_sid: (lambda *args: on_open_slicer_click(sid, *args))
+            _btn.click(
+                fn=_make_fn(_sid),
+                inputs=[components['file_conv_download_file']] + _slicer_common_inputs,
+                outputs=_slicer_common_outputs,
+            )
 
     # ========== Fullscreen 3D Toggle Events ==========
     components['btn_conv_3d_fullscreen'].click(
