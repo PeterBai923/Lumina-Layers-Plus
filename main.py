@@ -215,7 +215,7 @@ if __name__ == "__main__":
         app = create_app()
 
         try:
-            from ui.layout_new import HEADER_CSS, DEBOUNCE_JS, FIVECOLOR_CLICK_JS
+            from ui.assets import HEADER_CSS, DEBOUNCE_JS, FIVECOLOR_CLICK_JS
             # Import crop extension for head JS injection
             from ui.crop_extension import get_crop_head_js
             
