@@ -229,7 +229,7 @@ def on_preview_generated_update_palette(cache, lang: str = "zh"):
     Returns:
         tuple: (palette_html, selected_color_state)
     """
-    from ui.palette_extension import generate_palette_html
+    from ui.widgets.palette import generate_palette_html
 
     if cache is None:
         placeholder = I18n.get('conv_palette_replacements_placeholder', lang)
@@ -815,7 +815,7 @@ def on_merge_preview(cache, merge_enable, merge_threshold, merge_max_distance,
     from core.converter import update_preview_with_replacements, extract_color_palette
     from core.color_merger import ColorMerger
     from core.image_processing import LuminaImageProcessor
-    from ui.palette_extension import generate_palette_html
+    from ui.widgets.palette import generate_palette_html
     
     if cache is None:
         return None, None, "", {}, {}, I18n.get('palette_need_preview', lang)

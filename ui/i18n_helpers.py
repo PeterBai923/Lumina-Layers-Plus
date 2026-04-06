@@ -6,7 +6,7 @@ import gradio as gr
 from core.i18n import I18n
 from utils import Stats
 from config import ModelingMode
-from .helpers import _format_bytes
+from .image_helpers import _format_bytes
 
 
 def _get_header_html(lang: str) -> str:
@@ -197,7 +197,7 @@ def _get_all_component_updates(lang: str, components: dict) -> list:
             num_key = key[4:]
             updates.append(gr.update(label=I18n.get(num_key, lang)))
         elif key == 'html_crop_modal':
-            from ui.crop_extension import get_crop_modal_html
+            from ui.widgets.crop_modal import get_crop_modal_html
             updates.append(gr.update(value=get_crop_modal_html(lang)))
         elif key.startswith('html_'):
             html_key = key[5:]

@@ -35,7 +35,7 @@ except ImportError:
 
 # Import palette HTML generator from extension (non-invasive)
 # Moved to lazy import to avoid circular dependency
-# from ui.palette_extension import generate_palette_html, generate_lut_color_grid_html
+# from ui.widgets.palette import generate_palette_html, generate_lut_color_grid_html
 
 
 # ========== LUT Color Extraction Functions ==========
@@ -142,9 +142,9 @@ def generate_lut_color_dropdown_html(lut_path: str, selected_color: str = None, 
     Returns:
         HTML string showing available colors as a clickable grid
     """
-    from ui.palette_extension import generate_lut_color_grid_html
+    from ui.widgets.palette import generate_lut_color_grid_html
     colors = extract_lut_available_colors(lut_path)
-    # Delegate HTML generation to palette_extension (non-invasive)
+    # Delegate HTML generation to palette widget (non-invasive)
     return generate_lut_color_grid_html(colors, selected_color, used_colors)
 
 
@@ -3642,7 +3642,7 @@ def update_preview_with_replacements(cache, replacement_regions=None,
                 auto_pairs.append({"quantized_hex": qh, "matched_hex": mh})
 
     # Generate palette HTML for display
-    from ui.palette_extension import generate_palette_html
+    from ui.widgets.palette import generate_palette_html
     palette_html = generate_palette_html(
         color_palette,
         replacements={},
@@ -3654,7 +3654,7 @@ def update_preview_with_replacements(cache, replacement_regions=None,
     return display, updated_cache, palette_html
 
 
-# generate_palette_html is now imported from ui.palette_extension
+# generate_palette_html is now imported from ui.widgets.palette
 
 
 # ========== Color Highlight Functions ==========
@@ -3985,7 +3985,7 @@ def generate_lut_grid_html(lut_path, lang: str = "zh"):
             return 'purple'
         return 'neutral'
 
-    from ui.palette_extension import build_search_bar_html, build_hue_filter_bar_html
+    from ui.widgets.palette import build_search_bar_html, build_hue_filter_bar_html
 
     # Derive LUT key for favorites persistence
     _lut_key = os.path.splitext(os.path.basename(lut_path))[0] if lut_path else ''
@@ -4097,7 +4097,7 @@ def generate_lut_card_grid_html(lut_path, lang: str = "zh"):
     cell = 18
     gap = 1
 
-    from ui.palette_extension import build_search_bar_html, build_hue_filter_bar_html
+    from ui.widgets.palette import build_search_bar_html, build_hue_filter_bar_html
 
     html_parts = [
         f'<div style="margin-bottom:8px; font-size:12px; color:#666;">{I18n.get("lut_grid_count", lang).format(count=total)}: <span id="lut-color-visible-count">{total}</span></div>',

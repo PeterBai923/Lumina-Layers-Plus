@@ -58,7 +58,7 @@ from .callbacks import (
 )
 from .settings import (
     load_last_lut_setting, save_last_lut_setting,
-    _load_user_settings, _save_user_setting,
+    _save_user_setting,
     save_color_mode, save_modeling_mode,
     resolve_height_mode, CONFIG_FILE,
 )
@@ -81,7 +81,7 @@ from .i18n_helpers import (
     _get_header_html, _get_stats_html, _get_footer_html,
     _get_all_component_updates, _get_component_list,
 )
-from .helpers import _format_bytes
+from .image_helpers import _format_bytes
 
 # Supported image file types for Gradio upload components.
 # Centralized list so that adding a new format only requires one change.
@@ -101,12 +101,14 @@ if hasattr(I18n, 'TEXTS'):
         'conv_lut_status': {'zh': '💡 拖放.npy文件自动添加', 'en': '💡 Drop .npy file to load'},
     })
 
-from .converter_tab import (
+from .tabs.converter_tab import (
     create_converter_tab_content,
     process_batch_generation,
     _update_lut_grid,
     _detect_and_enforce_structure,
 )
+from .tabs.advanced_tab import create_advanced_tab_content
+from .tabs.about_tab import create_about_tab_content
 
 
 
@@ -312,13 +314,13 @@ console.log('[CROP] Global scripts loaded, openCropModal:', typeof window.openCr
             tab_components['tab_converter'] = tab_conv
             
             with gr.TabItem(label=I18n.get('tab_calibration', "zh"), id=1) as tab_cal:
-                from .calibration_tab import create_calibration_tab_content
+                from .tabs.calibration_tab import create_calibration_tab_content
                 cal_components = create_calibration_tab_content("zh")
                 components.update(cal_components)
             tab_components['tab_calibration'] = tab_cal
             
             with gr.TabItem(label=I18n.get('tab_extractor', "zh"), id=2) as tab_ext:
-                from .extractor_tab import create_extractor_tab_content
+                from .tabs.extractor_tab import create_extractor_tab_content
                 ext_components = create_extractor_tab_content("zh")
                 components.update(ext_components)
             tab_components['tab_extractor'] = tab_ext
@@ -329,13 +331,13 @@ console.log('[CROP] Global scripts loaded, openCropModal:', typeof window.openCr
             tab_components['tab_advanced'] = tab_advanced
             
             with gr.TabItem(label=I18n.get('tab_merge', "zh"), id=4) as tab_merge:
-                from .merge_tab import create_merge_tab_content
+                from .tabs.merge_tab import create_merge_tab_content
                 merge_components = create_merge_tab_content("zh", lang_state)
                 components.update(merge_components)
             tab_components['tab_merge'] = tab_merge
             
             with gr.TabItem(label="🎨 配色查询 | Color Query", id=5) as tab_5color:
-                from ui.fivecolor_tab_v2 import create_5color_tab_v2
+                from ui.tabs.colorquery_tab import create_5color_tab_v2
                 create_5color_tab_v2("zh")
             tab_components['tab_5color'] = tab_5color
             
@@ -579,88 +581,4 @@ console.log('[CROP] Global scripts loaded, openCropModal:', typeof window.openCr
             )
 
     return app
-
-
-# ---------- Tab builders ----------
-
-
-
-
-def create_advanced_tab_content(lang: str) -> dict:
-    """Build Advanced tab content with independent setting groups.
-    独立分组构建高级设置标签页内容。
-
-    Args:
-        lang (str): Language code, 'zh' or 'en'. (语言代码)
-
-    Returns:
-        dict: Gradio component dictionary. (组件字典)
-    """
-    components = {}
-
-    # --- Group 1: Palette display mode ---
-    with gr.Group():
-        palette_label = "调色板样式" if lang == "zh" else "Palette Style"
-        palette_swatch = "色块模式" if lang == "zh" else "Swatch Grid"
-        palette_card = "色卡模式" if lang == "zh" else "Card Layout"
-        saved_mode = _load_user_settings().get("palette_mode", "swatch")
-        components['radio_palette_mode'] = gr.Radio(
-            choices=[(palette_swatch, "swatch"), (palette_card, "card")],
-            value=saved_mode,
-            label=palette_label,
-        )
-
-    # --- Group 2: Unlock max size limit ---
-    with gr.Group():
-        unlock_label = "解除最大尺寸限制" if lang == "zh" else "Unlock Max Size Limit"
-        unlock_info = "开启后，图像转换的宽度/高度滑块将不再限制最大值（默认上限 400mm）" if lang == "zh" else "When enabled, width/height sliders in Image Converter will have no upper limit (default max 400mm)"
-        components['checkbox_unlock_max_size'] = gr.Checkbox(
-            label=unlock_label,
-            value=False,
-            info=unlock_info,
-        )
-
-    return components
-
-
-def create_about_tab_content(lang: str) -> dict:
-    """Build About tab content from i18n. Returns component dict."""
-    components = {}
-
-    # Settings section
-    components['md_settings_title'] = gr.Markdown(I18n.get('settings_title', lang))
-    cache_size = Stats.get_cache_size()
-    cache_size_str = _format_bytes(cache_size)
-    components['md_cache_size'] = gr.Markdown(
-        I18n.get('settings_cache_size', lang).format(cache_size_str)
-    )
-    with gr.Row():
-        components['btn_clear_cache'] = gr.Button(
-            I18n.get('settings_clear_cache', lang),
-            variant="secondary",
-            size="sm"
-        )
-        components['btn_reset_counters'] = gr.Button(
-            I18n.get('settings_reset_counters', lang),
-            variant="secondary",
-            size="sm"
-        )
-    
-    output_size = Stats.get_output_size()
-    output_size_str = _format_bytes(output_size)
-    components['md_output_size'] = gr.Markdown(
-        I18n.get('settings_output_size', lang).format(output_size_str)
-    )
-    components['btn_clear_output'] = gr.Button(
-        I18n.get('settings_clear_output', lang),
-        variant="secondary",
-        size="sm"
-    )
-    
-    components['md_settings_status'] = gr.Markdown("")
-    
-    # About page content (from i18n)
-    components['md_about_content'] = gr.Markdown(I18n.get('about_content', lang))
-    
-    return components
 

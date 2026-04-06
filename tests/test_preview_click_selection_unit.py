@@ -14,7 +14,7 @@ for _mod_name in ("gradio", "gradio.themes"):
         sys.modules[_mod_name] = MagicMock()
 
 from core.converter import _resolve_click_selection_hexes, on_preview_click_select_color
-from ui.palette_extension import build_selected_dual_color_html
+from ui.widgets.palette import build_selected_dual_color_html
 
 
 class _EvtNoneIndex:

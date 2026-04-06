@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Lumina Studio - Converter Tab
-Extracted from layout_new.py for modularity.
+Extracted from layout.py for modularity.
 """
 
 import json
@@ -32,44 +32,43 @@ from core.converter import (
 )
 from core.heightmap_loader import HeightmapLoader
 
-from .styles import CUSTOM_CSS
-from .callbacks import (
+from ..styles import CUSTOM_CSS
+from ..callbacks import (
     on_lut_select, on_lut_upload_save,
     on_apply_color_replacement, on_clear_color_replacements,
     on_undo_color_replacement, on_preview_generated_update_palette,
     on_delete_selected_user_replacement, on_highlight_color_change, on_clear_highlight,
     on_merge_preview, on_merge_apply, on_merge_revert,
 )
-from .settings import (
+from ..settings import (
     load_last_lut_setting, save_last_lut_setting,
     _load_user_settings, _save_user_setting,
     save_color_mode, save_modeling_mode, resolve_height_mode, CONFIG_FILE,
 )
-from .slicer_integration import (
+from ..slicer_integration import (
     detect_installed_slicers, open_in_slicer,
     _INSTALLED_SLICERS, _get_slicer_choices,
     _get_default_slicer, _slicer_css_class,
 )
-from .assets import (
+from ..assets import (
     DEBOUNCE_JS, HEADER_CSS, LUT_GRID_CSS,
     PREVIEW_ZOOM_CSS, LUT_GRID_JS, PREVIEW_ZOOM_JS,
     FIVECOLOR_CLICK_JS,
 )
-from .image_helpers import (
+from ..image_helpers import (
     _get_image_size, calc_height_from_width, calc_width_from_height,
     init_dims, _scale_preview_image, _preview_update,
 )
-from .i18n_helpers import (
+from ..i18n_helpers import (
     _get_header_html, _get_stats_html, _get_footer_html,
     _get_all_component_updates, _get_component_list,
 )
-from .helpers import _format_bytes
 
 
-# Lazy import to avoid circular dependency with layout_new.
+# Lazy import to avoid circular dependency with layout.
 # SUPPORTED_IMAGE_FILE_TYPES is only needed inside create_converter_tab_content.
 def _get_supported_image_file_types():
-    from .layout_new import SUPPORTED_IMAGE_FILE_TYPES
+    from ..layout import SUPPORTED_IMAGE_FILE_TYPES
     return SUPPORTED_IMAGE_FILE_TYPES
 
 def process_batch_generation(batch_files, is_batch, single_image, lut_path, target_width_mm,
@@ -331,7 +330,7 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
             confirm_crop_btn = gr.Button("confirm_crop", elem_id="confirm-crop-hidden-btn", elem_classes=["hidden-crop-component"])
             
             # Cropper.js Modal HTML (JS is loaded via head parameter in main.py)
-            from ui.crop_extension import get_crop_modal_html
+            from ui.widgets.crop_modal import get_crop_modal_html
             cropper_modal_html = gr.HTML(
                 get_crop_modal_html(lang),
                 elem_classes=["crop-modal-container"]
@@ -673,7 +672,7 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
                         )
 
                         # --- 新 UI 布局 ---
-                        from ui.palette_extension import build_selected_dual_color_html
+                        from ui.widgets.palette import build_selected_dual_color_html
 
                         with gr.Row():
                             # 左侧：当前选中的原图颜色
@@ -1648,7 +1647,7 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
     def build_palette_html_with_selection(cache, replacement_regions,
                                           selected_user_row_id, selected_auto_row_id,
                                           lang_state_val):
-        from ui.palette_extension import generate_palette_html
+        from ui.widgets.palette import generate_palette_html
 
         if cache is None:
             placeholder = I18n.get('conv_palette_replacements_placeholder', lang_state_val)
@@ -2027,7 +2026,7 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
 
     # [修改] 预览图点击事件同步到 UI
     def on_preview_click_sync_ui(cache, evt: gr.SelectData, lut_path):
-        from ui.palette_extension import generate_dual_recommendations_html, build_selected_dual_color_html
+        from ui.widgets.palette import generate_dual_recommendations_html, build_selected_dual_color_html
 
         img, display_text, hex_val, msg = on_preview_click_select_color(cache, evt)
         if hex_val is None or not isinstance(hex_val, str):
@@ -2338,7 +2337,7 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
                                  replacement_regions, selected_user_row_id, selected_auto_row_id,
                                  loop_pos, add_loop, loop_width, loop_length, loop_hole, loop_angle,
                                  enable_relief, height_map, base_thickness):
-        from ui.palette_extension import generate_dual_recommendations_html, build_selected_dual_color_html
+        from ui.widgets.palette import generate_dual_recommendations_html, build_selected_dual_color_html
 
         if not selected_hex:
             return gr.update(), gr.update(), gr.update(), gr.update(), cache, gr.update(), gr.update(), gr.update()

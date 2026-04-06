@@ -140,3 +140,14 @@ def _preview_update(img):
     if isinstance(img, dict) and img.get("__type__") == "update":
         return img
     return gr.update(value=_scale_preview_image(img))
+
+
+def _format_bytes(size_bytes: int) -> str:
+    """Format bytes to human readable string."""
+    if size_bytes == 0:
+        return "0 B"
+    for unit in ['B', 'KB', 'MB', 'GB']:
+        if size_bytes < 1024:
+            return f"{size_bytes:.1f} {unit}"
+        size_bytes /= 1024
+    return f"{size_bytes:.1f} TB"

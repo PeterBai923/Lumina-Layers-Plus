@@ -151,7 +151,7 @@ import webbrowser
 import socket
 import gradio as gr     # type:ignore
 from config import get_tray_runtime_policy
-from ui.layout_new import create_app
+from ui.layout import create_app
 from ui.styles import CUSTOM_CSS
 
 ENABLE_TRAY, TRAY_POLICY_REASON = get_tray_runtime_policy()
@@ -217,7 +217,7 @@ if __name__ == "__main__":
         try:
             from ui.assets import HEADER_CSS, DEBOUNCE_JS, FIVECOLOR_CLICK_JS
             # Import crop extension for head JS injection
-            from ui.crop_extension import get_crop_head_js
+            from ui.widgets.crop_modal import get_crop_head_js
             
             # Find icon path (handle both dev and frozen modes)
             icon_path = None

@@ -11,7 +11,7 @@ from config import ModelingMode
 from core.converter import _normalize_color_replacements_input
 from core.i18n import I18n
 from ui.callbacks import on_apply_color_replacement, on_delete_selected_user_replacement
-from ui.palette_extension import generate_palette_html
+from ui.widgets.palette import generate_palette_html
 
 
 def test_palette_list_i18n_keys_exist():
@@ -147,7 +147,7 @@ def test_process_batch_generation_single_accepts_replacement_regions_list(monkey
 
     monkeypatch.setattr('ui.converter_tab.generate_final_model', fake_generate_final_model)
 
-    from ui.converter_tab import process_batch_generation
+    from ui.tabs.converter_tab import process_batch_generation
 
     replacement_regions = [
         {'source': '#112233', 'replacement': '#aabbcc'},
@@ -197,7 +197,7 @@ def test_process_batch_generation_single_accepts_replacement_regions_list(monkey
 
 
 def test_process_batch_generation_full_pipeline_replacement_regions_affect_preview_and_model():
-    from ui.converter_tab import process_batch_generation
+    from ui.tabs.converter_tab import process_batch_generation
 
     image_path = 'test_images/sample_logo.png'
     lut_path = 'lut-npy预设/bambulab/bambulab_pla_basic_rybw.npy'
@@ -291,7 +291,7 @@ def test_update_preview_with_replacement_regions_applies_hex_without_nameerror(m
 
     monkeypatch.setattr('core.converter.render_preview', lambda *args, **kwargs: 'display', raising=False)
     monkeypatch.setattr('core.converter.extract_color_palette', lambda *_args, **_kwargs: [], raising=False)
-    monkeypatch.setattr('ui.palette_extension.generate_palette_html', lambda *args, **kwargs: '<html/>', raising=False)
+    monkeypatch.setattr('ui.widgets.palette.generate_palette_html', lambda *args, **kwargs: '<html/>', raising=False)
 
     replacement_regions = [
         {'mask': np.array([[True]], dtype=bool), 'replacement': '#aabbcc'},
@@ -352,7 +352,7 @@ def test_update_preview_applies_regions_in_order_without_map(monkeypatch):
 
     monkeypatch.setattr('core.converter.render_preview', lambda *a, **k: 'display', raising=False)
     monkeypatch.setattr('core.converter.extract_color_palette', lambda *_a, **_k: [], raising=False)
-    monkeypatch.setattr('ui.palette_extension.generate_palette_html', lambda *a, **k: '<html/>', raising=False)
+    monkeypatch.setattr('ui.widgets.palette.generate_palette_html', lambda *a, **k: '<html/>', raising=False)
 
     r1 = {'mask': np.array([[True, False]], dtype=bool), 'replacement': '#112233'}
     r2 = {'mask': np.array([[True, True]], dtype=bool), 'replacement': '#aabbcc'}
@@ -364,7 +364,7 @@ def test_update_preview_applies_regions_in_order_without_map(monkeypatch):
 
 def test_create_converter_tab_content_initializes_without_replacement_map_nameerror():
     import gradio as gr
-    from ui.converter_tab import create_converter_tab_content
+    from ui.tabs.converter_tab import create_converter_tab_content
 
     with gr.Blocks():
         lang_state = gr.State(value='zh')

@@ -11,7 +11,7 @@ import re
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
-from ui.layout_new import SUPPORTED_IMAGE_FILE_TYPES
+from ui.layout import SUPPORTED_IMAGE_FILE_TYPES
 
 
 # ── Required formats that MUST be present ──────────────────────────────

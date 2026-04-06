@@ -7,7 +7,7 @@ Self-contained module for LUT merging: UI and event bindings.
 import gradio as gr
 from core.i18n import I18n
 from utils import LUTManager
-from .callbacks import (
+from ..callbacks import (
     on_merge_primary_select,
     on_merge_secondary_change,
     on_merge_execute,
