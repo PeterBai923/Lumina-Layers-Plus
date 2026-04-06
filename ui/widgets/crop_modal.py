@@ -6,9 +6,7 @@ This module provides image cropping capabilities without modifying the core layo
 It uses a decorator pattern to wrap the original create_app function.
 """
 
-import gradio as gr
 from core.i18n import I18n
-from core.image_preprocessor import ImagePreprocessor
 
 
 def get_crop_modal_html(lang: str) -> str:
@@ -26,9 +24,7 @@ def get_crop_modal_html(lang: str) -> str:
     lbl_free = '自由' if lang == 'zh' else 'Free'
 
     template = """
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
+<!-- CDN scripts (jQuery, Cropper.js) and JS functions are loaded via head parameter in main.py -->
 <style>
 #crop-modal-overlay {{ display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999; justify-content: center; align-items: center; }}
 #crop-modal {{ background: var(--background-fill-primary, white); border-radius: 12px; padding: 20px; max-width: 90vw; max-height: 90vh; overflow: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }}
@@ -88,143 +84,6 @@ def get_crop_modal_html(lang: str) -> str:
         </div>
     </div>
 </div>
-<script>
-window.cropper = null;
-window.originalImageData = null;
-
-function hideCropHelperComponents() {{
-    ['crop-data-json', 'use-original-hidden-btn', 'confirm-crop-hidden-btn'].forEach(function(id) {{
-        var el = document.getElementById(id);
-        if (el) {{
-            el.style.cssText = 'position:absolute!important;left:-9999px!important;top:-9999px!important;width:1px!important;height:1px!important;overflow:hidden!important;opacity:0!important;visibility:hidden!important;';
-        }}
-    }});
-}}
-document.addEventListener('DOMContentLoaded', function() {{ setTimeout(hideCropHelperComponents, 500); }});
-setInterval(hideCropHelperComponents, 2000);
-
-window.updateCropDataJson = function(x, y, w, h) {{
-    var jsonData = JSON.stringify({{x: x, y: y, w: w, h: h}});
-    var container = document.getElementById('crop-data-json');
-    if (!container) {{
-        console.error('crop-data-json element not found');
-        return;
-    }}
-    var textarea = container.querySelector('textarea');
-    if (textarea) {{
-        textarea.value = jsonData;
-        textarea.dispatchEvent(new Event('input', {{ bubbles: true }}));
-        textarea.dispatchEvent(new Event('change', {{ bubbles: true }}));
-        console.log('Updated crop data JSON:', jsonData);
-    }} else {{
-        console.error('textarea not found in crop-data-json');
-    }}
-}};
-
-window.clickGradioButton = function(elemId) {{
-    var elem = document.getElementById(elemId);
-    if (!elem) {{
-        console.error('clickGradioButton: element not found:', elemId);
-        return;
-    }}
-    var btn = elem.querySelector('button') || elem;
-    if (btn && btn.tagName === 'BUTTON') {{
-        btn.click();
-        console.log('Clicked button:', elemId);
-    }} else {{
-        console.error('Button element not found for:', elemId);
-    }}
-}};
-
-window.openCropModal = function(imageSrc, width, height) {{
-    console.log('openCropModal called:', imageSrc ? imageSrc.substring(0, 50) + '...' : 'null', width, height);
-    window.originalImageData = {{ src: imageSrc, width: width, height: height }};
-    
-    // Reset ratio buttons
-    document.querySelectorAll('.crop-ratio-btn').forEach(function(b) {{ b.classList.remove('active'); }});
-    var freeBtn = document.querySelector('.crop-ratio-btn');
-    if (freeBtn) freeBtn.classList.add('active');
-    
-    var origSizeEl = document.getElementById('crop-original-size');
-    if (origSizeEl) {{
-        var prefix = origSizeEl.dataset.prefix || 'Size';
-        origSizeEl.textContent = prefix + ': ' + width + ' × ' + height + ' px';
-    }}
-    
-    var img = document.getElementById('crop-image');
-    if (!img) {{ console.error('crop-image element not found'); return; }}
-    img.src = imageSrc;
-    
-    var overlay = document.getElementById('crop-modal-overlay');
-    if (overlay) overlay.style.display = 'flex';
-    
-    img.onload = function() {{
-        if (window.cropper) window.cropper.destroy();
-        window.cropper = new Cropper(img, {{
-            viewMode: 1, dragMode: 'crop', autoCropArea: 1, responsive: true,
-            crop: function(event) {{
-                var data = event.detail;
-                var cropX = document.getElementById('crop-x');
-                var cropY = document.getElementById('crop-y');
-                var cropW = document.getElementById('crop-width');
-                var cropH = document.getElementById('crop-height');
-                var selSize = document.getElementById('crop-selection-size');
-                if (cropX) cropX.value = Math.round(data.x);
-                if (cropY) cropY.value = Math.round(data.y);
-                if (cropW) cropW.value = Math.round(data.width);
-                if (cropH) cropH.value = Math.round(data.height);
-                if (selSize) {{
-                    var prefix = selSize.dataset.prefix || 'Selection';
-                    selSize.textContent = prefix + ': ' + Math.round(data.width) + ' × ' + Math.round(data.height) + ' px';
-                }}
-            }}
-        }});
-    }};
-}};
-
-window.setCropRatio = function(ratio, btn) {{
-    if (!window.cropper) return;
-    document.querySelectorAll('.crop-ratio-btn').forEach(function(b) {{ b.classList.remove('active'); }});
-    if (btn) btn.classList.add('active');
-    window.cropper.setAspectRatio(ratio);
-}};
-
-window.closeCropModal = function() {{
-    var overlay = document.getElementById('crop-modal-overlay');
-    if (overlay) overlay.style.display = 'none';
-    if (window.cropper) {{ window.cropper.destroy(); window.cropper = null; }}
-}};
-
-window.updateCropperFromInputs = function() {{
-    if (!window.cropper) return;
-    window.cropper.setData({{
-        x: parseInt(document.getElementById('crop-x').value) || 0,
-        y: parseInt(document.getElementById('crop-y').value) || 0,
-        width: parseInt(document.getElementById('crop-width').value) || 100,
-        height: parseInt(document.getElementById('crop-height').value) || 100
-    }});
-}};
-
-window.useOriginalImage = function() {{
-    if (!window.originalImageData) return;
-    var w = window.originalImageData.width;
-    var h = window.originalImageData.height;
-    window.updateCropDataJson(0, 0, w, h);
-    window.closeCropModal();
-    setTimeout(function() {{ window.clickGradioButton('use-original-hidden-btn'); }}, 100);
-}};
-
-window.confirmCrop = function() {{
-    if (!window.cropper) return;
-    var data = window.cropper.getData(true);
-    console.log('confirmCrop data:', data);
-    window.updateCropDataJson(Math.round(data.x), Math.round(data.y), Math.round(data.width), Math.round(data.height));
-    window.closeCropModal();
-    setTimeout(function() {{ window.clickGradioButton('confirm-crop-hidden-btn'); }}, 100);
-}};
-
-console.log('Crop modal JS loaded, openCropModal:', typeof window.openCropModal);
-</script>
 """
     return template.format(
         title=title,
