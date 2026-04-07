@@ -1,6 +1,6 @@
 """Lumina Studio - Tab modules subpackage."""
 
-from .converter_tab import create_converter_tab_content
+from .converter import create_converter_tab_content
 from .calibration_tab import create_calibration_tab_content
 from .extractor_tab import create_extractor_tab_content
 from .merge_tab import create_merge_tab_content

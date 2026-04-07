@@ -58,7 +58,7 @@ if hasattr(I18n, "TEXTS"):
         }
     )
 
-from .tabs.converter_tab import (
+from .tabs.converter import (
     create_converter_tab_content,
     _update_lut_grid,
     _detect_and_enforce_structure,

@@ -145,9 +145,9 @@ def test_process_batch_generation_single_accepts_replacement_regions_list(monkey
         captured['kwargs'] = kwargs
         return 'out.3mf', 'preview.glb', None, 'ok', None
 
-    monkeypatch.setattr('ui.converter_tab.generate_final_model', fake_generate_final_model)
+    monkeypatch.setattr('ui.tabs.converter.helpers.generate_final_model', fake_generate_final_model)
 
-    from ui.tabs.converter_tab import process_batch_generation
+    from ui.tabs.converter.helpers import process_batch_generation
 
     replacement_regions = [
         {'source': '#112233', 'replacement': '#aabbcc'},
@@ -197,7 +197,7 @@ def test_process_batch_generation_single_accepts_replacement_regions_list(monkey
 
 
 def test_process_batch_generation_full_pipeline_replacement_regions_affect_preview_and_model():
-    from ui.tabs.converter_tab import process_batch_generation
+    from ui.tabs.converter.helpers import process_batch_generation
 
     image_path = 'test_images/sample_logo.png'
     lut_path = 'lut-npy预设/bambulab/bambulab_pla_basic_rybw.npy'
@@ -364,7 +364,7 @@ def test_update_preview_applies_regions_in_order_without_map(monkeypatch):
 
 def test_create_converter_tab_content_initializes_without_replacement_map_nameerror():
     import gradio as gr
-    from ui.tabs.converter_tab import create_converter_tab_content
+    from ui.tabs.converter import create_converter_tab_content
 
     with gr.Blocks():
         lang_state = gr.State(value='zh')
