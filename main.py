@@ -61,20 +61,9 @@ import threading
 import webbrowser
 import socket
 import gradio as gr     # type:ignore
-from config import get_tray_runtime_policy
 from ui.layout import create_app
 from ui.styles import CUSTOM_CSS
 
-ENABLE_TRAY, TRAY_POLICY_REASON = get_tray_runtime_policy()
-LuminaTray = None
-if ENABLE_TRAY:
-    try:
-        from core.tray import LuminaTray
-    except Exception as e:
-        print(f"⚠️ Warning: Tray module unavailable, disabling tray: {e}")
-        ENABLE_TRAY = False
-        TRAY_POLICY_REASON = f"Tray module unavailable: {e}"
-        
 def find_available_port(start_port=7860, max_attempts=1000):
     """Return first free port in [start_port, start_port + max_attempts)."""
     import socket
@@ -110,16 +99,7 @@ if __name__ == "__main__":
         signal.signal(signal.SIGINT, _graceful_shutdown)
 
         init_runtime_log()
-        tray = None
         PORT = find_available_port(7860)
-
-        if ENABLE_TRAY and LuminaTray is not None:
-            try:
-                tray = LuminaTray(port=PORT)
-            except Exception as e:
-                print(f"⚠️ Warning: Failed to initialize tray: {e}")
-        else:
-            print(f"[TRAY] {TRAY_POLICY_REASON}")
 
         threading.Thread(target=start_browser, args=(PORT,), daemon=True).start()
         print(f"✨ Lumina Studio is running on http://127.0.0.1:{PORT}")
@@ -157,23 +137,11 @@ if __name__ == "__main__":
             traceback.print_exc()
             raise
 
-        if tray:
-            try:
-                print("🚀 Starting System Tray...")
-                tray.run()
-            except Exception as e:
-                print(f"⚠️ Warning: System tray crashed: {e}")
-                try:
-                    while True:
-                        time.sleep(1)
-                except KeyboardInterrupt:
-                    pass
-        else:
-            try:
-                while True:
-                    time.sleep(1)
-            except KeyboardInterrupt:
-                pass
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt:
+            pass
 
         print("Stopping...")
         os._exit(0)

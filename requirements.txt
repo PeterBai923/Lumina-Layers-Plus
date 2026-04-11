@@ -6,7 +6,6 @@ opencv-python
 Pillow
 trimesh>=4.0.0
 scipy
-pystray
 pytz
 networkx
 lxml
