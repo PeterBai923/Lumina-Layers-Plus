@@ -12,6 +12,7 @@ from PIL import Image
 from scipy.spatial import KDTree
 
 from config import PrinterConfig, ModelingMode, ColorSystem, get_asset_path
+from core.stack_encoding import encode_to_base
 
 # HEIC/HEIF support (optional dependency)
 try:
@@ -271,12 +272,7 @@ class LuminaImageProcessor:
                     break
                 
                 # Rebuild 2-base stacking (0..31)
-                digits = []
-                temp = i
-                for _ in range(5):
-                    digits.append(temp % 2)
-                    temp //= 2
-                stack = digits[::-1]  # [顶...底] format
+                stack = encode_to_base(i, 2)  # [顶...底] format
                 
                 valid_rgb.append(measured_colors[i])
                 valid_stacks.append(stack)
@@ -377,12 +373,7 @@ class LuminaImageProcessor:
             # Air at index 0 offsets the base viewing surface by 1 Z level
             # so it doesn't share the same Z as extended viewing surfaces.
             for i in range(min(1024, total_colors)):
-                digits = []
-                temp = i
-                for _ in range(5):
-                    digits.append(temp % 4)
-                    temp //= 4
-                stack = (-1,) + tuple(reversed(digits))
+                stack = (-1,) + tuple(encode_to_base(i, 4))
                 ref_stacks.append(stack)
             
             # Generate extended 1444 stacks using select_extended_1444_colors
@@ -450,12 +441,7 @@ class LuminaImageProcessor:
                     break
                 
                 # Rebuild 4-base stacking (0..1023)
-                digits = []
-                temp = i
-                for _ in range(5):
-                    digits.append(temp % 4)
-                    temp //= 4
-                stack = digits[::-1]
+                stack = encode_to_base(i, 4)
                 
                 real_rgb = measured_colors[i]
                 

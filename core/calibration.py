@@ -19,6 +19,7 @@ from colormath.color_diff import delta_e_cie2000
 
 from config import PrinterConfig, ColorSystem, SmartConfig, OUTPUT_DIR, get_asset_path
 from core.naming import generate_calibration_filename
+from core.stack_encoding import encode_to_base
 from utils import Stats
 from utils.bambu_3mf_writer import export_scene_with_bambu_metadata
 
@@ -120,12 +121,7 @@ def generate_calibration_board(color_mode: str, block_size_mm: float,
 
     # Generate 1024 permutations (4^5 combinations)
     for i in range(1024):
-        digits = []
-        temp = i
-        for _ in range(5):
-            digits.append(temp % 4)
-            temp //= 4
-        stack = digits[::-1]
+        stack = encode_to_base(i, 4)
 
         row = (i // grid_dim) + padding
         col = (i % grid_dim) + padding
@@ -641,12 +637,7 @@ def generate_bw_calibration_board(block_size_mm=5.0, gap_mm=0.8, backing_color="
     print("[BW] Generating 32 combinations (2^5)...")
     stacks = []
     for i in range(32):
-        digits = []
-        temp = i
-        for _ in range(5):
-            digits.append(temp % 2)
-            temp //= 2
-        stack = digits[::-1]  # [顶...底] format
+        stack = encode_to_base(i, 2)  # [顶...底] format
         stacks.append(stack)
     
     # Fill 32 blocks in 6x6 data area (with padding offset)
@@ -1126,12 +1117,7 @@ def merge_5color_extended(base_lut_path, extended_lut_path, output_path=None):
     # Air at position 0 keeps base/extended viewing surfaces on separate Z levels.
     base_stacks = []
     for i in range(len(base_rgb)):
-        digits = []
-        temp = i
-        for _ in range(5):
-            digits.append(temp % 4)
-            temp //= 4
-        stack = (-1,) + tuple(reversed(digits))
+        stack = (-1,) + tuple(encode_to_base(i, 4))
         base_stacks.append(stack)
     
     # Extended 1444: 6-layer stacks
@@ -1224,12 +1210,7 @@ def _generate_5color_base_page(block_size_mm, gap_mm, preview_colors, slot_names
     # Generate 1024 base stacks (4^5 combinations of RYBW)
     # Face-Down mode: Z=0 is viewing surface (top), Z=4 is bottom
     for i in range(1024):
-        digits = []
-        temp = i
-        for _ in range(5):
-            digits.append(temp % 4)
-            temp //= 4
-        stack = digits[::-1]  # [top...bottom] for Face-Down mode (Z=0 is viewing surface)
+        stack = encode_to_base(i, 4)  # [top...bottom] for Face-Down mode (Z=0 is viewing surface)
         
         row = (i // data_dim) + padding
         col = (i % data_dim) + padding
@@ -1316,12 +1297,7 @@ def _generate_5color_extended_page(block_size_mm, gap_mm, preview_colors, slot_n
     # Get base 1024 stacks for extended color selection
     base_stacks = []
     for i in range(1024):
-        digits = []
-        temp = i
-        for _ in range(5):
-            digits.append(temp % 4)
-            temp //= 4
-        stack = tuple(reversed(digits))
+        stack = tuple(encode_to_base(i, 4))
         base_stacks.append(stack)
     
     # Get extended 1444 stacks (6-layer)

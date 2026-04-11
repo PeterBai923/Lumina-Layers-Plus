@@ -8,6 +8,7 @@ high-usage colors using CIELAB color space.
 
 from typing import Dict, List, Optional, Set, Tuple, Callable
 import numpy as np
+from core.color_utils import hex_to_rgb
 
 
 class ColorMerger:
@@ -286,8 +287,8 @@ class ColorMerger:
         
         for source_hex, target_hex in merge_map.items():
             # Convert hex to RGB
-            source_rgb = self._hex_to_rgb(source_hex)
-            target_rgb = self._hex_to_rgb(target_hex)
+            source_rgb = hex_to_rgb(source_hex)
+            target_rgb = hex_to_rgb(target_hex)
             
             # Find all pixels matching source color
             mask = np.all(matched_rgb == source_rgb, axis=-1)
@@ -386,13 +387,3 @@ class ColorMerger:
         quality = max(0.0, min(100.0, quality))  # Clamp to [0, 100]
         
         return float(quality)
-    
-    @staticmethod
-    def _hex_to_rgb(hex_str: str) -> Tuple[int, int, int]:
-        """Convert hex string to RGB tuple."""
-        hex_str = hex_str.lstrip('#')
-        return (
-            int(hex_str[0:2], 16),
-            int(hex_str[2:4], 16),
-            int(hex_str[4:6], 16)
-        )

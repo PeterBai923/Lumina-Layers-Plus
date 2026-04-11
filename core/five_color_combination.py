@@ -9,6 +9,7 @@
 import numpy as np
 from typing import Tuple, List, Optional
 from dataclasses import dataclass
+from core.color_utils import rgb_to_hex
 
 
 @dataclass
@@ -363,19 +364,6 @@ class ColorQueryEngine:
             list: 反转后的选择，例如 [2, 3, 0, 1, 0]
         """
         return list(reversed(selected_indices))
-
-
-# 辅助函数
-def rgb_to_hex(rgb: Tuple[int, int, int]) -> str:
-    """将 RGB 转换为十六进制颜色代码
-    
-    Args:
-        rgb: (r, g, b) 元组
-        
-    Returns:
-        str: 十六进制颜色代码，例如 "#FF5733"
-    """
-    return f"#{rgb[0]:02X}{rgb[1]:02X}{rgb[2]:02X}"
 
 
 def format_selection_sequence(selected_indices: List[int], color_names: Optional[List[str]] = None) -> str:

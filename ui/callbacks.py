@@ -8,14 +8,8 @@ import numpy as np
 import gradio as gr
 
 from core.i18n import I18n
+from core.color_utils import hex_to_rgb
 from utils import LUTManager
-
-
-def _hex_to_rgb_tuple(hex_color: str):
-    h = (hex_color or '').strip().lower()
-    if not h.startswith('#'):
-        h = f"#{h}"
-    return (int(h[1:3], 16), int(h[3:5], 16), int(h[5:7], 16))
 
 
 def _build_full_color_region_mask(cache, selected_color: str):
@@ -25,7 +19,7 @@ def _build_full_color_region_mask(cache, selected_color: str):
     if q_img is None or m_img is None or solid is None or not selected_color:
         return None
 
-    rgb = _hex_to_rgb_tuple(selected_color)
+    rgb = hex_to_rgb(selected_color)
     q_match = np.all(q_img == np.array(rgb, dtype=np.uint8), axis=2)
     m_match = np.all(m_img == np.array(rgb, dtype=np.uint8), axis=2)
     return solid & (q_match | m_match)

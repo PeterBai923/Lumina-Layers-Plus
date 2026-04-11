@@ -24,6 +24,7 @@ from core.mesh_generators import get_mesher
 from core.geometry_utils import create_keychain_loop
 from core.heightmap_loader import HeightmapLoader
 from core.naming import generate_model_filename, generate_preview_filename
+from core.color_utils import rgb_to_hex, hex_to_rgb
 
 # Try to import SVG rendering libraries
 try:
@@ -220,31 +221,13 @@ def _ensure_quantized_image_in_cache(cache):
     return cache
 
 
-def _rgb_to_hex(rgb):
-    """将 RGB 三元组转换为 #RRGGBB。"""
-    r, g, b = [int(x) for x in rgb]
-    return f"#{r:02x}{g:02x}{b:02x}"
-
-
-def _hex_to_rgb_tuple(hex_color):
-    """将 #RRGGBB 转换为 (R, G, B)。"""
-    if not isinstance(hex_color, str):
-        raise ValueError("hex_color must be a string")
-
-    h = hex_color.strip().lower()
-    if h.startswith('#'):
-        h = h[1:]
-    if len(h) != 6:
-        raise ValueError(f"invalid hex color: {hex_color}")
-
-    return (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16))
 
 
 def _build_selection_meta(q_rgb, m_rgb, scope="region"):
     """构建点击选区元数据（量化色 + 原配准色）。"""
     return {
-        "selected_quantized_hex": _rgb_to_hex(q_rgb),
-        "selected_matched_hex": _rgb_to_hex(m_rgb),
+        "selected_quantized_hex": rgb_to_hex(q_rgb),
+        "selected_matched_hex": rgb_to_hex(m_rgb),
         "selection_scope": scope,
     }
 
@@ -311,7 +294,7 @@ def _apply_regions_to_raster_outputs(matched_rgb, material_matrix, mask_solid,
         if not np.any(effective_mask):
             continue
 
-        replacement_rgb = _hex_to_rgb_tuple(replacement_hex)
+        replacement_rgb = hex_to_rgb(replacement_hex)
         out_rgb[effective_mask] = np.array(replacement_rgb, dtype=np.uint8)
 
         lut_idx = int(lut_index_resolver(replacement_rgb))
@@ -912,8 +895,8 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
         # Update material_matrix: find the replacement color's LUT entry
         # and use its stacking layers (ref_stacks) for correct multi-layer output
         for orig_hex, repl_hex in effective_color_replacements.items():
-            orig_rgb_tuple = ColorReplacementManager._hex_to_color(orig_hex)
-            repl_rgb_tuple = ColorReplacementManager._hex_to_color(repl_hex)
+            orig_rgb_tuple = hex_to_rgb(orig_hex)
+            repl_rgb_tuple = hex_to_rgb(repl_hex)
             # Find pixels that were originally this color
             orig_mask = np.all(old_rgb == orig_rgb_tuple, axis=-1)
             if not np.any(orig_mask):
@@ -3593,7 +3576,7 @@ def update_preview_with_replacements(cache, replacement_regions=None,
         replacement_hex = item.get('replacement')
         if region_mask is None or not replacement_hex:
             continue
-        replacement_rgb = _hex_to_rgb_tuple(replacement_hex)
+        replacement_rgb = hex_to_rgb(replacement_hex)
         effective_mask = region_mask & mask_solid
         if np.any(effective_mask):
             matched_rgb[effective_mask] = np.array(replacement_rgb, dtype=np.uint8)
@@ -3637,8 +3620,8 @@ def update_preview_with_replacements(cache, replacement_regions=None,
             for x in range(w):
                 if not mask_solid[y, x]:
                     continue
-                qh = _rgb_to_hex(q_img[y, x])
-                mh = _rgb_to_hex(matched_rgb[y, x])
+                qh = rgb_to_hex(q_img[y, x])
+                mh = rgb_to_hex(matched_rgb[y, x])
                 auto_pairs.append({"quantized_hex": qh, "matched_hex": mh})
 
     # Generate palette HTML for display

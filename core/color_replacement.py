@@ -7,6 +7,7 @@ Supports CRUD operations on color mappings and batch application to images.
 
 from typing import Dict, Tuple, Optional, List
 import numpy as np
+from core.color_utils import rgb_to_hex, hex_to_rgb
 
 
 class ColorReplacementManager:
@@ -124,7 +125,7 @@ class ColorReplacementManager:
             Dictionary with string keys (hex colors) for JSON serialization
         """
         return {
-            self._color_to_hex(orig): self._color_to_hex(repl)
+            rgb_to_hex(orig): rgb_to_hex(repl)
             for orig, repl in self._replacements.items()
         }
 
@@ -132,17 +133,17 @@ class ColorReplacementManager:
     def from_dict(cls, data: Dict) -> 'ColorReplacementManager':
         """
         Create a ColorReplacementManager from a serialized dictionary.
-        
+
         Args:
             data: Dictionary with hex color string keys and values
-            
+
         Returns:
             New ColorReplacementManager instance with loaded mappings
         """
         manager = cls()
         for orig_hex, repl_hex in data.items():
-            original = cls._hex_to_color(orig_hex)
-            replacement = cls._hex_to_color(repl_hex)
+            original = hex_to_rgb(orig_hex)
+            replacement = hex_to_rgb(repl_hex)
             manager.add_replacement(original, replacement)
         return manager
 
@@ -164,37 +165,3 @@ class ColorReplacementManager:
             raise ValueError(f"Color must be a tuple of 3 integers, got {color}")
         
         return tuple(max(0, min(255, int(c))) for c in color)
-
-    @staticmethod
-    def _color_to_hex(color: Tuple[int, int, int]) -> str:
-        """Convert RGB tuple to hex string."""
-        return f"#{color[0]:02x}{color[1]:02x}{color[2]:02x}"
-
-    @staticmethod
-    def _hex_to_color(hex_str: str) -> Tuple[int, int, int]:
-        """Convert hex string or rgb() string to RGB tuple.
-        
-        Supports formats:
-        - '#RRGGBB' or 'RRGGBB'
-        - 'rgb(r, g, b)' or 'rgba(r, g, b, a)'
-        """
-        hex_str = hex_str.strip()
-        
-        # Handle rgb() or rgba() format from Gradio ColorPicker
-        if hex_str.startswith('rgb'):
-            import re
-            # Extract numbers from rgb(r, g, b) or rgba(r, g, b, a)
-            match = re.search(r'rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)', hex_str)
-            if match:
-                return (int(match.group(1)), int(match.group(2)), int(match.group(3)))
-            raise ValueError(f"Invalid rgb format: {hex_str}")
-        
-        # Handle hex format
-        hex_str = hex_str.lstrip('#')
-        if len(hex_str) != 6:
-            raise ValueError(f"Invalid hex color: {hex_str}")
-        return (
-            int(hex_str[0:2], 16),
-            int(hex_str[2:4], 16),
-            int(hex_str[4:6], 16)
-        )

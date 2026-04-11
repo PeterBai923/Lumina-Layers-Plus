@@ -14,6 +14,7 @@ import numpy as np
 from colormath.color_objects import sRGBColor, LabColor
 from colormath.color_conversions import convert_color
 from colormath.color_diff import delta_e_cie2000
+from core.stack_encoding import encode_to_base
 
 # Try to import color selection for 5-Color Extended mode reconstruction
 try:
@@ -244,12 +245,7 @@ class LUTMerger:
         if color_mode == "BW":
             stacks = []
             for i in range(count):
-                digits = []
-                temp = i
-                for _ in range(5):
-                    digits.append(temp % 2)
-                    temp //= 2
-                stacks.append(tuple(reversed(digits)))
+                stacks.append(tuple(encode_to_base(i, 2)))
             # For non-standard BW sizes (e.g. 36), extra entries beyond 32
             # get stacks from modular arithmetic which may wrap, but RGB data is valid
             stacks_arr = np.array(stacks)
@@ -258,12 +254,7 @@ class LUTMerger:
         elif color_mode == "4-Color":
             stacks = []
             for i in range(count):
-                digits = []
-                temp = i
-                for _ in range(5):
-                    digits.append(temp % 4)
-                    temp //= 4
-                stacks.append(tuple(reversed(digits)))
+                stacks.append(tuple(encode_to_base(i, 4)))
             stacks_arr = np.array(stacks)
             return (rgb, _remap_stacks(stacks_arr, color_mode, lut_path))
 
@@ -296,12 +287,7 @@ class LUTMerger:
             # Fallback: generate stacks from index
             base_stacks = []
             for i in range(1024):
-                digits = []
-                temp = i
-                for _ in range(5):
-                    digits.append(temp % 4)
-                    temp //= 4
-                base_stacks.append(tuple(reversed(digits)))
+                base_stacks.append(tuple(encode_to_base(i, 4)))
             
             if select_extended_1444_colors:
                 # Use the same greedy selection algorithm as the board generator
@@ -317,12 +303,7 @@ class LUTMerger:
                     else:
                         b_idx = (ext_idx - 1) % 1024
                         l6 = ((ext_idx - 1) // 1024) + 1
-                        digits = []
-                        temp = b_idx
-                        for _ in range(5):
-                            digits.append(temp % 4)
-                            temp //= 4
-                        stack = (l6,) + tuple(reversed(digits))
+                        stack = (l6,) + tuple(encode_to_base(b_idx, 4))
                     ext_stacks.append(stack)
             
             # Pad base 1024 stacks to 6 layers with air(-1) at viewing end

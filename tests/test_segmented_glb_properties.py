@@ -19,14 +19,10 @@ from hypothesis import strategies as st
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from core.converter import generate_segmented_glb
+from core.color_utils import hex_to_rgb
 
 # Regex for valid color_<hex> node names
 COLOR_NODE_RE = re.compile(r"^color_([0-9a-f]{6})$")
-
-
-def _hex_to_rgb(hex_str: str) -> tuple[int, int, int]:
-    """Convert 6-digit lowercase hex string to (R, G, B) ints."""
-    return (int(hex_str[0:2], 16), int(hex_str[2:4], 16), int(hex_str[4:6], 16))
 
 
 def _make_cache(
@@ -158,7 +154,7 @@ def test_glb_segmentation_correctness(data):
     for node_name, mesh in color_nodes.items():
         m = COLOR_NODE_RE.match(node_name)
         hex_str = m.group(1)
-        expected_r, expected_g, expected_b = _hex_to_rgb(hex_str)
+        expected_r, expected_g, expected_b = hex_to_rgb(hex_str)
 
         # (b) Name format already validated by regex match above
 

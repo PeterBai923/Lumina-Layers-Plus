@@ -1,10 +1,9 @@
 import numpy as np
 
 # ==========================================
-# 🚑 紧急修复: 给 colormath 库打补丁
+# 紧急修复: 给 colormath 库打补丁
 # ==========================================
-def patch_asscalar(a):
-    return a.item()
+from utils.log_tee import patch_asscalar
 setattr(np, "asscalar", patch_asscalar)
 
 # 补丁打完后再引入 colormath

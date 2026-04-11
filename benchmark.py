@@ -26,87 +26,9 @@ if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
 # ── Redirect stdout/stderr to both console and log file ──────────────────────
-import re as _re
 import threading as _threading
 import multiprocessing as _mp
-
-_ANSI_RE = _re.compile(r'\x1b\[[0-9;]*[A-Za-z]')
-
-class _Tee:
-    def __init__(self, log_path, console_stream=None, lock=None):
-        self._console = console_stream or sys.stdout
-        self._file = open(log_path, 'a', encoding='utf-8', buffering=1)
-        self.encoding = getattr(self._console, 'encoding', 'utf-8')
-        self._at_line_start = True
-        self._lock = lock or _threading.Lock()
-
-    def write(self, msg):
-        try:
-            self._console.write(msg)
-        except (UnicodeEncodeError, UnicodeDecodeError):
-            # Windows console may be GBK; replace unencodable chars
-            enc = getattr(self._console, 'encoding', 'utf-8') or 'utf-8'
-            self._console.write(msg.encode(enc, errors='replace').decode(enc))
-        if not msg:
-            return
-        clean = _ANSI_RE.sub('', msg)
-        if not clean:
-            return
-        ts = datetime.now().strftime('%H:%M:%S.%f')[:-3]
-        with self._lock:
-            for part in clean.splitlines(keepends=True):
-                if self._at_line_start:
-                    self._file.write(f'[{ts}] ')
-                self._file.write(part)
-                self._at_line_start = part.endswith('\n')
-
-    def flush(self):
-        self._console.flush()
-        try:
-            self._file.flush()
-        except Exception:
-            pass
-
-    def __getattr__(self, name):
-        return getattr(self._console, name)
-
-
-class _TeeStderr:
-    def __init__(self, log_file, lock):
-        self._console = sys.stderr
-        self._file = log_file
-        self._lock = lock
-        self._at_line_start = True
-        self.encoding = getattr(sys.stderr, 'encoding', 'utf-8')
-
-    def write(self, msg):
-        try:
-            self._console.write(msg)
-        except (UnicodeEncodeError, UnicodeDecodeError):
-            enc = getattr(self._console, 'encoding', 'utf-8') or 'utf-8'
-            self._console.write(msg.encode(enc, errors='replace').decode(enc))
-        if not msg:
-            return
-        clean = _ANSI_RE.sub('', msg)
-        if not clean:
-            return
-        ts = datetime.now().strftime('%H:%M:%S.%f')[:-3]
-        with self._lock:
-            for part in clean.splitlines(keepends=True):
-                if self._at_line_start:
-                    self._file.write(f'[{ts}] [ERR] ')
-                self._file.write(part)
-                self._at_line_start = part.endswith('\n')
-
-    def flush(self):
-        self._console.flush()
-        try:
-            self._file.flush()
-        except Exception:
-            pass
-
-    def __getattr__(self, name):
-        return getattr(self._console, name)
+from utils.log_tee import _Tee, _TeeStderr
 
 
 if _mp.current_process().name == 'MainProcess':

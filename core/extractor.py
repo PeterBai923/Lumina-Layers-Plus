@@ -17,6 +17,7 @@ from config import (
     CELL_SIZE,
     LUT_FILE_PATH
 )
+from core.stack_encoding import encode_to_base
 from utils import Stats
 
 
@@ -31,12 +32,7 @@ def generate_simulated_reference():
 
     ref_img = np.zeros((DATA_GRID_SIZE, DATA_GRID_SIZE, 3), dtype=np.uint8)
     for i in range(1024):
-        digits = []
-        temp = i
-        for _ in range(5):
-            digits.append(temp % 4)
-            temp //= 4
-        stack = digits[::-1]
+        stack = encode_to_base(i, 4)
 
         mixed = sum(colors[mid] for mid in stack) / 5.0
         ref_img[i // DATA_GRID_SIZE, i % DATA_GRID_SIZE] = mixed.astype(np.uint8)
