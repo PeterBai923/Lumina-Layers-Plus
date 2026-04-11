@@ -379,7 +379,7 @@ class ColorMerger:
         # Map distance to quality score (0-100)
         # Use exponential decay: quality = 100 * exp(-distance / scale)
         # where scale is chosen so that distance=20 gives quality~50
-        scale = 20.0 / np.log(2)  # ~28.85
+        scale = 20.0 / np.log(2)
         
         # Clamp to avoid overflow and ensure 0-100 range
         avg_distance = min(avg_distance, 200.0)  # Cap at 200 Delta-E

@@ -67,7 +67,6 @@ def _detect_isolated(encoded: np.ndarray) -> np.ndarray:
                   (1, -1),  (1, 0),  (1, 1)]
 
     for dy, dx in directions:
-        # 计算中心像素和邻居像素的切片范围
         # 中心区域
         c_y_start = max(0, -dy)
         c_y_end = H - max(0, dy)
@@ -114,7 +113,6 @@ def _find_neighbor_mode(encoded: np.ndarray, isolated_mask: np.ndarray) -> np.nd
                   (0, -1),           (0, 1),
                   (1, -1),  (1, 0),  (1, 1)]
 
-    # 获取孤立像素的坐标
     isolated_coords = np.argwhere(isolated_mask)
 
     for i, j in isolated_coords:
@@ -153,7 +151,6 @@ def cleanup_isolated_pixels(
     Returns:
         (cleaned_matched_rgb, cleaned_material_matrix) - 清理后的副本
     """
-    # 创建副本，不修改输入
     cleaned_mat = material_matrix.copy()
     cleaned_rgb = matched_rgb.copy()
 

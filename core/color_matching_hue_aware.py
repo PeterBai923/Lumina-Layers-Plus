@@ -95,8 +95,8 @@ class HueAwareColorMatcher:
             #   hw=0.7 → w_H=0.17  (接近最强)
             #   hw=1.0 → w_H=0.15  (最强)
             hw = np.clip(hue_weight, 0.0, 1.0)
-            self.w_L = 1.0                   # 固定！不改变亮度维度
-            self.w_C = 1.0                   # 固定
+            self.w_L = 1.0
+            self.w_C = 1.0
             self.w_H = 0.15 + 0.85 * (1.0 - hw) ** 3  # 指数曲线，快速下降
 
     @staticmethod
@@ -111,7 +111,7 @@ class HueAwareColorMatcher:
         H = atan2(b-128, a-128)        色相角 (度, 0-360)
         """
         L = lab[..., 0]
-        a = lab[..., 1] - 128.0  # 中心化
+        a = lab[..., 1] - 128.0
         b = lab[..., 2] - 128.0
         C = np.sqrt(a ** 2 + b ** 2)
         H = np.degrees(np.arctan2(b, a)) % 360

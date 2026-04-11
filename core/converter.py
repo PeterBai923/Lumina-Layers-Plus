@@ -34,9 +34,7 @@ try:
 except ImportError:
     HAS_SVG_LIB = False
 
-# Import palette HTML generator from extension (non-invasive)
-# Moved to lazy import to avoid circular dependency
-# from ui.widgets.palette import generate_palette_html, generate_lut_color_grid_html
+# palette HTML 懒加载，避免循环依赖
 
 
 # ========== LUT Color Extraction Functions ==========
@@ -467,8 +465,8 @@ def _get_actual_lut_slot_colors(processor) -> dict:
         Returns an empty dict if the data is unavailable or the stack depth < 5.
     """
     try:
-        ref_stacks = np.asarray(processor.ref_stacks)  # (N, 5), top-to-bottom
-        lut_rgb    = np.asarray(processor.lut_rgb)     # (N, 3)
+        ref_stacks = np.asarray(processor.ref_stacks)
+        lut_rgb    = np.asarray(processor.lut_rgb)
     except (AttributeError, TypeError):
         return {}
 
@@ -750,7 +748,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                         new_h = max(1, int(h * scale))
                         preview_rgba = cv2.resize(preview_rgba, (new_w, new_h), interpolation=cv2.INTER_AREA)
 
-                    # Fix black background issue: ensure transparent areas have white RGB
+                    # Ensure transparent areas have white RGB
                     # This prevents black borders when displaying in UI
                     alpha_channel = preview_rgba[:, :, 3]
                     transparent_mask = alpha_channel == 0
@@ -905,7 +903,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
             repl_lab = processor._rgb_to_lab(np.array([repl_rgb_tuple], dtype=np.uint8))
             _, lut_idx = processor.kdtree.query(repl_lab)
             lut_idx = lut_idx[0]
-            new_stacks = processor.ref_stacks[lut_idx]  # (COLOR_LAYERS,)
+            new_stacks = processor.ref_stacks[lut_idx]
             material_matrix[orig_mask] = new_stacks
             lut_color = processor.lut_rgb[lut_idx]
             print(f"[CONVERTER] material_matrix: {orig_hex} → LUT#{lut_idx} rgb({lut_color[0]},{lut_color[1]},{lut_color[2]}) stacks={new_stacks}")
@@ -1159,7 +1157,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                 backing_mesh.apply_transform(transform)
                 
                 # Apply white color (material_id=0)
-                backing_color = preview_colors[0]  # Fixed to white
+                backing_color = preview_colors[0]
                 backing_mesh.visual.face_colors = backing_color
                 
                 backing_name = "Backing"
@@ -1279,7 +1277,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
             # Determine coating coverage area
             coating_mask = mask_solid.copy()
             
-            # [FIX] If outline is enabled, extend coating to cover outline area as well
+            # If outline is enabled, extend coating to cover outline area as well
             if enable_outline:
                 print(f"[CONVERTER] 🔲 Extending coating to cover outline area (width={outline_width}mm)")
                 # Dilate mask to include outline area
@@ -1304,7 +1302,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                 # Shift down so coating sits below the model (Z < 0)
                 coat_transform[2, 3] = -coating_layers * PrinterConfig.LAYER_HEIGHT
                 coating_mesh.apply_transform(coat_transform)
-                coating_mesh.visual.face_colors = [200, 200, 200, 80]  # Semi-transparent grey
+                coating_mesh.visual.face_colors = [200, 200, 200, 80]
                 coating_name = "Coating"
                 coating_mesh.metadata['name'] = coating_name
                 scene.add_geometry(coating_mesh, node_name=coating_name, geom_name=coating_name)
@@ -1524,7 +1522,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                     target_h=target_h
                 )
                 if preview_outline:
-                    outline_color = preview_colors[0]  # White
+                    outline_color = preview_colors[0]
                     preview_outline.visual.face_colors = [outline_color] * len(preview_outline.faces)
                     preview_mesh = trimesh.util.concatenate([preview_mesh, preview_outline])
             except Exception as e:
@@ -1620,7 +1618,7 @@ def _generate_outline_mesh(mask_solid, pixel_scale, outline_width_mm, outline_th
     
     print(f"[OUTLINE] Width: {outline_width_mm}mm = {outline_width_px}px, Thickness: {outline_thickness_mm}mm = {outline_layers} layers")
     
-    # [FIX] Pad the mask before dilation so edges touching image boundaries
+    # Pad the mask before dilation so edges touching image boundaries
     # can still expand outward. Without padding, cv2.dilate treats the border
     # as zeros and the outline ring is missing on boundary-touching sides.
     pad = outline_width_px + 1
@@ -1967,7 +1965,7 @@ def _build_relief_voxel_matrix(matched_rgb, material_matrix, mask_solid, color_h
     
     # Constants
     OPTICAL_LAYERS = 5
-    OPTICAL_THICKNESS_MM = OPTICAL_LAYERS * PrinterConfig.LAYER_HEIGHT  # 0.4mm
+    OPTICAL_THICKNESS_MM = OPTICAL_LAYERS * PrinterConfig.LAYER_HEIGHT
     
     print(f"[RELIEF] Building 2.5D relief voxel matrix...")
     print(f"[RELIEF] Optical layer thickness: {OPTICAL_THICKNESS_MM}mm ({OPTICAL_LAYERS} layers)")
@@ -2087,7 +2085,7 @@ def _build_cloisonne_voxel_matrix(material_matrix, mask_solid, mask_wireframe,
         backing_metadata:  dict with 'backing_color_id', 'backing_z_range', 'is_cloisonne'.
     """
     target_h, target_w = material_matrix.shape[:2]
-    OPTICAL = PrinterConfig.COLOR_LAYERS  # 5
+    OPTICAL = PrinterConfig.COLOR_LAYERS
 
     spacer_layers = max(1, int(round(spacer_thick / PrinterConfig.LAYER_HEIGHT)))
     wire_layers = max(1, int(round(wire_height_mm / PrinterConfig.LAYER_HEIGHT)))
@@ -2095,7 +2093,7 @@ def _build_cloisonne_voxel_matrix(material_matrix, mask_solid, mask_wireframe,
     total_z = spacer_layers + OPTICAL + wire_layers
     full_matrix = np.full((total_z, target_h, target_w), -1, dtype=int)
 
-    mask_t = ~mask_solid  # transparent
+    mask_t = ~mask_solid
 
     # --- Base / backing ---
     spacer_slice = np.where(mask_solid, backing_color_id, -1).astype(int)
@@ -2736,7 +2734,7 @@ def generate_segmented_glb(cache: dict, max_meshes: int = 64) -> Optional[str]:
         # ------------------------------------------------------------------
         # 2. Extract unique colors and pixel counts (solid pixels only)
         # ------------------------------------------------------------------
-        solid_pixels = matched_rgb[mask_solid]  # (N, 3)
+        solid_pixels = matched_rgb[mask_solid]
         if len(solid_pixels) == 0:
             print("[SEGMENTED_GLB] No solid pixels, returning None")
             return None
@@ -3637,9 +3635,6 @@ def update_preview_with_replacements(cache, replacement_regions=None,
     return display, updated_cache, palette_html
 
 
-# generate_palette_html is now imported from ui.widgets.palette
-
-
 # ========== Color Highlight Functions ==========
 
 def generate_highlight_preview(cache, highlight_color: str, 
@@ -3745,7 +3740,7 @@ def generate_highlight_preview(cache, highlight_color: str,
         preview_rgba[non_highlight_mask, 0] = dimmed_gray
         preview_rgba[non_highlight_mask, 1] = dimmed_gray
         preview_rgba[non_highlight_mask, 2] = dimmed_gray
-        preview_rgba[non_highlight_mask, 3] = 180  # Semi-transparent
+        preview_rgba[non_highlight_mask, 3] = 180
     
     # For highlighted pixels: show original color with full opacity
     preview_rgba[highlight_mask, :3] = matched_rgb[highlight_mask]
@@ -3761,10 +3756,10 @@ def generate_highlight_preview(cache, highlight_color: str,
         
         # Draw border in a contrasting color (cyan for visibility)
         if np.any(border_mask):
-            preview_rgba[border_mask, 0] = 0    # R
-            preview_rgba[border_mask, 1] = 255  # G
-            preview_rgba[border_mask, 2] = 255  # B
-            preview_rgba[border_mask, 3] = 200  # Alpha
+            preview_rgba[border_mask, 0] = 0
+            preview_rgba[border_mask, 1] = 255
+            preview_rgba[border_mask, 2] = 255
+            preview_rgba[border_mask, 3] = 200
     except Exception as e:
         print(f"[HIGHLIGHT] Border effect skipped: {e}")
     
@@ -3829,7 +3824,7 @@ def clear_highlight_preview(cache, loop_pos=None, add_loop=False,
     return display, "[OK] 预览已恢复 | Preview restored"
 
 
-# [新增] 预览图点击吸取颜色并高亮
+# 预览图点击吸取颜色并高亮
 def on_preview_click_select_color(cache, evt: gr.SelectData, bed_label=None):
     """
     预览图点击事件处理：吸取颜色并高亮显示
@@ -4174,7 +4169,6 @@ def detect_lut_color_mode(lut_path):
                 print(f"[AUTO_DETECT] Invalid LUT format: cannot reshape to (N, 3)")
                 return None
         
-        # 计算颜色数量
         if lut_data.ndim == 2:
             total_colors = lut_data.shape[0]
         else:

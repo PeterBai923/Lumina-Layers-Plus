@@ -83,7 +83,7 @@ class LuminaImageProcessor:
         self.ref_stacks = None
         self.kdtree = None
         self.hue_matcher = None  # 色相感知匹配器（hue_weight > 0 时初始化）
-        self.enable_cleanup = True  # 默认开启孤立像素清理
+        self.enable_cleanup = True
         
         self._load_lut(lut_path)
     
@@ -154,7 +154,7 @@ class LuminaImageProcessor:
             # Pass 1: 白底渲染 (0xFFFFFF)
             # 强制不使用透明通道，完全模拟打印在白纸上的效果
             pil_white = renderPM.drawToPIL(drawing, bg=0xFFFFFF, configPIL={'transparent': False})
-            arr_white = np.array(pil_white.convert('RGB'))  # 丢弃 Alpha，只看颜色
+            arr_white = np.array(pil_white.convert('RGB'))
             
             # Pass 2: 黑底渲染 (0x000000)
             # 强制不使用透明通道，完全模拟打印在黑纸上的效果
@@ -530,23 +530,15 @@ class LuminaImageProcessor:
             # Load image
             img = Image.open(image_path).convert('RGBA')
             
-            # DEBUG: Check original image properties
-            print(f"[IMAGE_PROCESSOR] Original image: {image_path}")
-            print(f"[IMAGE_PROCESSOR] Image mode: {Image.open(image_path).mode}")
-            print(f"[IMAGE_PROCESSOR] Image size: {Image.open(image_path).size}")
-            
             # Check if image has transparency
             original_img = Image.open(image_path)
             has_alpha = original_img.mode in ('RGBA', 'LA') or (original_img.mode == 'P' and 'transparency' in original_img.info)
-            print(f"[IMAGE_PROCESSOR] Has alpha channel: {has_alpha}")
-            
+
             if has_alpha:
                 # Check alpha channel statistics
                 if original_img.mode != 'RGBA':
                     original_img = original_img.convert('RGBA')
                 alpha_data = np.array(original_img)[:, :, 3]
-                print(f"[IMAGE_PROCESSOR] Alpha stats: min={alpha_data.min()}, max={alpha_data.max()}, mean={alpha_data.mean():.1f}")
-                print(f"[IMAGE_PROCESSOR] Transparent pixels (alpha<10): {np.sum(alpha_data < 10)}")
             
             # Calculate target resolution
             if modeling_mode == ModelingMode.HIGH_FIDELITY:

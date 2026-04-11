@@ -269,7 +269,7 @@ HEADER_CSS = """
 }
 """
 
-# [新增/修改] LUT 色块网格样式
+# LUT 色块网格样式
 LUT_GRID_CSS = """
 .lut-swatch,
 .lut-color-swatch {
@@ -297,7 +297,7 @@ PREVIEW_ZOOM_CSS = """
 }
 """
 
-# [新增] JavaScript 注入：点击 LUT 色块写入隐藏 Textbox 并触发按钮
+# JavaScript 注入：点击 LUT 色块写入隐藏 Textbox 并触发按钮
 LUT_GRID_JS = """
 <script>
 function selectLutColor(hexColor) {

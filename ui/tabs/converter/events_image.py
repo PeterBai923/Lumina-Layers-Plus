@@ -121,7 +121,7 @@ def bind_image_events(components, states, lang_state, lang):
         try:
             # SVG: Gradio's gr.Image stores SVG as base64 data-URL internally, but the
             # base64 decode fails on subsequent events (binascii.Error: Incorrect padding).
-            # Fix: render the SVG to a temp PNG for display in gr.Image, while keeping the
+            # Render the SVG to a temp PNG for display in gr.Image, while keeping the
             # original SVG path in preprocess_processed_path for the vector converter.
             if isinstance(image_path, str) and image_path.lower().endswith(".svg"):
                 width, height = _parse_svg_dimensions(image_path)

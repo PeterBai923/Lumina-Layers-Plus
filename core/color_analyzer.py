@@ -32,11 +32,11 @@ class ColorAnalysisResult:
     complexity_score: int     # 复杂度评分 (0-100)
     
     # 详细指标
-    hue_score: int = 0        # 色系评分
-    concentration_score: int = 0  # 集中度评分
-    color_score: int = 0      # 颜色数评分
-    edge_score: int = 0       # 边缘评分
-    width_factor: float = 1.0 # 宽度因子
+    hue_score: int = 0
+    concentration_score: int = 0
+    color_score: int = 0
+    edge_score: int = 0
+    width_factor: float = 1.0
     
     def to_dict(self) -> dict:
         return {

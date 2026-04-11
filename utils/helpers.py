@@ -56,7 +56,7 @@ def safe_fix_3mf_names(filepath: str, slot_names: List[str], create_assembly: bo
             for idx, (start, end, old_tag, obj_id) in enumerate(reversed(obj_info)):
                 real_idx = len(obj_info) - 1 - idx
                 
-                # [FIX] Use modulo to cycle through slot_names if there are more objects
+                # Use modulo to cycle through slot_names if there are more objects
                 # This ensures all objects get a color name, even if there are multiple layers
                 color_name = slot_names[real_idx % len(slot_names)]
 

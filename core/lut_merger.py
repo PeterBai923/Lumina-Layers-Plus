@@ -318,7 +318,7 @@ class LUTMerger:
             # Generate dummy stacks: all zeros (white-only base)
             # The RGB data is still valid for merging
             # Determine layer count from color_mode if possible
-            layer_count = 5  # default
+            layer_count = 5
             if ColorSystem:
                 layer_count = ColorSystem.get(color_mode).get('layer_count', 5)
             stacks = np.zeros((count, layer_count), dtype=np.int32)

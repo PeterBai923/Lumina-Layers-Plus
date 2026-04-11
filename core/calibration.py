@@ -453,9 +453,6 @@ def generate_8color_board(page_index=0):
         # 转换为顶到底约定 (stack[0]=观赏面，stack[4]=背面)，与 4 色模式统一
         all_stacks = np.array([s[::-1] for s in all_stacks])
         
-        # Debug: Check surface black count (转换后 stack[0] 为观赏面)
-        surface_black = sum(1 for s in all_stacks if s[0] == 5)
-        print(f"[8COLOR] Surface black: {surface_black}/{len(all_stacks)} ({surface_black/len(all_stacks)*100:.2f}%)")
     except Exception as e: 
         print(f"[8COLOR] Error loading data: {e}")
         return None, None, "[ERROR] Data not found. Run analyze_colors.py first."
@@ -480,10 +477,6 @@ def generate_8color_board(page_index=0):
     for i, stack in enumerate(stacks):
         r, c = (i // data_dim) + padding, (i % data_dim) + padding
         py, px = r * (px_blk + px_gap), c * (px_blk + px_gap)
-        
-        # Debug first few stacks
-        if i < 3:
-            print(f"[8COLOR] Stack {i} (顶到底): {stack}")
         
         # 直接写入，与 4 色模式一致（已在加载时完成约定转换）
         # stack[0] = 观赏面 -> Z=0 (物理第 1 层，观赏面)
@@ -539,22 +532,6 @@ def generate_8color_board(page_index=0):
     prev = np.zeros((v_w, v_w, 3), dtype=np.uint8)
     for mid, col in conf['preview'].items(): prev[full_matrix[0]==mid] = col[:3]
     
-    # Debug: Check what's on the first layer
-    unique, counts = np.unique(full_matrix[0], return_counts=True)
-    material_stats = dict(zip(unique, counts))
-    print(f"[8COLOR] First layer (Z=0) materials: {material_stats}")
-    
-    # Calculate actual color blocks (not pixels)
-    total_pixels = v_w * v_w
-    block_pixels = px_blk * px_blk
-    print(f"[8COLOR] Pixel stats:")
-    print(f"  Total pixels: {total_pixels}")
-    print(f"  Pixels per block: {block_pixels}")
-    for mid, pixel_count in material_stats.items():
-        block_count = pixel_count / block_pixels
-        percentage = pixel_count / total_pixels * 100
-        mat_name = conf['slots'][mid] if mid < len(conf['slots']) else f"Material{mid}"
-        print(f"  {mat_name} (ID={mid}): {pixel_count} pixels = ~{block_count:.1f} blocks ({percentage:.1f}%)")
     
     return out_path, Image.fromarray(prev), "OK"
 

@@ -250,7 +250,7 @@ def _get_8color_luts():
                         data = np.load(path)
                         if 'rgb' in data and 'stacks' in data:
                             luts.append(path)
-                except:
+                except Exception:
                     pass
     
     return sorted(luts) if luts else ["(未找到)"]

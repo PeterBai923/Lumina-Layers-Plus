@@ -91,11 +91,9 @@ class StackFileManager:
         Returns:
             是否有效
         """
-        # 检查形状
         if stack_data.ndim != 2 or stack_data.shape[1] != 5:
             return False
         
-        # 检查值范围
         if stack_data.min() < 0 or stack_data.max() >= color_count:
             return False
         
@@ -245,7 +243,7 @@ class ColorQueryEngine:
         else:
             # 尝试从 lut_rgb 检测
             detected_count, _ = ColorCountDetector.detect_color_count(lut_rgb)
-            self.color_count = detected_count if detected_count > 0 else 8  # 默认 8 色
+            self.color_count = detected_count if detected_count > 0 else 8
         
         # 验证 stack_lut 和 lut_rgb 长度一致（如果有 stack_lut）
         if stack_lut is not None and len(stack_lut) != len(lut_rgb):

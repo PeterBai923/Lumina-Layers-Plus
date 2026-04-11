@@ -205,8 +205,8 @@ def run_extraction(img, points, offset_x, offset_y, zoom, barrel, wb, bright, co
             physical_grid = 34      # Physical: 34x34
             total_cells = 1024
     else:
-        grid_size = DATA_GRID_SIZE  # 32
-        physical_grid = PHYSICAL_GRID_SIZE  # 34
+        grid_size = DATA_GRID_SIZE
+        physical_grid = PHYSICAL_GRID_SIZE
         total_cells = 1024
     
     print(f"[EXTRACTOR] Mode: {color_mode}, Logic: {grid_size}x{grid_size} inside {physical_grid}x{physical_grid}")
@@ -302,7 +302,7 @@ def probe_lut_cell(lut_path, evt: gr.SelectData):
     lut_height, lut_width = lut.shape[:2]
     
     x, y = evt.index
-    scale = 512 / lut_width  # 使用实际宽度计算缩放比例
+    scale = 512 / lut_width
     c = min(max(int(x / scale), 0), lut_width - 1)
     r = min(max(int(y / scale), 0), lut_height - 1)
 
