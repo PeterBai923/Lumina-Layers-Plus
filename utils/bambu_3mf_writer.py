@@ -14,6 +14,7 @@ from datetime import datetime
 from typing import List, Dict, Optional
 import trimesh
 import numpy as np
+from config import DEFAULT_PRINT_SETTINGS
 
 _CONFIG_TEMPLATE_CACHE = None
 
@@ -31,13 +32,7 @@ class BambuStudio3MFWriter:
     
     # Default print settings (optimized for color layering)
     DEFAULT_SETTINGS = {
-        'layer_height': '0.08',
-        'initial_layer_height': '0.08',
-        'wall_loops': '1',
-        'top_shell_layers': '0',
-        'bottom_shell_layers': '0',
-        'sparse_infill_density': '100%',
-        'sparse_infill_pattern': 'zig-zag',
+        **DEFAULT_PRINT_SETTINGS,
         'nozzle_temperature': ['220', '220', '220', '220'],
         'bed_temperature': ['60', '60', '60', '60'],
         'filament_type': ['PLA', 'PLA', 'PLA', 'PLA'],

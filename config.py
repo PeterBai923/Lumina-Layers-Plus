@@ -155,6 +155,12 @@ class ColorSystem:
             3: [0, 100, 240, 255]
         },
         'map': {"White": 0, "Red": 1, "Yellow": 2, "Blue": 3},
+        'filaments': {
+            0: {"name": "White",   "rgb": [255, 255, 255], "td": 5.0},
+            1: {"name": "Red",     "rgb": [220, 20, 60],   "td": 4.0},
+            2: {"name": "Yellow",  "rgb": [255, 230, 0],   "td": 6.0},
+            3: {"name": "Blue",    "rgb": [0, 100, 240],   "td": 2.0},
+        },
         'corner_labels': ["白色 (左上)", "红色 (右上)", "蓝色 (右下)", "黄色 (左下)"],
         'corner_labels_en': ["White (TL)", "Red (TR)", "Blue (BR)", "Yellow (BL)"]
     }
@@ -185,6 +191,16 @@ class ColorSystem:
             4: [0, 0, 0, 255], 5: [193, 46, 31, 255], 6: [10, 41, 137, 255], 7: [0, 174, 66, 255]
         },
         'map': {'White': 0, 'Cyan': 1, 'Magenta': 2, 'Yellow': 3, 'Black': 4, 'Red': 5, 'Deep Blue': 6, 'Green': 7},
+        'filaments': {
+            0: {"name": "White (Jade)", "rgb": [255, 255, 255], "td": 5.0},
+            1: {"name": "Cyan",         "rgb": [0, 134, 214],   "td": 3.5},
+            2: {"name": "Magenta",      "rgb": [236, 0, 140],   "td": 3.0},
+            3: {"name": "Yellow",       "rgb": [244, 238, 42],  "td": 6.0},
+            4: {"name": "Black",        "rgb": [0, 0, 0],       "td": 0.6},
+            5: {"name": "Red",          "rgb": [193, 46, 31],   "td": 4.0},
+            6: {"name": "Deep Blue",    "rgb": [10, 41, 137],   "td": 2.3},
+            7: {"name": "Green",        "rgb": [0, 174, 66],    "td": 2.0},
+        },
         'corner_labels': ['TL', 'TR', 'BR', 'BL']
     }
 
@@ -215,6 +231,13 @@ class ColorSystem:
             4: [20, 20, 20, 255]      # Black
         },
         'map': {"White": 0, "Red": 1, "Yellow": 2, "Blue": 3, "Black": 4},
+        'filaments': {
+            0: {"name": "White",   "rgb": [255, 255, 255], "td": 5.0},
+            1: {"name": "Red",     "rgb": [220, 20, 60],   "td": 4.0},
+            2: {"name": "Yellow",  "rgb": [255, 230, 0],   "td": 6.0},
+            3: {"name": "Blue",    "rgb": [0, 100, 240],   "td": 2.0},
+            4: {"name": "Black",   "rgb": [20, 20, 20],    "td": 0.6},
+        },
         'corner_labels': ["白色 (左上)", "红色 (右上)", "蓝色 (右下)", "黄色 (左下)", "黑色 (外层)"],
         'corner_labels_en': ["White (TL)", "Red (TR)", "Blue (BR)", "Yellow (BL)", "Black (Outer)"]
     }
@@ -279,6 +302,28 @@ LUT_FILE_PATH = os.path.join(OUTPUT_DIR, "lumina_lut.npy")
 # Converter constants
 PREVIEW_SCALE = 2
 PREVIEW_MARGIN = 30
+
+# Default print settings (optimized for color layering)
+DEFAULT_PRINT_SETTINGS = {
+    'layer_height': '0.08',
+    'initial_layer_height': '0.08',
+    'wall_loops': '1',
+    'top_shell_layers': '0',
+    'bottom_shell_layers': '0',
+    'sparse_infill_density': '100%',
+    'sparse_infill_pattern': 'zig-zag',
+}
+EXTENDED_PRINT_SETTINGS = {
+    **DEFAULT_PRINT_SETTINGS,
+    'nozzle_temperature': ['220'] * 8,
+    'bed_temperature': ['60'] * 8,
+    'filament_type': ['PLA'] * 8,
+    'print_speed': '100',
+    'travel_speed': '150',
+    'enable_support': '0',
+    'brim_width': '5',
+    'brim_type': 'auto_brim',
+}
 
 
 class BedManager:

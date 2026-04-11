@@ -25,6 +25,7 @@ import numpy as np
 import cv2
 import trimesh
 from config import ModelingMode
+from core.geometry_utils import CUBE_FACES
 
 try:
     import numba
@@ -154,11 +155,7 @@ class VoxelMesher(BaseMesher):
                         [x0, y0, z_top], [x1, y0, z_top], 
                         [x1, y1, z_top], [x0, y1, z_top]
                     ])
-                    cube_faces = [
-                        [0, 2, 1], [0, 3, 2], [4, 5, 6], [4, 6, 7],
-                        [0, 1, 5], [0, 5, 4], [1, 2, 6], [1, 6, 5],
-                        [2, 3, 7], [2, 7, 6], [3, 0, 4], [3, 4, 7]
-                    ]
+                    cube_faces = CUBE_FACES
                     faces.extend([[v + base_idx for v in f] for f in cube_faces])
         
         if not vertices:

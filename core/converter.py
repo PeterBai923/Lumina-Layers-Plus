@@ -15,13 +15,13 @@ from PIL import Image, ImageDraw, ImageFont
 import gradio as gr
 from typing import List, Dict, Tuple, Optional
 
-from config import PrinterConfig, ColorSystem, ModelingMode, PREVIEW_SCALE, PREVIEW_MARGIN, OUTPUT_DIR, BedManager
+from config import PrinterConfig, ColorSystem, ModelingMode, PREVIEW_SCALE, PREVIEW_MARGIN, OUTPUT_DIR, BedManager, EXTENDED_PRINT_SETTINGS
 from utils import Stats
 from utils.bambu_3mf_writer import export_scene_with_bambu_metadata
 
 from core.image_processing import LuminaImageProcessor
 from core.mesh_generators import get_mesher
-from core.geometry_utils import create_keychain_loop
+from core.geometry_utils import create_keychain_loop, CUBE_FACES, CUBE_FACES_NP
 from core.heightmap_loader import HeightmapLoader
 from core.naming import generate_model_filename, generate_preview_filename
 from core.color_utils import rgb_to_hex, hex_to_rgb
@@ -643,23 +643,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                 return None, None, None, "[ERROR] Vector export aborted: all generated geometries are empty", None
             vec_preview_colors = vec_color_conf['preview']
 
-            vec_print_settings = {
-                'layer_height': '0.08',
-                'initial_layer_height': '0.08',
-                'wall_loops': '1',
-                'top_shell_layers': '0',
-                'bottom_shell_layers': '0',
-                'sparse_infill_density': '100%',
-                'sparse_infill_pattern': 'zig-zag',
-                'nozzle_temperature': ['220'] * 8,
-                'bed_temperature': ['60'] * 8,
-                'filament_type': ['PLA'] * 8,
-                'print_speed': '100',
-                'travel_speed': '150',
-                'enable_support': '0',
-                'brim_width': '5',
-                'brim_type': 'auto_brim',
-            }
+            vec_print_settings = EXTENDED_PRINT_SETTINGS
 
             export_t0 = time.perf_counter()
             export_scene_with_bambu_metadata(
@@ -1415,23 +1399,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
         return None, None, None, "[ERROR] Mesh generation failed: No valid meshes generated", None
     
     # BambuStudio print settings
-    print_settings = {
-        'layer_height': '0.08',
-        'initial_layer_height': '0.08',
-        'wall_loops': '1',
-        'top_shell_layers': '0',
-        'bottom_shell_layers': '0',
-        'sparse_infill_density': '100%',
-        'sparse_infill_pattern': 'zig-zag',
-        'nozzle_temperature': ['220'] * 8,
-        'bed_temperature': ['60'] * 8,
-        'filament_type': ['PLA'] * 8,
-        'print_speed': '100',
-        'travel_speed': '150',
-        'enable_support': '0',
-        'brim_width': '5',
-        'brim_type': 'auto_brim',
-    }
+    print_settings = EXTENDED_PRINT_SETTINGS
     
     try:
         print(f"[CONVERTER] Exporting with BambuStudio metadata...")
@@ -1696,14 +1664,7 @@ def _generate_outline_mesh(mask_solid, pixel_scale, outline_width_mm, outline_th
                 [world_x0, world_y0, z_tp], [world_x1, world_y0, z_tp],
                 [world_x1, world_y1, z_tp], [world_x0, world_y1, z_tp]
             ])
-            cube_faces = [
-                [0, 2, 1], [0, 3, 2],
-                [4, 5, 6], [4, 6, 7],
-                [0, 1, 5], [0, 5, 4],
-                [1, 2, 6], [1, 6, 5],
-                [2, 3, 7], [2, 7, 6],
-                [3, 0, 4], [3, 4, 7]
-            ]
+            cube_faces = CUBE_FACES
             faces.extend([[v + base_idx for v in f] for f in cube_faces])
     
     if not vertices:
@@ -2193,29 +2154,6 @@ def _build_voxel_matrix(material_matrix, mask_solid, spacer_thick, structure_mod
     return full_matrix, backing_metadata
 
 
-def _build_voxel_matrix_6layer(material_matrix, mask_solid, spacer_thick, structure_mode, backing_color_id=0):
-    """
-    Build complete voxel matrix for 6-layer structures (5-Color Extended mode).
-    
-    Args:
-        material_matrix: (H, W, 6) material matrix for 6 layers
-        mask_solid: (H, W) solid pixel mask
-        spacer_thick: backing thickness (mm)
-        structure_mode: "双面" or "单面" (Double-sided or Single-sided)
-        backing_color_id: backing material ID (0-7), default is 0 (White)
-    
-    Returns:
-        tuple: (full_matrix, backing_metadata)
-            - full_matrix: (Z, H, W) voxel matrix
-            - backing_metadata: dict with keys:
-                - 'backing_color_id': int
-                - 'backing_z_range': tuple (start_z, end_z)
-    """
-    return _build_voxel_matrix(
-        material_matrix, mask_solid, spacer_thick, structure_mode, backing_color_id=backing_color_id
-    )
-
-
 def _build_voxel_matrix_faceup(material_matrix, mask_solid, spacer_thick, backing_color_id=0):
     """
     Face-up voxel matrix for 5-Color Extended mode.
@@ -2455,14 +2393,7 @@ def _create_preview_mesh(matched_rgb, mask_solid, total_layers, backing_color_id
                                int(preview_colors[actual_backing_color_id][1]),
                                int(preview_colors[actual_backing_color_id][2]), 255]
 
-                cube_faces = [
-                    [0, 2, 1], [0, 3, 2],
-                    [4, 5, 6], [4, 6, 7],
-                    [0, 1, 5], [0, 5, 4],
-                    [1, 2, 6], [1, 6, 5],
-                    [2, 3, 7], [2, 7, 6],
-                    [3, 0, 4], [3, 4, 7]
-                ]
+                cube_faces = CUBE_FACES
 
                 for f in cube_faces:
                     faces.append([v + base_idx for v in f])
@@ -2508,14 +2439,7 @@ def _create_preview_mesh(matched_rgb, mask_solid, total_layers, backing_color_id
                     [x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]
                 ])
 
-                cube_faces = [
-                    [0, 2, 1], [0, 3, 2],
-                    [4, 5, 6], [4, 6, 7],
-                    [0, 1, 5], [0, 5, 4],
-                    [1, 2, 6], [1, 6, 5],
-                    [2, 3, 7], [2, 7, 6],
-                    [3, 0, 4], [3, 4, 7]
-                ]
+                cube_faces = CUBE_FACES
 
                 for f in cube_faces:
                     faces.append([v + base_idx for v in f])
@@ -2634,14 +2558,7 @@ def _build_color_voxel_mesh(
     all_faces = np.empty((n_pixels * 12, 3), dtype=np.int64)
     all_colors = np.empty((n_pixels * 12, 4), dtype=np.uint8)
 
-    cube_faces_template = np.array([
-        [0, 2, 1], [0, 3, 2],
-        [4, 5, 6], [4, 6, 7],
-        [0, 1, 5], [0, 5, 4],
-        [1, 2, 6], [1, 6, 5],
-        [2, 3, 7], [2, 7, 6],
-        [3, 0, 4], [3, 4, 7],
-    ], dtype=np.int64)
+    cube_faces_template = CUBE_FACES_NP
 
     x0 = xs.astype(np.float64) + shrink
     x1 = xs.astype(np.float64) + 1.0 - shrink

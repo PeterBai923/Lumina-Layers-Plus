@@ -6,6 +6,17 @@ Geometry utilities module - Pure functional geometry calculation tools
 import numpy as np
 import trimesh
 
+# Standard cube face indices (12 triangles for 8 vertices)
+CUBE_FACES = [
+    [0, 2, 1], [0, 3, 2],
+    [4, 5, 6], [4, 6, 7],
+    [0, 1, 5], [0, 5, 4],
+    [1, 2, 6], [1, 6, 5],
+    [2, 3, 7], [2, 7, 6],
+    [3, 0, 4], [3, 4, 7],
+]
+CUBE_FACES_NP = np.array(CUBE_FACES, dtype=np.int64)
+
 
 def create_keychain_loop(width_mm, length_mm, hole_dia_mm, thickness_mm, 
                          attach_x_mm, attach_y_mm):

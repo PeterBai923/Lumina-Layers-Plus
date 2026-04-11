@@ -17,9 +17,10 @@ from colormath.color_objects import sRGBColor, LabColor
 from colormath.color_conversions import convert_color
 from colormath.color_diff import delta_e_cie2000
 
-from config import PrinterConfig, ColorSystem, SmartConfig, OUTPUT_DIR, get_asset_path
+from config import PrinterConfig, ColorSystem, SmartConfig, OUTPUT_DIR, get_asset_path, DEFAULT_PRINT_SETTINGS
 from core.naming import generate_calibration_filename
 from core.stack_encoding import encode_to_base
+from core.geometry_utils import CUBE_FACES
 from utils import Stats
 from utils.bambu_3mf_writer import export_scene_with_bambu_metadata
 
@@ -68,11 +69,7 @@ def _generate_voxel_mesh(voxel_matrix: np.ndarray, material_index: int,
                     [x0, y0, z_bottom], [x1, y0, z_bottom], [x1, y1, z_bottom], [x0, y1, z_bottom],
                     [x0, y0, z_top], [x1, y0, z_top], [x1, y1, z_top], [x0, y1, z_top]
                 ])
-                cube_faces = [
-                    [0, 2, 1], [0, 3, 2], [4, 5, 6], [4, 6, 7],
-                    [0, 1, 5], [0, 5, 4], [1, 2, 6], [1, 6, 5],
-                    [2, 3, 7], [2, 7, 6], [3, 0, 4], [3, 4, 7]
-                ]
+                cube_faces = CUBE_FACES
                 faces.extend([[v + base_idx for v in f] for f in cube_faces])
 
     if not vertices:
@@ -171,15 +168,7 @@ def generate_calibration_board(color_mode: str, block_size_mm: float,
         output_path=output_path,
         slot_names=slot_names,
         preview_colors=preview_colors,
-        settings={
-            'layer_height': '0.08',
-            'initial_layer_height': '0.08',
-            'wall_loops': '1',
-            'top_shell_layers': '0',
-            'bottom_shell_layers': '0',
-            'sparse_infill_density': '100%',
-            'sparse_infill_pattern': 'zig-zag',
-        },
+        settings=DEFAULT_PRINT_SETTINGS,
         color_mode=color_mode
     )
 
@@ -413,15 +402,7 @@ def generate_smart_board(block_size_mm=5.0, gap_mm=0.8):
         output_path=output_path,
         slot_names=slot_names,
         preview_colors=preview_colors,
-        settings={
-            'layer_height': '0.08',
-            'initial_layer_height': '0.08',
-            'wall_loops': '1',
-            'top_shell_layers': '0',
-            'bottom_shell_layers': '0',
-            'sparse_infill_density': '100%',
-            'sparse_infill_pattern': 'zig-zag',
-        },
+        settings=DEFAULT_PRINT_SETTINGS,
         color_mode="6-Color"
     )
     
@@ -516,15 +497,7 @@ def generate_8color_board(page_index=0):
         output_path=out_path,
         slot_names=conf['slots'],
         preview_colors=conf['preview'],
-        settings={
-            'layer_height': '0.08',
-            'initial_layer_height': '0.08',
-            'wall_loops': '1',
-            'top_shell_layers': '0',
-            'bottom_shell_layers': '0',
-            'sparse_infill_density': '100%',
-            'sparse_infill_pattern': 'zig-zag',
-        },
+        settings=DEFAULT_PRINT_SETTINGS,
         color_mode="8-Color"
     )
     
@@ -671,15 +644,7 @@ def generate_bw_calibration_board(block_size_mm=5.0, gap_mm=0.8, backing_color="
         output_path=output_path,
         slot_names=slot_names,
         preview_colors=preview_colors,
-        settings={
-            'layer_height': '0.08',
-            'initial_layer_height': '0.08',
-            'wall_loops': '1',
-            'top_shell_layers': '0',
-            'bottom_shell_layers': '0',
-            'sparse_infill_density': '100%',
-            'sparse_infill_pattern': 'zig-zag',
-        },
+        settings=DEFAULT_PRINT_SETTINGS,
         color_mode="BW"
     )
     
@@ -726,13 +691,7 @@ def select_extended_1444_colors(base_1024_stacks):
     LAYER_HEIGHT = PrinterConfig.LAYER_HEIGHT
     BACKING = np.array([255, 255, 255])
 
-    FILAMENTS = {
-        0: {"name": "White",   "rgb": [255, 255, 255], "td": 5.0},
-        1: {"name": "Red",     "rgb": [220, 20, 60],   "td": 4.0},
-        2: {"name": "Yellow",  "rgb": [255, 230, 0],   "td": 6.0},
-        3: {"name": "Blue",    "rgb": [0, 100, 240],   "td": 2.0},
-        4: {"name": "Black",   "rgb": [20, 20, 20],    "td": 0.6},
-    }
+    FILAMENTS = ColorSystem.FIVE_COLOR_EXTENDED['filaments']
 
     alphas = {}
     for fid, props in FILAMENTS.items():
@@ -837,12 +796,7 @@ def get_top_1444_colors():
     LAYER_HEIGHT = PrinterConfig.LAYER_HEIGHT
     BACKING = np.array([255, 255, 255])
 
-    FILAMENTS = {
-        0: {"name": "White",   "rgb": [255, 255, 255], "td": 5.0},
-        1: {"name": "Red",     "rgb": [220, 20, 60],   "td": 4.0},
-        2: {"name": "Yellow",  "rgb": [255, 230, 0],   "td": 6.0},
-        3: {"name": "Blue",    "rgb": [0, 100, 240],   "td": 2.0},
-    }
+    FILAMENTS = ColorSystem.RYBW['filaments']
 
     alphas = {}
     for fid, props in FILAMENTS.items():
@@ -963,13 +917,8 @@ def generate_5color1444_board(block_size_mm=5.0, gap_mm=0.8):
 
     print(f"[5C1444] Board size: {board_w:.1f} x {board_h:.1f} mm (Grid: {total_dim}x{total_dim})")
 
-    preview_colors = {
-        0: [255, 255, 255, 255],
-        1: [220, 20, 60, 255],
-        2: [255, 230, 0, 255],
-        3: [0, 100, 240, 255],
-    }
-    slot_names = ["White", "Red", "Yellow", "Blue"]
+    preview_colors = ColorSystem.RYBW['preview']
+    slot_names = ColorSystem.RYBW['slots']
 
     pixels_per_block = max(1, int(block_w / PrinterConfig.NOZZLE_WIDTH))
     pixels_gap = max(1, int(gap / PrinterConfig.NOZZLE_WIDTH))
@@ -1033,15 +982,7 @@ def generate_5color1444_board(block_size_mm=5.0, gap_mm=0.8):
         output_path=output_path,
         slot_names=slot_names,
         preview_colors=preview_colors,
-        settings={
-            'layer_height': '0.08',
-            'initial_layer_height': '0.08',
-            'wall_loops': '1',
-            'top_shell_layers': '0',
-            'bottom_shell_layers': '0',
-            'sparse_infill_density': '100%',
-            'sparse_infill_pattern': 'zig-zag',
-        },
+        settings=DEFAULT_PRINT_SETTINGS,
         color_mode="RYBW"
     )
 
@@ -1140,14 +1081,8 @@ def generate_5color_extended_board(block_size_mm=5.0, gap_mm=0.8, page_index=0):
     print(f"[5C_EXT] Generating 5-Color Extended calibration board - Page {page_index + 1}...")
 
     # Color configuration (5 slots: W, R, Y, B, K)
-    preview_colors = {
-        0: [255, 255, 255, 255],  # White
-        1: [220, 20, 60, 255],    # Red
-        2: [255, 230, 0, 255],    # Yellow
-        3: [0, 100, 240, 255],    # Blue
-        4: [20, 20, 20, 255],     # Black
-    }
-    slot_names = ["White", "Red", "Yellow", "Blue", "Black"]
+    preview_colors = ColorSystem.FIVE_COLOR_EXTENDED['preview']
+    slot_names = ColorSystem.FIVE_COLOR_EXTENDED['slots']
 
     if page_index == 0:
         # Page 1: Base 1024 colors (5-layer, similar to 4-color mode)
@@ -1232,15 +1167,7 @@ def _generate_5color_base_page(block_size_mm, gap_mm, preview_colors, slot_names
         output_path=output_path,
         slot_names=slot_names[:4],
         preview_colors=preview_colors,
-        settings={
-            'layer_height': '0.08',
-            'initial_layer_height': '0.08',
-            'wall_loops': '1',
-            'top_shell_layers': '0',
-            'bottom_shell_layers': '0',
-            'sparse_infill_density': '100%',
-            'sparse_infill_pattern': 'zig-zag',
-        },
+        settings=DEFAULT_PRINT_SETTINGS,
         color_mode="5-Color Extended"
     )
     
@@ -1350,15 +1277,7 @@ def _generate_5color_extended_page(block_size_mm, gap_mm, preview_colors, slot_n
         output_path=output_path,
         slot_names=slot_names,
         preview_colors=preview_colors,
-        settings={
-            'layer_height': '0.08',
-            'initial_layer_height': '0.08',
-            'wall_loops': '1',
-            'top_shell_layers': '0',
-            'bottom_shell_layers': '0',
-            'sparse_infill_density': '100%',
-            'sparse_infill_pattern': 'zig-zag',
-        },
+        settings=DEFAULT_PRINT_SETTINGS,
         color_mode="5-Color Extended"
     )
     

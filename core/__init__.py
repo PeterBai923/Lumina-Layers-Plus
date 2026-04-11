@@ -4,6 +4,11 @@ Lumina Studio - Core Module (Refactored)
 核心算法模块 - 重构版本
 """
 
+# Patch numpy.asscalar for colormath compatibility (numpy >= 2.0)
+import numpy as np
+from utils.log_tee import patch_asscalar
+setattr(np, "asscalar", patch_asscalar)
+
 # Calibration module
 from .calibration import generate_calibration_board
 

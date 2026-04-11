@@ -13,6 +13,8 @@ from colormath.color_diff import delta_e_cie2000
 import itertools
 import os
 
+from config import ColorSystem
+
 # ================= 配置区域 =================
 
 # 打印参数
@@ -20,17 +22,8 @@ LAYER_HEIGHT = 0.08  # 层高
 LAYERS = 5           # 混色层数
 BACKING_COLOR = np.array([255, 255, 255]) # 底板颜色 (白色)
 
-# 耗材定义 (必须和 config.py 的 EIGHT_COLOR 顺序一致！)
-FILAMENTS = {
-    0: {"name": "White (Jade)", "rgb": [255, 255, 255], "td": 5.0},   # Slot 1
-    1: {"name": "Cyan",         "rgb": [0, 134, 214],   "td": 3.5},   # Slot 2
-    2: {"name": "Magenta",      "rgb": [236, 0, 140],   "td": 3.0},   # Slot 3
-    3: {"name": "Yellow",       "rgb": [244, 238, 42],  "td": 6.0},   # Slot 4
-    4: {"name": "Black",        "rgb": [0, 0, 0],       "td": 0.6},   # Slot 5 (黑色)
-    5: {"name": "Red",          "rgb": [193, 46, 31],   "td": 4.0},   # Slot 6
-    6: {"name": "Deep Blue",    "rgb": [10, 41, 137],   "td": 2.3},   # Slot 7
-    7: {"name": "Green",        "rgb": [0, 174, 66],    "td": 2.0},   # Slot 8
-}
+# 耗材定义 (统一使用 config.py 的 EIGHT_COLOR 注册表)
+FILAMENTS = ColorSystem.EIGHT_COLOR['filaments']
 
 # RGB距离阈值 (和6色算法一致)
 RGB_DISTANCE_THRESHOLD = 8
