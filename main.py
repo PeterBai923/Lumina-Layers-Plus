@@ -105,7 +105,7 @@ if __name__ == "__main__":
         app = create_app()
 
         try:
-            from ui.assets import HEADER_CSS, DEBOUNCE_JS, FIVECOLOR_CLICK_JS
+            from ui.assets import DEBOUNCE_JS, FIVECOLOR_CLICK_JS
             # Import crop extension for head JS injection
             from ui.widgets.crop_modal import get_crop_head_js
             
@@ -126,7 +126,7 @@ if __name__ == "__main__":
                 show_error=True,
                 prevent_thread_lock=True,
                 favicon_path=icon_path,
-                css=CUSTOM_CSS + HEADER_CSS,
+                css=CUSTOM_CSS,
                 theme=gr.themes.Soft(),
                 head=get_crop_head_js() + DEBOUNCE_JS + FIVECOLOR_CLICK_JS
             )

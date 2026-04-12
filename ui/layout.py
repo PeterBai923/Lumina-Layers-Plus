@@ -13,7 +13,6 @@ from core.converter import generate_realtime_glb, render_preview
 from .styles import CUSTOM_CSS
 from .callbacks import on_lut_select
 from .settings import _save_user_setting
-from .assets import HEADER_CSS, LUT_GRID_CSS
 from .image_helpers import _preview_update, _format_bytes
 from .i18n_helpers import (
     _get_header_html,
@@ -71,7 +70,7 @@ def create_app():
     """Build the Gradio app (tabs, i18n, events) and return the Blocks instance."""
     with gr.Blocks(title="Lumina Studio") as app:
         # Inject CSS styles via HTML component (for Gradio 4.20.0 compatibility)
-        gr.HTML(f"<style>{CUSTOM_CSS + HEADER_CSS + LUT_GRID_CSS}</style>")
+        gr.HTML(f"<style>{CUSTOM_CSS}</style>")
 
         lang_state = gr.State(value="zh")
         theme_state = gr.State(value=False)  # False=light, True=dark

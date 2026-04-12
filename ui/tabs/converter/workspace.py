@@ -197,7 +197,7 @@ def build_right_workspace(lang, components, states):
 
                             # LUT 网格 HTML
                             conv_lut_grid_view = gr.HTML(
-                                value=f"<div style='color:#888; padding:10px;'>{I18n.get('conv_palette_lut_loading', lang)}</div>",
+                                value=f'<div class="placeholder-text" style="padding:10px;">{I18n.get("conv_palette_lut_loading", lang)}</div>',
                                 label="",
                                 show_label=False
                             )
@@ -243,7 +243,7 @@ def build_right_workspace(lang, components, states):
                         I18n.get('conv_palette_replacements_label', lang)
                     )
                     conv_palette_html = gr.HTML(
-                        value=f"<p style='color:#888;'>{I18n.get('conv_palette_replacements_placeholder', lang)}</p>",
+                        value=f'<p class="placeholder-text">{I18n.get("conv_palette_replacements_placeholder", lang)}</p>',
                         label="",
                         show_label=False
                     )

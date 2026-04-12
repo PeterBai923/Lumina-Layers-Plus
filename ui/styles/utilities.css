@@ -1,0 +1,140 @@
+/* ═══════════════════════════════════════════════════════════════
+   Utility Classes - Reusable CSS helpers
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Layout helpers ── */
+.flex-center { display: flex; align-items: center; }
+.flex-col-center { display: flex; flex-direction: column; align-items: center; }
+.gap-xs { gap: 4px; }
+.gap-sm { gap: 6px; }
+.gap-md { gap: 8px; }
+.gap-lg { gap: 12px; }
+.gap-xl { gap: 20px; }
+
+/* ── Text helpers ── */
+.placeholder-text {
+    color: var(--body-text-color-subdued, #888);
+    padding: 6px;
+}
+
+.section-title {
+    font-weight: 600;
+    font-size: 12px;
+    color: var(--body-text-color, #333);
+    margin-bottom: 6px;
+}
+
+.text-caption {
+    font-size: 11px;
+    color: var(--body-text-color-subdued, #666);
+}
+
+.empty-hint {
+    padding: 6px;
+    color: #999;
+}
+
+/* ── Box helpers ── */
+.dashed-box {
+    border: 2px dashed var(--border-color-primary, #ddd);
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    color: var(--body-text-color-subdued, #666);
+}
+
+/* ── Button: chip style ── */
+.btn-chip {
+    padding: 4px 10px;
+    border: 1px solid var(--border-color-primary, #ccc);
+    border-radius: 6px;
+    background: var(--background-fill-secondary, #f5f5f5);
+    cursor: pointer;
+    font-size: 11px;
+    color: var(--body-text-color, #333);
+    transition: all 0.15s;
+}
+.btn-chip:hover {
+    background: var(--background-fill-tertiary, #e0e0e0);
+}
+.btn-chip.active {
+    background: var(--lumina-gradient);
+    color: white;
+    border-color: transparent;
+}
+
+/* ── Message cards ── */
+.msg-card {
+    padding: 20px;
+    border-radius: 8px;
+    border-width: 2px;
+    border-style: solid;
+}
+.msg-card-error {
+    border-color: #fecaca;
+    background: #fef2f2;
+    color: #dc2626;
+}
+.msg-card-success {
+    border-color: #10b981;
+    background: #f0fdf4;
+}
+.msg-card-success .msg-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #065f46;
+}
+.msg-card-success .msg-detail {
+    font-size: 14px;
+    color: #047857;
+}
+
+/* ── Color swatch ── */
+.hue-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-right: 2px;
+    vertical-align: middle;
+    box-sizing: border-box;
+}
+
+/* ── Free color mark ── */
+.free-color-mark {
+    border: var(--free-color-border) !important;
+}
+
+/* ── Search input ── */
+.lut-search-input {
+    flex: 1;
+    padding: 6px 10px;
+    border: 1px solid var(--border-color-primary, #ddd);
+    border-radius: 6px;
+    font-size: 11px;
+    outline: none;
+}
+.lut-search-input:focus {
+    border-color: #2196F3;
+}
+
+/* ── Hue filter button bar ── */
+.lut-hue-btn {
+    padding: 2px 8px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    background: #f5f5f5;
+    cursor: pointer;
+    font-size: 10px;
+    height: 22px;
+    line-height: 16px;
+    transition: all 0.15s;
+}
+.lut-hue-btn:hover {
+    background: var(--background-fill-tertiary, #e0e0e0);
+}
+.lut-hue-btn.active {
+    background: #333;
+    color: #fff;
+    border-color: #333;
+}

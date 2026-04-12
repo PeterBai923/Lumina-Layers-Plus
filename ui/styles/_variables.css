@@ -1,0 +1,23 @@
+/* ═══════════════════════════════════════════════════════════════
+   Lumina Studio - CSS Variables
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+    /* Brand gradient */
+    --lumina-primary: #667eea;
+    --lumina-secondary: #764ba2;
+    --lumina-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --lumina-shadow: rgba(102, 126, 234, 0.3);
+    --lumina-shadow-strong: rgba(102, 126, 234, 0.5);
+    --lumina-theme-primary: #4f46e5;
+    --lumina-theme-secondary: #4338ca;
+    --lumina-theme-gradient: linear-gradient(135deg, #4f46e5 0%, #4338ca 100%);
+    --lumina-theme-shadow: rgba(79, 70, 229, 0.3);
+    --lumina-theme-shadow-strong: rgba(79, 70, 229, 0.5);
+
+    /* Swatch */
+    --swatch-border: 1px solid rgba(0,0,0,0.1);
+    --swatch-selected-outline: 3px solid #2196F3;
+    --swatch-selected-offset: 2px;
+    --free-color-border: 2px solid #ff6b6b;
+}

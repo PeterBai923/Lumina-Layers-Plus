@@ -1,0 +1,90 @@
+/* ═══════════════════════════════════════════════════════════════
+   Slicer Buttons
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Split button container — no gap, unified look */
+#conv-slicer-split-btn {
+    gap: 0 !important;
+    padding: 0 !important;
+    align-items: stretch !important;
+}
+
+/* Slicer open button - base styles (left part) */
+#conv-open-slicer-btn {
+    border: none !important;
+    color: white !important;
+    font-size: 1.05em !important;
+    font-weight: 600 !important;
+    padding: 10px 20px !important;
+    border-radius: 10px 0 0 10px !important;
+    transition: all 0.2s ease !important;
+}
+
+/* Arrow button - base styles (right part) */
+#conv-slicer-arrow-btn {
+    border: none !important;
+    border-left: 1px solid rgba(255,255,255,0.25) !important;
+    color: white !important;
+    font-size: 1.05em !important;
+    padding: 10px 0 !important;
+    border-radius: 0 10px 10px 0 !important;
+    transition: all 0.2s ease !important;
+    min-width: 42px !important;
+    max-width: 42px !important;
+}
+
+/* Bambu Studio - green */
+#conv-open-slicer-btn.slicer-bambu,
+#conv-slicer-arrow-btn.slicer-bambu {
+    background: linear-gradient(135deg, #00ae42 0%, #00c853 100%) !important;
+    box-shadow: 0 4px 12px rgba(0, 174, 66, 0.35) !important;
+}
+#conv-open-slicer-btn.slicer-bambu:hover,
+#conv-slicer-arrow-btn.slicer-bambu:hover {
+    background: linear-gradient(135deg, #009e3a 0%, #00b848 100%) !important;
+    box-shadow: 0 6px 16px rgba(0, 174, 66, 0.45) !important;
+}
+
+/* OrcaSlicer - gray */
+#conv-open-slicer-btn.slicer-orca,
+#conv-slicer-arrow-btn.slicer-orca {
+    background: linear-gradient(135deg, #4a4a4a 0%, #636363 100%) !important;
+    box-shadow: 0 4px 12px rgba(74, 74, 74, 0.35) !important;
+}
+#conv-open-slicer-btn.slicer-orca:hover,
+#conv-slicer-arrow-btn.slicer-orca:hover {
+    background: linear-gradient(135deg, #3a3a3a 0%, #555555 100%) !important;
+    box-shadow: 0 6px 16px rgba(74, 74, 74, 0.45) !important;
+}
+
+/* ElegooSlicer - blue */
+#conv-open-slicer-btn.slicer-elegoo,
+#conv-slicer-arrow-btn.slicer-elegoo {
+    background: linear-gradient(135deg, #1565c0 0%, #1e88e5 100%) !important;
+    box-shadow: 0 4px 12px rgba(21, 101, 192, 0.35) !important;
+}
+#conv-open-slicer-btn.slicer-elegoo:hover,
+#conv-slicer-arrow-btn.slicer-elegoo:hover {
+    background: linear-gradient(135deg, #0d47a1 0%, #1976d2 100%) !important;
+    box-shadow: 0 6px 16px rgba(21, 101, 192, 0.45) !important;
+}
+
+/* Download / default - purple (matches app theme) */
+#conv-open-slicer-btn.slicer-download,
+#conv-slicer-arrow-btn.slicer-download {
+    background: var(--lumina-gradient) !important;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.35) !important;
+}
+#conv-open-slicer-btn.slicer-download:hover,
+#conv-slicer-arrow-btn.slicer-download:hover {
+    background: linear-gradient(135deg, #5a6fd6 0%, #6a4196 100%) !important;
+    box-shadow: 0 6px 16px rgba(102, 126, 234, 0.45) !important;
+}
+
+/* Slicer dropdown compact */
+#conv-slicer-dropdown {
+    max-width: 100% !important;
+}
+#conv-slicer-dropdown .wrap {
+    min-height: unset !important;
+}

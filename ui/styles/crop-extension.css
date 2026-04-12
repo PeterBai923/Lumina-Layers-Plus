@@ -1,0 +1,38 @@
+/* ═══════════════════════════════════════════════════════════════
+   Crop Extension - Hidden Helpers & Animation
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Hidden textbox triggers - small but still in DOM flow for Gradio events */
+.hidden-textbox-trigger {
+    height: 1px !important;
+    min-height: 1px !important;
+    max-height: 1px !important;
+    overflow: hidden !important;
+    opacity: 0.01 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    position: absolute !important;
+    left: -9999px !important;
+}
+.hidden-textbox-trigger textarea,
+.hidden-textbox-trigger input,
+.hidden-textbox-trigger button {
+    height: 1px !important;
+    min-height: 1px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none !important;
+}
+
+/* LUT swatch breathing highlight animation */
+@keyframes lutBreathing {
+    0%   { outline: 3px solid rgba(255, 87, 34, 0.9); outline-offset: 2px; }
+    50%  { outline: 6px solid rgba(255, 87, 34, 0.3); outline-offset: 4px; }
+    100% { outline: 3px solid rgba(255, 87, 34, 0.9); outline-offset: 2px; }
+}
+.lut-color-swatch.lut-highlight {
+    animation: lutBreathing 0.7s ease-in-out 3;
+    z-index: 10;
+    position: relative;
+}

@@ -1,0 +1,173 @@
+/* ═══════════════════════════════════════════════════════════════
+   3D / 2D Preview - Fullscreen & Thumbnail
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Fullscreen 3D Preview */
+#conv-3d-fullscreen-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: #1a1a2e;
+    z-index: 10000;
+    padding: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+#conv-3d-fullscreen-container .model3D {
+    border-radius: 0 !important;
+    border: none !important;
+}
+
+#conv-3d-fullscreen {
+    min-height: 100vh !important;
+    height: 100vh !important;
+    border-radius: 0;
+    border: none;
+}
+
+#conv-3d-fullscreen label {
+    display: none !important;
+}
+
+#conv-3d-back-btn {
+    position: absolute !important;
+    top: 16px !important;
+    left: 16px !important;
+    z-index: 10010 !important;
+    width: auto !important;
+    min-width: unset !important;
+    height: 36px !important;
+    padding: 0 14px !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    background: rgba(30, 30, 50, 0.75) !important;
+    color: #e0e0e0 !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    border-radius: 8px !important;
+    backdrop-filter: blur(8px) !important;
+    cursor: pointer !important;
+    transition: background 0.2s, border-color 0.2s !important;
+}
+
+#conv-3d-back-btn:hover {
+    background: rgba(60, 60, 100, 0.9) !important;
+    border-color: rgba(255, 255, 255, 0.35) !important;
+    color: #ffffff !important;
+}
+
+/* Floating 2D Thumbnail in fullscreen 3D mode - bottom right corner */
+#conv-2d-thumbnail-container {
+    position: fixed !important;
+    bottom: 20px !important;
+    right: 20px !important;
+    width: 260px !important;
+    max-width: 260px !important;
+    z-index: 10001 !important;
+    background: rgba(30, 30, 46, 0.95) !important;
+    border-radius: 12px !important;
+    border: 2px solid rgba(102, 126, 234, 0.5) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+    padding: 8px !important;
+    overflow: visible !important;
+}
+
+#conv-2d-thumbnail-container label {
+    display: none !important;
+}
+
+#conv-2d-thumbnail-container .image-container {
+    border-radius: 8px !important;
+    overflow: hidden !important;
+}
+
+#conv-2d-back-btn {
+    position: absolute !important;
+    top: 8px !important;
+    left: 8px !important;
+    z-index: 10 !important;
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    font-size: 18px !important;
+    line-height: 32px !important;
+    text-align: center !important;
+    border-radius: 8px !important;
+    background: rgba(60, 60, 80, 0.7) !important;
+    color: rgba(255,255,255,0.85) !important;
+    border: none !important;
+    backdrop-filter: blur(4px) !important;
+    cursor: pointer !important;
+}
+
+#conv-2d-back-btn:hover {
+    background: rgba(80, 80, 110, 0.9) !important;
+    color: white !important;
+}
+
+/* Floating 3D Thumbnail - bottom right corner */
+#conv-3d-thumbnail-container {
+    position: fixed !important;
+    bottom: 20px !important;
+    right: 20px !important;
+    width: 280px !important;
+    max-width: 280px !important;
+    z-index: 999 !important;
+    background: #1e1e2e !important;
+    border-radius: 12px !important;
+    border: 2px solid rgba(102, 126, 234, 0.5) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+    padding: 8px !important;
+    overflow: visible !important;
+}
+
+#conv-3d-thumbnail-container .model3D {
+    border-radius: 8px !important;
+    overflow: hidden !important;
+}
+
+#conv-3d-thumbnail-container label {
+    display: none !important;
+}
+
+#conv-3d-fullscreen-btn {
+    position: absolute !important;
+    top: 8px !important;
+    left: 8px !important;
+    z-index: 10 !important;
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    font-size: 18px !important;
+    line-height: 32px !important;
+    text-align: center !important;
+    border-radius: 8px !important;
+    background: rgba(60, 60, 80, 0.7) !important;
+    color: rgba(255,255,255,0.85) !important;
+    border: none !important;
+    backdrop-filter: blur(4px) !important;
+    cursor: pointer !important;
+}
+
+#conv-3d-fullscreen-btn:hover {
+    background: rgba(80, 80, 110, 0.9) !important;
+    color: white !important;
+}
+
+/* Hide Gradio Model3D toolbar and upload prompt in thumbnail */
+#conv-3d-thumbnail-container .model3D .controls,
+#conv-3d-thumbnail-container .model3D .toolbar,
+#conv-3d-thumbnail-container .model3D > div > div:last-child:not(canvas),
+#conv-3d-thumbnail-container .model3D button,
+#conv-3d-thumbnail-container .model3D .icon-buttons,
+#conv-3d-thumbnail-container .model3D .canvas-control,
+#conv-3d-thumbnail-container .upload-text,
+#conv-3d-thumbnail-container .model3D .upload-container {
+    display: none !important;
+}

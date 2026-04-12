@@ -69,7 +69,7 @@ def _color_mode_html(mode: str) -> str:
             f'<span style="{dot_style};background:{c}"></span>' for c in colors
         )
         label = mode.split("(")[0].strip() if "Color" in mode else key
-    return f'{dots_html} <span style="font-size:0.8em;color:#aaa">{label}</span>'
+    return f'{dots_html} <span class="text-caption">{label}</span>'
 
 
 def on_lut_select(display_name):
@@ -208,7 +208,7 @@ def on_preview_generated_update_palette(cache, lang: str = "zh"):
     if cache is None:
         placeholder = I18n.get('conv_palette_replacements_placeholder', lang)
         return (
-            f"<p style='color:#888;'>{placeholder}</p>",
+            f'<p class="placeholder-text">{placeholder}</p>',
             None  # selected_color state
         )
 
@@ -260,7 +260,7 @@ def on_lut_change_update_colors(lut_path, cache=None):
     from core.converter import generate_lut_color_dropdown_html
     
     if not lut_path:
-        return "<p style='color:#888;'>请先选择 LUT | Select LUT first</p>"
+        return '<p class="placeholder-text">请先选择 LUT | Select LUT first</p>'
     
     # Extract used colors from cache if available
     used_colors = set()

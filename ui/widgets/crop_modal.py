@@ -10,47 +10,23 @@ from core.i18n import I18n
 
 
 def get_crop_modal_html(lang: str) -> str:
-    """Return the crop modal HTML for the given language."""
-    title = I18n.get('crop_title', lang)
-    original_size = I18n.get('crop_original_size', lang)
-    selection_size = I18n.get('crop_selection_size', lang)
-    label_x = I18n.get('crop_x', lang)
-    label_y = I18n.get('crop_y', lang)
-    label_w = I18n.get('crop_width', lang)
-    label_h = I18n.get('crop_height', lang)
-    btn_use_original = I18n.get('crop_use_original', lang)
-    btn_confirm = I18n.get('crop_confirm', lang)
-    lbl_ratio = '比例预设 | Ratio' if lang == 'zh' else 'Aspect Ratio'
-    lbl_free = '自由' if lang == 'zh' else 'Free'
+    """Return the crop modal HTML for the given language.
+    CSS styles are loaded from ui/styles/crop-modal.css."""
+    title = I18n.get("crop_title", lang)
+    original_size = I18n.get("crop_original_size", lang)
+    selection_size = I18n.get("crop_selection_size", lang)
+    label_x = I18n.get("crop_x", lang)
+    label_y = I18n.get("crop_y", lang)
+    label_w = I18n.get("crop_width", lang)
+    label_h = I18n.get("crop_height", lang)
+    btn_use_original = I18n.get("crop_use_original", lang)
+    btn_confirm = I18n.get("crop_confirm", lang)
+    lbl_ratio = "比例预设 | Ratio" if lang == "zh" else "Aspect Ratio"
+    lbl_free = "自由" if lang == "zh" else "Free"
 
     template = """
 <!-- CDN scripts (jQuery, Cropper.js) and JS functions are loaded via head parameter in main.py -->
-<style>
-#crop-modal-overlay {{ display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999; justify-content: center; align-items: center; }}
-#crop-modal {{ background: var(--background-fill-primary, white); border-radius: 12px; padding: 20px; max-width: 90vw; max-height: 90vh; overflow: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }}
-.crop-modal-header {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color-primary, #eee); }}
-.crop-modal-header h3 {{ margin: 0; color: var(--body-text-color, #333); }}
-.crop-modal-close {{ background: none; border: none; font-size: 24px; cursor: pointer; color: var(--body-text-color-subdued, #666); }}
-.crop-modal-close:hover {{ color: var(--body-text-color, #333); }}
-.crop-image-container {{ max-width: 800px; max-height: 500px; margin: 0 auto; }}
-.crop-image-container img {{ max-width: 100%; display: block; }}
-.crop-info-bar {{ display: flex; justify-content: space-between; align-items: center; margin: 15px 0; padding: 10px; background: var(--background-fill-secondary, #f5f5f5); border-radius: 6px; font-size: 14px; color: var(--body-text-color, #333); }}
-.crop-ratio-bar {{ display: flex; align-items: center; gap: 8px; margin: 10px 0; flex-wrap: wrap; }}
-.crop-ratio-bar span.crop-ratio-label {{ font-size: 13px; color: var(--body-text-color-subdued, #666); margin-right: 4px; }}
-.crop-ratio-btn {{ padding: 5px 12px !important; border: 1px solid var(--border-color-primary, #ddd) !important; border-radius: 6px !important; background: var(--background-fill-secondary, #f0f0f0) !important; color: var(--body-text-color, #333) !important; cursor: pointer !important; font-size: 12px !important; transition: all 0.15s !important; }}
-.crop-ratio-btn:hover {{ background: var(--background-fill-tertiary, #e0e0e0) !important; }}
-.crop-ratio-btn.active {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; color: white !important; border-color: transparent !important; }}
-.crop-inputs {{ display: flex; gap: 15px; margin: 15px 0; flex-wrap: wrap; }}
-.crop-input-group {{ display: flex; flex-direction: column; gap: 5px; }}
-.crop-input-group label {{ font-size: 12px; color: var(--body-text-color-subdued, #666); }}
-.crop-input-group input {{ width: 80px !important; padding: 8px 12px !important; border: 1px solid var(--border-color-primary, #ddd) !important; background: var(--background-fill-primary, white) !important; color: var(--body-text-color, #333) !important; border-radius: 4px !important; font-size: 14px !important; box-sizing: border-box !important; }}
-.crop-modal-buttons {{ display: flex; gap: 10px; justify-content: flex-end; margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color-primary, #eee); }}
-#crop-modal button.crop-btn {{ padding: 10px 20px !important; border: none !important; border-radius: 6px !important; cursor: pointer !important; font-size: 14px !important; transition: all 0.2s !important; font-weight: 400 !important; text-align: center !important; display: inline-block !important; min-width: 80px !important; }}
-#crop-modal button.crop-btn-secondary {{ background: var(--background-fill-secondary, #f0f0f0) !important; color: var(--body-text-color, #333) !important; }}
-#crop-modal button.crop-btn-secondary:hover {{ background: var(--background-fill-tertiary, #e0e0e0) !important; }}
-#crop-modal button.crop-btn-primary {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important; color: white !important; }}
-#crop-modal button.crop-btn-primary:hover {{ opacity: 0.9 !important; }}
-</style>
+<!-- CSS for crop modal is loaded from ui/styles/crop-modal.css -->
 <div id="crop-modal-overlay">
     <div id="crop-modal">
         <div class="crop-modal-header">
@@ -99,60 +75,13 @@ def get_crop_modal_html(lang: str) -> str:
         lbl_free=lbl_free,
     )
 
+
 # JavaScript for Cropper.js (to be injected via head parameter)
+# CSS for hidden components is loaded from ui/styles/crop-extension.css
 CROP_MODAL_JS = """
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css">
-<style>
-/* Hide crop helper components - injected via head */
-#crop-data-json, #use-original-hidden-btn, #confirm-crop-hidden-btn,
-.hidden-crop-component {
-    position: absolute !important;
-    left: -9999px !important;
-    top: -9999px !important;
-    width: 1px !important;
-    height: 1px !important;
-    overflow: hidden !important;
-    opacity: 0 !important;
-    visibility: hidden !important;
-}
-
-/* Hidden textbox triggers - small but still in DOM flow for Gradio events */
-.hidden-textbox-trigger {
-    height: 1px !important;
-    min-height: 1px !important;
-    max-height: 1px !important;
-    overflow: hidden !important;
-    opacity: 0.01 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    border: none !important;
-    position: absolute !important;
-    left: -9999px !important;
-}
-.hidden-textbox-trigger textarea,
-.hidden-textbox-trigger input,
-.hidden-textbox-trigger button {
-    height: 1px !important;
-    min-height: 1px !important;
-    padding: 0 !important;
-    margin: 0 !important;
-    border: none !important;
-}
-
-/* LUT swatch breathing highlight animation */
-@keyframes lutBreathing {
-    0%   { outline: 3px solid rgba(255, 87, 34, 0.9); outline-offset: 2px; }
-    50%  { outline: 6px solid rgba(255, 87, 34, 0.3); outline-offset: 4px; }
-    100% { outline: 3px solid rgba(255, 87, 34, 0.9); outline-offset: 2px; }
-}
-.lut-color-swatch.lut-highlight {
-    animation: lutBreathing 0.7s ease-in-out 3;
-    z-index: 10;
-    position: relative;
-}
-</style>
 <script>
 window.cropper = null;
 window.originalImageData = null;
@@ -207,25 +136,25 @@ window.clickGradioButton = function(elemId) {
 window.openCropModal = function(imageSrc, width, height) {
     console.log('openCropModal called:', imageSrc ? imageSrc.substring(0, 50) + '...' : 'null', width, height);
     window.originalImageData = { src: imageSrc, width: width, height: height };
-    
+
     // Reset ratio buttons
     document.querySelectorAll('.crop-ratio-btn').forEach(function(b) { b.classList.remove('active'); });
     var freeBtn = document.querySelector('.crop-ratio-btn');
     if (freeBtn) freeBtn.classList.add('active');
-    
+
     var origSizeEl = document.getElementById('crop-original-size');
     if (origSizeEl) {
         var prefix = origSizeEl.dataset.prefix || 'Size';
         origSizeEl.textContent = prefix + ': ' + width + ' × ' + height + ' px';
     }
-    
+
     var img = document.getElementById('crop-image');
     if (!img) { console.error('crop-image element not found'); return; }
     img.src = imageSrc;
-    
+
     var overlay = document.getElementById('crop-modal-overlay');
     if (overlay) overlay.style.display = 'flex';
-    
+
     img.onload = function() {
         if (window.cropper) window.cropper.destroy();
         window.cropper = new Cropper(img, {
@@ -317,9 +246,9 @@ console.log('Crop modal JS loaded, openCropModal:', typeof window.openCropModal)
     window.lutHueDispatch = function(hueKey, btnEl) {
         // Update button styles
         document.querySelectorAll('.lut-hue-btn').forEach(function(b) {
-            b.style.background = '#f5f5f5'; b.style.color = '#333'; b.style.borderColor = '#ccc';
+            b.classList.remove('active');
         });
-        if (btnEl) { btnEl.style.background = '#333'; btnEl.style.color = '#fff'; btnEl.style.borderColor = '#333'; }
+        if (btnEl) btnEl.classList.add('active');
         // Clear search
         var searchBox = document.getElementById('lut-color-search');
         if (searchBox) searchBox.value = '';
@@ -457,14 +386,10 @@ console.log('Crop modal JS loaded, openCropModal:', typeof window.openCropModal)
         window._lutActiveHue = hueKey;
         // Update button styles
         document.querySelectorAll('.lut-hue-btn').forEach(function(b) {
-            b.style.background = '#f5f5f5';
-            b.style.color = '#333';
-            b.style.borderColor = '#ccc';
+            b.classList.remove('active');
         });
         if (btnEl) {
-            btnEl.style.background = '#333';
-            btnEl.style.color = '#fff';
-            btnEl.style.borderColor = '#333';
+            btnEl.classList.add('active');
         }
         // Filter containers
         var containers = document.querySelectorAll('.lut-color-swatch-container');
@@ -617,7 +542,7 @@ console.log('Crop modal JS loaded, openCropModal:', typeof window.openCropModal)
             _startObs();
         }
     })();
-    
+
     // Helper function to update Gradio textbox
     function updateGradioTextbox(elemId, value) {
         var container = document.querySelector('#' + elemId);
@@ -628,7 +553,7 @@ console.log('Crop modal JS loaded, openCropModal:', typeof window.openCropModal)
         var input = container.querySelector('textarea, input[type="text"], input');
         if (input) {
             var nativeSetter = Object.getOwnPropertyDescriptor(
-                input.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype, 
+                input.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype,
                 'value'
             );
             if (nativeSetter && nativeSetter.set) {
@@ -644,21 +569,21 @@ console.log('Crop modal JS loaded, openCropModal:', typeof window.openCropModal)
         console.warn('[Palette] Input not found in container:', elemId);
         return false;
     }
-    
+
     // Handle palette swatch click
     function handlePaletteSwatchClick(e) {
         var swatch = e.target.closest('.palette-swatch');
         if (!swatch) return;
-        
+
         var hexColor = swatch.getAttribute('data-color');
         if (!hexColor) return;
-        
+
         console.log('[Palette] Color clicked:', hexColor);
-        
+
         // Update hidden textboxes
         updateGradioTextbox('conv-color-selected-hidden', hexColor);
         updateGradioTextbox('conv-highlight-color-hidden', hexColor);
-        
+
         // Update visual selection
         document.querySelectorAll('.palette-swatch').forEach(function(el) {
             el.style.outline = 'none';
@@ -666,27 +591,27 @@ console.log('Crop modal JS loaded, openCropModal:', typeof window.openCropModal)
         });
         swatch.style.outline = '3px solid #2196F3';
         swatch.style.outlineOffset = '2px';
-        
+
         // Click hidden buttons to trigger Gradio callbacks
         setTimeout(function() {
             window.clickGradioButton('conv-color-trigger-btn');
             window.clickGradioButton('conv-highlight-trigger-btn');
         }, 50);
     }
-    
+
     // Handle LUT color swatch click
     function handleLutSwatchClick(e) {
         var swatch = e.target.closest('.lut-color-swatch');
         if (!swatch) return;
-        
+
         var hexColor = swatch.getAttribute('data-color');
         if (!hexColor) return;
-        
+
         console.log('[LUT] Color clicked:', hexColor);
-        
+
         // Update hidden textbox
         updateGradioTextbox('conv-lut-color-selected-hidden', hexColor);
-        
+
         // Update visual selection
         document.querySelectorAll('.lut-color-swatch').forEach(function(el) {
             el.style.outline = 'none';
@@ -694,13 +619,13 @@ console.log('Crop modal JS loaded, openCropModal:', typeof window.openCropModal)
         });
         swatch.style.outline = '3px solid #2196F3';
         swatch.style.outlineOffset = '2px';
-        
+
         // Click hidden button to trigger Gradio callback
         setTimeout(function() {
             window.clickGradioButton('conv-lut-color-trigger-btn');
         }, 50);
     }
-    
+
     // Handle row click (user/auto list)
     function handlePaletteRowClick(e) {
         var row = e.target.closest('.palette-list-item, .palette-row');
@@ -778,7 +703,7 @@ console.log('Crop modal JS loaded, openCropModal:', typeof window.openCropModal)
             return;
         }
     }, true);  // Use capture phase to ensure we get the event first
-    
+
     console.log('[Palette] Global click handler installed');
 })();
 </script>
