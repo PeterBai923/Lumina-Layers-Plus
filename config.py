@@ -62,38 +62,6 @@ class PrinterConfig:
     SHRINK_OFFSET: float = 0.02
 
 
-class WorkerPoolConfig:
-    """Worker pool configuration with env var overrides.
-    工作进程池配置，支持环境变量覆盖。
-
-    Attributes:
-        MAX_WORKERS (int): Max number of worker processes. (最大工作进程数)
-        TASK_TIMEOUT (float): Task timeout in seconds. (任务超时秒数)
-    """
-    MAX_WORKERS: int = min(os.cpu_count() or 2, 4)
-    TASK_TIMEOUT: float = 300.0  # seconds
-
-    @classmethod
-    def from_env(cls) -> "WorkerPoolConfig":
-        """Create config with environment variable overrides.
-        创建配置，支持环境变量覆盖。
-
-        Reads:
-            LUMINA_MAX_WORKERS: Override MAX_WORKERS. (覆盖最大工作进程数)
-            LUMINA_TASK_TIMEOUT: Override TASK_TIMEOUT. (覆盖任务超时秒数)
-
-        Returns:
-            WorkerPoolConfig: Config instance with env overrides applied.
-                              (应用环境变量覆盖后的配置实例)
-        """
-        cfg = cls()
-        if v := os.environ.get("LUMINA_MAX_WORKERS"):
-            cfg.MAX_WORKERS = int(v)
-        if v := os.environ.get("LUMINA_TASK_TIMEOUT"):
-            cfg.TASK_TIMEOUT = float(v)
-        return cfg
-
-
 class SmartConfig:
     """Configuration for the Smart 1296 (36x36) System."""
     GRID_DIM: int = 36
@@ -365,29 +333,4 @@ class BedManager:
         """Pixels-per-mm so the bed fits in _TARGET_CANVAS_PX."""
         long_edge = max(bed_w_mm, bed_h_mm)
         return cls._TARGET_CANVAS_PX / long_edge
-
-
-# ========== Vector Engine Configuration ==========
-
-class VectorConfig:
-    """Configuration for native vector engine."""
-    
-    # Curve approximation precision
-    DEFAULT_SAMPLING_MM: float = 0.05  # High quality (default)
-    MIN_SAMPLING_MM: float = 0.01      # Ultra-high quality
-    MAX_SAMPLING_MM: float = 0.20      # Low quality (faster)
-    
-    # Performance limits
-    MAX_POLYGONS: int = 10000          # Prevent memory issues
-    MAX_VERTICES_PER_POLY: int = 5000  # Prevent degenerate geometry
-    
-    # Boolean operation tolerance
-    BUFFER_TOLERANCE: float = 0.0      # Shapely buffer precision
-    
-    # Coordinate system
-    FLIP_Y_AXIS: bool = False          # SVG Y-down → 3D Y-up (disabled by default)
-    
-    # Parallel processing
-    ENABLE_PARALLEL: bool = False      # Parallel layer processing (experimental)
-    MAX_WORKERS: int = 5               # Thread pool size
 

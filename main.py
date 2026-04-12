@@ -16,7 +16,6 @@ import os
 import sys
 import signal
 import numpy as np
-import re
 import multiprocessing as mp
 from datetime import datetime
 

@@ -227,31 +227,3 @@ class LUTManager:
         except Exception as e:
             print(f"[LUT_MANAGER] Error saving LUT: {e}")
             return False, f"[ERROR] Save failed: {e}", cls.get_lut_choices()
-    
-    @classmethod
-    def delete_lut(cls, display_name):
-        """
-        Delete specified LUT preset
-        
-        Args:
-            display_name: Display name
-        
-        Returns:
-            tuple: (success_flag, message, new_choice_list)
-        """
-        file_path = cls.get_lut_path(display_name)
-        
-        if not file_path:
-            return False, "[ERROR] File not found", cls.get_lut_choices()
-        
-        # Only allow deleting files in Custom folder
-        if "Custom" not in file_path:
-            return False, "[ERROR] Can only delete custom LUTs", cls.get_lut_choices()
-        
-        try:
-            os.remove(file_path)
-            print(f"[LUT_MANAGER] Deleted LUT: {file_path}")
-            return True, f"[OK] Deleted: {display_name}", cls.get_lut_choices()
-        except Exception as e:
-            print(f"[LUT_MANAGER] Error deleting LUT: {e}")
-            return False, f"[ERROR] Delete failed: {e}", cls.get_lut_choices()

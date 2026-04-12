@@ -109,26 +109,6 @@ def on_lut_upload_save(uploaded_file):
 # Color Replacement Callbacks
 # ═══════════════════════════════════════════════════════════════
 
-def on_palette_color_select(palette_html, evt: gr.SelectData, lang: str = "zh"):
-    """
-    Handle palette color selection from HTML display.
-    
-    Note: This is a placeholder - Gradio HTML components don't support
-    click events directly. The actual selection is done via JavaScript
-    or by clicking on the palette display area.
-    
-    Args:
-        palette_html: Current palette HTML
-        evt: Selection event data
-    
-    Returns:
-        tuple: (selected_color_hex, display_text)
-    """
-    # In practice, color selection would be handled differently
-    # since Gradio HTML doesn't support click events
-    return None, I18n.get('palette_click_to_select', lang)
-
-
 def on_apply_color_replacement(cache, selected_color, replacement_color,
                                replacement_regions, replacement_history,
                                loop_pos, add_loop,
@@ -263,41 +243,6 @@ def on_preview_generated_update_palette(cache, lang: str = "zh"):
     )
 
 
-def on_color_swatch_click(selected_hex):
-    """
-    Handle color selection from clicking palette swatch.
-    
-    Args:
-        selected_hex: The hex color value from hidden textbox (set by JavaScript)
-    
-    Returns:
-        tuple: (selected_color_state, display_text)
-    """
-    if not selected_hex or selected_hex.strip() == "":
-        return None, "未选择"
-    
-    # Clean up the hex value
-    hex_color = selected_hex.strip()
-    
-    return hex_color, f"[OK] {hex_color}"
-
-
-def on_color_dropdown_select(selected_value):
-    """
-    Handle color selection from dropdown.
-    
-    Args:
-        selected_value: The hex color value selected from dropdown
-    
-    Returns:
-        tuple: (selected_color_state, display_text)
-    """
-    if not selected_value:
-        return None, "未选择"
-    
-    return selected_value, f"[OK] {selected_value}"
-
-
 def on_lut_change_update_colors(lut_path, cache=None):
     """
     Update available replacement colors when LUT selection changes.
@@ -326,70 +271,6 @@ def on_lut_change_update_colors(lut_path, cache=None):
     html_preview = generate_lut_color_dropdown_html(lut_path, used_colors=used_colors)
     
     return html_preview
-
-
-def on_preview_update_lut_colors(cache, lut_path):
-    """
-    Update LUT color display after preview is generated.
-    
-    Groups colors into "used in image" and "other available" sections.
-    
-    Args:
-        cache: Preview cache containing color_palette
-        lut_path: Path to the selected LUT file
-    
-    Returns:
-        str: HTML preview of LUT colors with grouping
-    """
-    from core.converter import generate_lut_color_dropdown_html
-    
-    if not lut_path:
-        return "<p style='color:#888;'>请先选择 LUT | Select LUT first</p>"
-    
-    # Extract used colors from cache
-    used_colors = set()
-    if cache and 'color_palette' in cache:
-        for entry in cache['color_palette']:
-            used_colors.add(entry['hex'])
-    
-    html_preview = generate_lut_color_dropdown_html(lut_path, used_colors=used_colors)
-    
-    return html_preview
-
-
-def on_lut_color_swatch_click(selected_hex):
-    """
-    Handle LUT color selection from clicking color swatch.
-    
-    Args:
-        selected_hex: The hex color value from hidden textbox (set by JavaScript)
-    
-    Returns:
-        tuple: (selected_color_state, display_text)
-    """
-    if not selected_hex or selected_hex.strip() == "":
-        return None, "未选择替换颜色"
-    
-    # Clean up the hex value
-    hex_color = selected_hex.strip()
-    
-    return hex_color, f"替换为: {hex_color}"
-
-
-def on_replacement_color_select(selected_value):
-    """
-    Handle replacement color selection from LUT color dropdown.
-    
-    Args:
-        selected_value: The hex color value selected from dropdown
-    
-    Returns:
-        str: Display text showing selected color
-    """
-    if not selected_value:
-        return "未选择替换颜色"
-    
-    return f"替换为: {selected_value}"
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -452,16 +333,12 @@ def on_clear_highlight(cache, loop_pos, add_loop,
         tuple: (preview_image, status_message, cleared_highlight_state)
     """
     from core.converter import clear_highlight_preview
-    
-    print(f"[ON_CLEAR_HIGHLIGHT] Called with cache={cache is not None}, loop_pos={loop_pos}, add_loop={add_loop}")
-    
+
     display, status = clear_highlight_preview(
         cache, loop_pos, add_loop,
         loop_width, loop_length, loop_hole, loop_angle
     )
-    
-    print(f"[ON_CLEAR_HIGHLIGHT] Returning display={display is not None}, status={status}")
-    
+
     return display, status, ""  # Clear the highlight state
 
 
@@ -567,31 +444,6 @@ def on_undo_color_replacement(cache, replacement_regions, replacement_history,
 # ═══════════════════════════════════════════════════════════════
 # LUT Merge Callbacks
 # ═══════════════════════════════════════════════════════════════
-
-def on_merge_lut_select(display_name, lang="zh"):
-    """
-    When user selects a LUT in the merge tab, detect its color mode.
-
-    Returns:
-        str: Markdown showing detected mode
-    """
-    from core.lut_merger import LUTMerger
-
-    if not display_name:
-        label = I18n.get('merge_mode_label', lang)
-        unknown = I18n.get('merge_mode_unknown', lang)
-        return f"**{label}**: {unknown}"
-
-    lut_path = LUTManager.get_lut_path(display_name)
-    if not lut_path:
-        return f"**{I18n.get('merge_mode_label', lang)}**: [ERROR] File not found"
-
-    try:
-        mode, count = LUTMerger.detect_color_mode(lut_path)
-        return f"**{I18n.get('merge_mode_label', lang)}**: {mode} ({count} colors)"
-    except Exception as e:
-        return f"**{I18n.get('merge_mode_label', lang)}**: [ERROR] {e}"
-
 
 def on_merge_primary_select(display_name, lang="zh"):
     """

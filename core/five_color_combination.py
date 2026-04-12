@@ -351,44 +351,6 @@ class ColorQueryEngine:
             list: 颜色名称列表
         """
         return [get_color_name_from_rgb(rgb) for rgb in self.base_colors]
-    
-    def reverse_selection(self, selected_indices: List[int]) -> List[int]:
-        """反转选择顺序
-        
-        Args:
-            selected_indices: 原始选择，例如 [0, 1, 0, 3, 2]
-            
-        Returns:
-            list: 反转后的选择，例如 [2, 3, 0, 1, 0]
-        """
-        return list(reversed(selected_indices))
-
-
-def format_selection_sequence(selected_indices: List[int], color_names: Optional[List[str]] = None) -> str:
-    """格式化选择序列为可读字符串
-    
-    Args:
-        selected_indices: 选择的索引列表，例如 [0, 1, 0, 3, 2]
-        color_names: 颜色名称列表（可选），例如 ["红", "黄", "蓝", "白"]
-        
-    Returns:
-        str: 格式化字符串，例如 "红(0) → 黄(1) → 红(0) → 白(3) → 蓝(2)"
-    """
-    if not selected_indices:
-        return ""
-    
-    if color_names:
-        # 使用颜色名称和索引
-        parts = []
-        for i in selected_indices:
-            if i < len(color_names):
-                parts.append(f"{color_names[i]}({i})")
-            else:
-                parts.append(f"颜色{i}")
-        return " → ".join(parts)
-    else:
-        # 只使用索引
-        return " → ".join([f"颜色{i}" for i in selected_indices])
 
 
 def get_color_name_from_rgb(rgb: Tuple[int, int, int]) -> str:

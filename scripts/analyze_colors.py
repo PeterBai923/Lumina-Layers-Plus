@@ -1,4 +1,11 @@
 import numpy as np
+import os
+import sys
+
+# Bootstrap: ensure project root is on sys.path
+_PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if _PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, _PROJECT_ROOT)
 
 # ==========================================
 # 紧急修复: 给 colormath 库打补丁
@@ -158,7 +165,7 @@ def main():
     print()
     
     # ==================== 阶段3: 保存结果 ====================
-    output_dir = "assets"
+    output_dir = os.path.join(_PROJECT_ROOT, "assets")
     
     print(f"💾 保存到 '{output_dir}/'...")
     

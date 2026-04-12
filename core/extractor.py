@@ -21,25 +21,6 @@ from core.stack_encoding import encode_to_base
 from utils import Stats
 
 
-def generate_simulated_reference():
-    """Generate reference image for visual comparison."""
-    colors = {
-        0: np.array([250, 250, 250]),
-        1: np.array([220, 20, 60]),
-        2: np.array([255, 230, 0]),
-        3: np.array([0, 100, 240])
-    }
-
-    ref_img = np.zeros((DATA_GRID_SIZE, DATA_GRID_SIZE, 3), dtype=np.uint8)
-    for i in range(1024):
-        stack = encode_to_base(i, 4)
-
-        mixed = sum(colors[mid] for mid in stack) / 5.0
-        ref_img[i // DATA_GRID_SIZE, i % DATA_GRID_SIZE] = mixed.astype(np.uint8)
-
-    return cv2.resize(ref_img, (512, 512), interpolation=cv2.INTER_NEAREST)
-
-
 def rotate_image(img, direction):
     """Rotate image 90 degrees left or right."""
     if img is None:

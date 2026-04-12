@@ -20,8 +20,7 @@ from .extractor import (
     apply_brightness_correction,
     run_extraction,
     probe_lut_cell,
-    manual_fix_cell,
-    generate_simulated_reference
+    manual_fix_cell
 )
 
 # Converter module (refactored)
@@ -53,7 +52,6 @@ __all__ = [
     'run_extraction',
     'probe_lut_cell',
     'manual_fix_cell',
-    'generate_simulated_reference',
     
     # Converter (public API)
     'convert_image_to_3d',
