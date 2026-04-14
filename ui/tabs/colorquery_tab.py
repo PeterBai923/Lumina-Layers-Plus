@@ -14,7 +14,7 @@ def create_5color_tab_v2(lang="zh"):
     with gr.Row():
         # 左侧控制
         with gr.Column(scale=1):
-            gr.Markdown("### 📁 选择 LUT")
+            gr.HTML('<div class="section-heading">📁 选择 LUT</div>')
 
             lut_dropdown = gr.Dropdown(
                 label="LUT 文件", choices=_get_8color_luts(), value=None
@@ -37,8 +37,8 @@ def create_5color_tab_v2(lang="zh"):
 
         # 右侧颜色选择
         with gr.Column(scale=2):
-            gr.Markdown("### 🎨 基础颜色")
-            gr.Markdown("点击色块进行选择（可重复，最多 5 次）")
+            gr.HTML('<div class="section-heading">🎨 基础颜色</div>')
+            gr.HTML('<div class="desc-text">点击色块进行选择（可重复，最多 5 次）</div>')
 
             # 使用 HTML 显示颜色色块
             colors_html = gr.HTML(
@@ -56,7 +56,7 @@ def create_5color_tab_v2(lang="zh"):
                 )
                 color_btns.append(btn)
 
-            gr.Markdown("### 查询结果")
+            gr.HTML('<div class="section-heading">查询结果</div>')
             result_html = gr.HTML(value=_empty_result())
 
     # 隐藏状态

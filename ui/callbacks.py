@@ -80,16 +80,16 @@ def on_lut_select(display_name):
     """
     if not display_name:
         return None, ""
-    
+
     lut_path = LUTManager.get_lut_path(display_name)
-    
+
     if lut_path:
         color_mode = LUTManager.infer_color_mode(display_name, lut_path)
         badge = _color_mode_html(color_mode)
-        status = f"[OK] Selected: {display_name}<br>{badge}"
+        status = f"<span class=\"status-text\">[OK] Selected: {display_name}<br>{badge}</span>"
         return lut_path, status
     else:
-        return None, f"[ERROR] File not found: {display_name}"
+        return None, f'<span class="status-text">[ERROR] File not found: {display_name}</span>'
 
 
 def on_lut_upload_save(uploaded_file):
@@ -451,14 +451,14 @@ def on_merge_primary_select(display_name):
 
     if not display_name:
         return (
-            '💡 请先选择一个6色或8色的主色卡',
+            '<span class="status-text">💡 请先选择一个6色或8色的主色卡</span>',
             gr.Dropdown(choices=[], value=[]),
         )
 
     lut_path = LUTManager.get_lut_path(display_name)
     if not lut_path:
         return (
-            f"**{'检测到的模式'}**: ❌ File not found",
+            f'<span class="status-text"><strong>检测到的模式</strong>: ❌ File not found</span>',
             gr.Dropdown(choices=[], value=[]),
         )
 
@@ -466,18 +466,18 @@ def on_merge_primary_select(display_name):
         mode, count = LUTMerger.detect_color_mode(lut_path)
     except Exception as e:
         return (
-            f"**{'检测到的模式'}**: ❌ {e}",
+            f'<span class="status-text"><strong>检测到的模式</strong>: ❌ {e}</span>',
             gr.Dropdown(choices=[], value=[]),
         )
 
     # Primary must be 6-Color or 8-Color
     if mode not in ("6-Color", "8-Color"):
         return (
-            '❌ 主色卡必须是6色或8色模式',
+            '<span class="status-text">❌ 主色卡必须是6色或8色模式</span>',
             gr.Dropdown(choices=[], value=[]),
         )
 
-    mode_md = f"**{'检测到的模式'}**: {mode} ({count} colors)"
+    mode_md = f'<span class="status-text"><strong>检测到的模式</strong>: {mode} ({count} colors)</span>'
 
     # Determine allowed secondary modes
     # Exclude "Merged" to prevent stale/corrupt merged LUTs from being re-merged
@@ -521,21 +521,22 @@ def on_merge_secondary_change(selected_names):
     from core.lut_merger import LUTMerger
 
     if not selected_names:
-        return '未选择副色卡'
+        return '<span class="status-text">未选择副色卡</span>'
 
-    lines = [f"**{'已选副色卡'}**:"]
+    lines = [f'<span class="status-text"><strong>已选副色卡</strong>:<br>']
     for name in selected_names:
         path = LUTManager.get_lut_path(name)
         if not path:
-            lines.append(f"- {name}: ❌")
+            lines.append(f'• {name}: ❌<br>')
             continue
         try:
             mode, count = LUTMerger.detect_color_mode(path)
-            lines.append(f"- {name}: **{mode}** ({count} colors)")
+            lines.append(f'• {name}: <strong>{mode}</strong> ({count} colors)<br>')
         except Exception as e:
-            lines.append(f"- {name}: ❌ {e}")
+            lines.append(f'• {name}: ❌ {e}<br>')
 
-    return "\n".join(lines)
+    lines.append('</span>')
+    return "".join(lines)
 
 
 def on_merge_execute(primary_name, secondary_names, dedup_threshold):
@@ -550,15 +551,15 @@ def on_merge_execute(primary_name, secondary_names, dedup_threshold):
 
     # Validate primary
     if not primary_name:
-        return '❌ 请选择至少两个LUT文件', gr.update(), gr.update()
+        return '<span class="status-text">❌ 请选择至少两个LUT文件</span>', gr.update(), gr.update()
 
     # Validate secondary
     if not secondary_names or len(secondary_names) == 0:
-        return '❌ 请至少选择一个副色卡', gr.update(), gr.update()
+        return '<span class="status-text">❌ 请至少选择一个副色卡</span>', gr.update(), gr.update()
 
     primary_path = LUTManager.get_lut_path(primary_name)
     if not primary_path:
-        return '❌ 请选择至少两个LUT文件', gr.update(), gr.update()
+        return '<span class="status-text">❌ 请选择至少两个LUT文件</span>', gr.update(), gr.update()
 
     try:
         # Detect primary mode
@@ -583,12 +584,12 @@ def on_merge_execute(primary_name, secondary_names, dedup_threshold):
             all_modes.append(sec_mode)
 
         if len(entries) < 2:
-            return '❌ 请选择至少两个LUT文件', gr.update(), gr.update()
+            return '<span class="status-text">❌ 请选择至少两个LUT文件</span>', gr.update(), gr.update()
 
         # Validate compatibility
         valid, err_msg = LUTMerger.validate_compatibility(all_modes)
         if not valid:
-            return '❌ 不兼容的LUT组合: {msg}'.format(msg=err_msg), gr.update(), gr.update()
+            return '<span class="status-text">❌ 不兼容的LUT组合: {msg}</span>'.format(msg=err_msg), gr.update(), gr.update()
 
         # Merge
         merged_rgb, merged_stacks, stats = LUTMerger.merge_luts(entries, dedup_threshold=dedup_threshold)
@@ -604,7 +605,7 @@ def on_merge_execute(primary_name, secondary_names, dedup_threshold):
         saved_path = LUTMerger.save_merged_lut(merged_rgb, merged_stacks, output_path)
 
         # Build success message
-        status = '✅ 合并完成！合并前: {before} 色 → 合并后: {after} 色（精确去重: {exact}，相近色去除: {similar}）\n保存至: {path}'.format(
+        status = '<span class="status-text">✅ 合并完成！合并前: {before} 色 → 合并后: {after} 色（精确去重: {exact}，相近色去除: {similar}）<br>保存至: {path}</span>'.format(
             before=stats['total_before'],
             after=stats['total_after'],
             exact=stats['exact_dupes'],
@@ -620,7 +621,7 @@ def on_merge_execute(primary_name, secondary_names, dedup_threshold):
         print(f"[MERGE] Error: {e}")
         import traceback
         traceback.print_exc()
-        return '❌ 合并失败: {msg}'.format(msg=str(e)), gr.update(), gr.update()
+        return '<span class="status-text">❌ 合并失败: {msg}</span>'.format(msg=str(e)), gr.update(), gr.update()
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -654,21 +655,21 @@ def on_merge_preview(cache, merge_enable, merge_threshold, merge_max_distance,
     from ui.widgets.palette import generate_palette_html
     
     if cache is None:
-        return None, None, "", {}, {}, '❌ 请先生成预览'
+        return None, None, "", {}, {}, '<span class="status-text">❌ 请先生成预览</span>'
 
     # If merging is disabled, return empty merge map
     if not merge_enable:
-        return gr.update(), cache, gr.update(), {}, {}, '💡 调整参数后点击预览'
+        return gr.update(), cache, gr.update(), {}, {}, '<span class="status-text">💡 调整参数后点击预览</span>'
 
     # Extract color palette from cache
     palette = cache.get('color_palette', [])
 
     if not palette:
-        return gr.update(), cache, gr.update(), {}, {}, '❌ 调色板为空，无法执行颜色合并'
+        return gr.update(), cache, gr.update(), {}, {}, '<span class="status-text">❌ 调色板为空，无法执行颜色合并</span>'
 
     # Handle edge cases
     if len(palette) == 1:
-        return gr.update(), cache, gr.update(), {}, {}, '❌ 图像只包含一种颜色，已禁用颜色合并'
+        return gr.update(), cache, gr.update(), {}, {}, '<span class="status-text">❌ 图像只包含一种颜色，已禁用颜色合并</span>'
     
     # Build merge map using ColorMerger
     merger = ColorMerger(LuminaImageProcessor._rgb_to_lab)
@@ -678,11 +679,11 @@ def on_merge_preview(cache, merge_enable, merge_threshold, merge_max_distance,
     if not merge_map and len(palette) > 1:
         low_usage_colors = merger.identify_low_usage_colors(palette, merge_threshold)
         if len(low_usage_colors) >= len(palette):
-            return gr.update(), cache, gr.update(), {}, {}, '⚠️ 所有颜色使用率都低于阈值，已禁用颜色合并以防止颜色丢失'
+            return gr.update(), cache, gr.update(), {}, {}, '<span class="status-text">⚠️ 所有颜色使用率都低于阈值，已禁用颜色合并以防止颜色丢失</span>'
     
     # If no colors to merge, return info message
     if not merge_map:
-        return gr.update(), cache, gr.update(), {}, {}, '💡 检测到 {count} 种低使用率颜色 (<{threshold}%)'.format(
+        return gr.update(), cache, gr.update(), {}, {}, '<span class="status-text">💡 检测到 {count} 种低使用率颜色 (&lt;{threshold}%)</span>'.format(
             count=0, threshold=merge_threshold
         )
     
@@ -723,11 +724,11 @@ def on_merge_preview(cache, merge_enable, merge_threshold, merge_max_distance,
     )
 
     # Status message
-    status_msg = '🔍 预览: {merged} 种颜色被合并 (质量: {quality:.1f})'.format(
+    status_msg = '<span class="status-text">🔍 预览: {merged} 种颜色被合并 (质量: {quality:.1f})</span>'.format(
         merged=len(merge_map),
         quality=quality
     )
-    
+
     return display, updated_cache, palette_html, merge_map, merge_stats, status_msg
 
 
@@ -735,7 +736,7 @@ def on_merge_apply(cache, merge_map, merge_stats, loop_pos, add_loop,
                   loop_width, loop_length, loop_hole, loop_angle):
     """
     Apply color merging to the cached image data.
-    
+
     Args:
         cache: Preview cache from generate_preview_cached
         merge_map: Dict mapping source hex to target hex colors
@@ -747,19 +748,19 @@ def on_merge_apply(cache, merge_map, merge_stats, loop_pos, add_loop,
         loop_hole: Loop hole diameter in mm
         loop_angle: Loop rotation angle
         lang: Language code
-    
+
     Returns:
         tuple: (preview_image, updated_cache, palette_html, status)
     """
     from core.converter import update_preview_with_replacements, extract_color_palette
     from core.color_merger import ColorMerger
     from core.image_processing import LuminaImageProcessor
-    
+
     if cache is None:
-        return None, None, "", '❌ 请先生成预览'
+        return None, None, "", '<span class="status-text">❌ 请先生成预览</span>'
 
     if not merge_map:
-        return gr.update(), cache, gr.update(), '💡 调整参数后点击预览'
+        return gr.update(), cache, gr.update(), '<span class="status-text">💡 调整参数后点击预览</span>'
     
     # Save original matched_rgb for potential revert
     if 'original_matched_rgb' not in cache:
@@ -788,7 +789,7 @@ def on_merge_apply(cache, merge_map, merge_stats, loop_pos, add_loop,
     )
 
     # Status message
-    status_msg = '✅ 已应用: {merged} 种颜色被合并'.format(
+    status_msg = '<span class="status-text">✅ 已应用: {merged} 种颜色被合并</span>'.format(
         merged=len(merge_map)
     )
 
@@ -815,8 +816,8 @@ def on_merge_revert(cache, loop_pos, add_loop, loop_width, loop_length, loop_hol
     from core.converter import update_preview_with_replacements, extract_color_palette
     
     if cache is None:
-        return None, None, "", {}, {}, '❌ 请先生成预览'
-    
+        return None, None, "", {}, {}, '<span class="status-text">❌ 请先生成预览</span>'
+
     # Restore original matched_rgb if it exists
     if 'original_matched_rgb' in cache:
         cache['matched_rgb'] = cache['original_matched_rgb'].copy()
@@ -839,6 +840,6 @@ def on_merge_revert(cache, loop_pos, add_loop, loop_width, loop_length, loop_hol
     )
 
     # Status message
-    status_msg = '↩️ 已恢复到原始颜色'
+    status_msg = '<span class="status-text">↩️ 已恢复到原始颜色</span>'
     
     return display, updated_cache, palette_html, {}, {}, status_msg

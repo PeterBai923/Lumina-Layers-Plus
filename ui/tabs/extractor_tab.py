@@ -34,16 +34,16 @@ def get_first_hint(mode, page_choice=None):
     labels_zh, labels_en = _get_corner_labels(mode, page_choice)
     label_zh = labels_zh[0]
     label_en = label_zh if labels_en is None else labels_en[0]
-    return f"#### 👉 点击 Click: **{label_zh} / {label_en}**"
+    return f'<div class="section-heading">👉 点击 Click: <strong>{label_zh} / {label_en}</strong></div>'
 
 
 def get_next_hint(mode, pts_count, page_choice=None):
     labels_zh, labels_en = _get_corner_labels(mode, page_choice)
     if pts_count >= 4:
-        return "#### [OK] Positioning complete! Ready to extract!"
+        return '<div class="section-heading">[OK] Positioning complete! Ready to extract!</div>'
     label_zh = labels_zh[pts_count]
     label_en = label_zh if labels_en is None else labels_en[pts_count]
-    return f"#### 👉 点击 Click: **{label_zh} / {label_en}**"
+    return f'<div class="section-heading">👉 点击 Click: <strong>{label_zh} / {label_en}</strong></div>'
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -75,7 +75,7 @@ def on_extractor_rotate(i, mode, page_choice=None):
 def on_extractor_click(img, pts, mode, page_choice, evt: gr.SelectData):
     """Set corner point by clicking image"""
     if len(pts) >= 4:
-        return img, pts, "#### [OK] 定位完成 Complete!"
+        return img, pts, '<div class="section-heading">[OK] 定位完成 Complete!</div>'
     n = pts + [[evt.index[0], evt.index[1]]]
     vis = draw_corner_points(img, n, mode, page_choice)
     hint = get_next_hint(mode, len(n), page_choice)
@@ -366,8 +366,8 @@ def create_extractor_tab_content() -> dict:
 
     with gr.Row():
         with gr.Column(scale=1):
-            components['md_ext_upload_section'] = gr.Markdown(
-                '#### 📸 上传照片'
+            components['md_ext_upload_section'] = gr.HTML(
+                '<div class="section-heading">📸 上传照片</div>'
             )
 
             components['radio_ext_color_mode'] = gr.Radio(
@@ -404,8 +404,8 @@ def create_extractor_tab_content() -> dict:
                     '🗑️ 重置'
                 )
 
-            components['md_ext_correction_section'] = gr.Markdown(
-                '#### 🔧 校正参数'
+            components['md_ext_correction_section'] = gr.HTML(
+                '<div class="section-heading">🔧 校正参数</div>'
             )
 
             with gr.Row():
@@ -457,7 +457,7 @@ def create_extractor_tab_content() -> dict:
             )
 
         with gr.Column(scale=1):
-            ext_hint = gr.Markdown('#### 👉 点击: **白色色块 (左上角)**')
+            ext_hint = gr.HTML('<div class="section-heading">👉 点击: <strong>白色色块 (左上角)</strong></div>')
 
             ext_work_img = gr.Image(
                 label='标记图',
@@ -467,14 +467,14 @@ def create_extractor_tab_content() -> dict:
 
             with gr.Row():
                 with gr.Column():
-                    components['md_ext_sampling'] = gr.Markdown(
-                        '#### 📍 采样预览'
+                    components['md_ext_sampling'] = gr.HTML(
+                        '<div class="section-heading">📍 采样预览</div>'
                     )
                     ext_warp_view = gr.Image(show_label=False)
 
                 with gr.Column():
-                    components['md_ext_reference'] = gr.Markdown(
-                        '#### 🎯 参考'
+                    components['md_ext_reference'] = gr.HTML(
+                        '<div class="section-heading">🎯 参考</div>'
                     )
                     ext_ref_view = gr.Image(
                         show_label=False,
@@ -484,8 +484,8 @@ def create_extractor_tab_content() -> dict:
 
             with gr.Row():
                 with gr.Column():
-                    components['md_ext_result'] = gr.Markdown(
-                        '#### 📊 结果 (点击修正)'
+                    components['md_ext_result'] = gr.HTML(
+                        '<div class="section-heading">📊 结果 (点击修正)</div>'
                     )
                     ext_lut_view = gr.Image(
                         show_label=False,
@@ -493,8 +493,8 @@ def create_extractor_tab_content() -> dict:
                     )
 
                 with gr.Column():
-                    components['md_ext_manual_fix'] = gr.Markdown(
-                        '#### 🛠️ 手动修正'
+                    components['md_ext_manual_fix'] = gr.HTML(
+                        '<div class="section-heading">🛠️ 手动修正</div>'
                     )
                     ext_probe_html = gr.HTML('点击左侧色块查看...')
 

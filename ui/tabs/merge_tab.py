@@ -21,8 +21,8 @@ def create_merge_tab_content() -> dict:
     """Build LUT Merge tab UI and events. Returns component dict."""
     components = {}
 
-    components['md_merge_title'] = gr.Markdown('### 🔀 色卡合并')
-    components['md_merge_desc'] = gr.Markdown('将不同色彩模式的LUT色卡合并为一个，获得更丰富的色彩。')
+    components['md_merge_title'] = gr.HTML('<div class="section-heading">🔀 色卡合并</div>')
+    components['md_merge_desc'] = gr.HTML('<div class="desc-text">将不同色彩模式的LUT色卡合并为一个，获得更丰富的色彩。</div>')
 
     with gr.Row():
         with gr.Column():
@@ -31,8 +31,8 @@ def create_merge_tab_content() -> dict:
                 label='🎯 主色卡（6色或8色）',
                 interactive=True,
             )
-            components['md_merge_mode_primary'] = gr.Markdown(
-                '💡 请先选择一个6色或8色的主色卡'
+            components['md_merge_mode_primary'] = gr.HTML(
+                '<span class="status-text">💡 请先选择一个6色或8色的主色卡</span>'
             )
         with gr.Column():
             components['dd_merge_secondary'] = gr.Dropdown(
@@ -41,8 +41,8 @@ def create_merge_tab_content() -> dict:
                 multiselect=True,
                 interactive=True,
             )
-            components['md_merge_secondary_info'] = gr.Markdown(
-                '未选择副色卡'
+            components['md_merge_secondary_info'] = gr.HTML(
+                '<span class="status-text">未选择副色卡</span>'
             )
 
     components['slider_dedup_threshold'] = gr.Slider(
@@ -56,7 +56,7 @@ def create_merge_tab_content() -> dict:
         variant="primary",
     )
 
-    components['md_merge_status'] = gr.Markdown('💡 选择两个LUT后点击合并')
+    components['md_merge_status'] = gr.HTML('<span class="status-text">💡 选择两个LUT后点击合并</span>')
 
     # Event bindings
     components['dd_merge_primary'].change(

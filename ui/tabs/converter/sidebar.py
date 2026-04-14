@@ -20,7 +20,7 @@ def build_left_sidebar(components, states):
     Populates both ``components`` and ``states`` dicts with Gradio references.
     """
     with gr.Column(scale=1, min_width=320, elem_classes=["left-sidebar"]):
-        components['md_conv_input_section'] = gr.Markdown('#### 📁 输入')
+        components['md_conv_input_section'] = gr.HTML('<div class="section-heading">📁 输入</div>')
 
         saved_lut = load_last_lut_setting()
         current_choices = LUTManager.get_lut_choices()
@@ -38,7 +38,7 @@ def build_left_sidebar(components, states):
         with gr.Row():
             components['dropdown_conv_lut_dropdown'] = gr.Dropdown(
                 choices=current_choices,
-                label='**校准数据 (.npy)**',
+                label='校准数据 (.npy)',
                 value=default_lut_value,
                 interactive=True,
                 scale=2
@@ -54,8 +54,8 @@ def build_left_sidebar(components, states):
             )
             states['conv_lut_upload'] = conv_lut_upload
 
-        components['md_conv_lut_status'] = gr.Markdown(
-            value='💡 拖放.npy文件自动添加',
+        components['md_conv_lut_status'] = gr.HTML(
+            value='<span class="status-text">💡 拖放.npy文件自动添加</span>',
             visible=True,
             elem_classes=["lut-status"]
         )
@@ -133,7 +133,7 @@ def build_left_sidebar(components, states):
             file_types=_get_supported_image_file_types(),
             visible=False
         )
-        components['md_conv_params_section'] = gr.Markdown('#### ⚙️ 参数')
+        components['md_conv_params_section'] = gr.HTML('<div class="section-heading">⚙️ 参数</div>')
 
         with gr.Row(elem_classes=["compact-row"]):
             components['slider_conv_width'] = gr.Slider(
@@ -330,4 +330,4 @@ def build_left_sidebar(components, states):
                 elem_id="conv-enable-crop-checkbox"
             )
 
-        gr.Markdown("---")
+        gr.HTML('<hr class="section-divider">')

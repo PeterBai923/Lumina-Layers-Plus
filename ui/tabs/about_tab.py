@@ -184,11 +184,11 @@ def create_about_tab_content() -> dict:
     components = {}
 
     # Settings section
-    components['md_settings_title'] = gr.Markdown('## ⚙️ 设置')
+    components['md_settings_title'] = gr.HTML('<div class="section-heading">⚙️ 设置</div>')
     cache_size = Stats.get_cache_size()
     cache_size_str = _format_bytes(cache_size)
-    components['md_cache_size'] = gr.Markdown(
-        f'📦 缓存大小: {cache_size_str}'
+    components['md_cache_size'] = gr.HTML(
+        f'<span class="status-text">📦 缓存大小: {cache_size_str}</span>'
     )
     with gr.Row():
         components['btn_clear_cache'] = gr.Button(
@@ -204,8 +204,8 @@ def create_about_tab_content() -> dict:
 
     output_size = Stats.get_output_size()
     output_size_str = _format_bytes(output_size)
-    components['md_output_size'] = gr.Markdown(
-        f'📦 输出大小: {output_size_str}'
+    components['md_output_size'] = gr.HTML(
+        f'<span class="status-text">📦 输出大小: {output_size_str}</span>'
     )
     components['btn_clear_output'] = gr.Button(
         '🗑️ 清空输出',
@@ -213,7 +213,7 @@ def create_about_tab_content() -> dict:
         size="sm"
     )
 
-    components['md_settings_status'] = gr.Markdown("")
+    components['md_settings_status'] = gr.HTML("")
 
     # About page content
     components['md_about_content'] = gr.Markdown(ABOUT_CONTENT)

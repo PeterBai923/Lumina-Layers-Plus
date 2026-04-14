@@ -232,8 +232,8 @@ def create_app():
             cache_size_after = Stats.get_cache_size()
             freed_size = max(cache_size_before - cache_size_after, 0)
 
-            status_msg = f'✅ 缓存已清空，释放了 {_format_bytes(freed_size)} 空间'
-            new_cache_size = f'📦 缓存大小: {_format_bytes(cache_size_after)}'
+            status_msg = f'<span class="status-text">✅ 缓存已清空，释放了 {_format_bytes(freed_size)} 空间</span>'
+            new_cache_size = f'<span class="status-text">📦 缓存大小: {_format_bytes(cache_size_after)}</span>'
             return status_msg, new_cache_size
 
         def on_clear_output():
@@ -242,15 +242,15 @@ def create_app():
             output_size_after = Stats.get_output_size()
             freed_size = max(output_size_before - output_size_after, 0)
 
-            status_msg = f'✅ 输出已清空，释放了 {_format_bytes(freed_size)} 空间'
-            new_output_size = f'📦 输出大小: {_format_bytes(output_size_after)}'
+            status_msg = f'<span class="status-text">✅ 输出已清空，释放了 {_format_bytes(freed_size)} 空间</span>'
+            new_output_size = f'<span class="status-text">📦 输出大小: {_format_bytes(output_size_after)}</span>'
             return status_msg, new_output_size
 
         def on_reset_counters():
             Stats.reset_all()
             new_stats = Stats.get_all()
 
-            status_msg = '✅ 计数器已归零：校准板: {} | 颜色提取: {} | 模型转换: {}'.format(
+            status_msg = '<span class="status-text">✅ 计数器已归零：校准板: {} | 颜色提取: {} | 模型转换: {}</span>'.format(
                 new_stats.get("calibrations", 0),
                 new_stats.get("extractions", 0),
                 new_stats.get("conversions", 0),

@@ -122,9 +122,6 @@
     display: flex !important;
     align-items: center !important;
 }
-.lut-status p {
-    margin: 0 !important;
-}
 
 /* Transparent group (no box) */
 .clean-group {

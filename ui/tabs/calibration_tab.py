@@ -49,7 +49,7 @@ def create_calibration_tab_content() -> dict:
 
     with gr.Row():
         with gr.Column(scale=1):
-            components['md_cal_params'] = gr.Markdown('#### ⚙️ 参数')
+            components['md_cal_params'] = gr.HTML('<div class="section-heading">⚙️ 参数</div>')
 
             components['radio_cal_color_mode'] = gr.Radio(
                 choices=[
@@ -91,7 +91,7 @@ def create_calibration_tab_content() -> dict:
             )
 
         with gr.Column(scale=1):
-            components['md_cal_preview'] = gr.Markdown('#### 👁️ 预览')
+            components['md_cal_preview'] = gr.HTML('<div class="section-heading">👁️ 预览</div>')
 
             cal_preview = gr.Image(
                 label="Calibration Preview",

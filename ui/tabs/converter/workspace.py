@@ -19,8 +19,8 @@ def build_right_workspace(components, states):
     with gr.Column(scale=4, elem_classes=["workspace-area"]):
         with gr.Row():
             with gr.Column(scale=3):
-                components['md_conv_preview_section'] = gr.Markdown(
-                    '#### 🎨 2D预览'
+                components['md_conv_preview_section'] = gr.HTML(
+                    '<div class="section-heading">🎨 2D预览</div>'
                 )
 
                 # Bed size dropdown overlaid on preview top-right
@@ -154,8 +154,8 @@ def build_right_workspace(components, states):
                     with gr.Row():
                         # 左侧：当前选中的原图颜色
                         with gr.Column(scale=1):
-                            components['md_conv_palette_step1'] = gr.Markdown(
-                                '### 1. 原图颜色（点击预览图）'
+                            components['md_conv_palette_step1'] = gr.HTML(
+                                '<div class="section-heading">1. 原图颜色（点击预览图）</div>'
                             )
                             conv_selected_display = gr.HTML(
                                 value=build_selected_dual_color_html("#000000", "#000000"),
@@ -167,8 +167,8 @@ def build_right_workspace(components, states):
 
                         # 右侧：LUT 真实色盘
                         with gr.Column(scale=2):
-                            components['md_conv_palette_step2'] = gr.Markdown(
-                                '### 2. 替换为（点击色块）'
+                            components['md_conv_palette_step2'] = gr.HTML(
+                                '<div class="section-heading">2. 替换为（点击色块）</div>'
                             )
 
                             # 以色找色 ColorPicker
@@ -238,8 +238,8 @@ def build_right_workspace(components, states):
                     states['conv_free_color_html'] = conv_free_color_html
 
                     # 调色板预览 HTML (保持原有逻辑，用于显示已替换列表)
-                    components['md_conv_palette_replacements_label'] = gr.Markdown(
-                        '已生效的替换'
+                    components['md_conv_palette_replacements_label'] = gr.HTML(
+                        '<div class="desc-text">已生效的替换</div>'
                     )
                     conv_palette_html = gr.HTML(
                         value='<p class="placeholder-text">生成预览后显示替换列表</p>',
@@ -307,15 +307,15 @@ def build_right_workspace(components, states):
                         components['btn_conv_merge_revert'] = conv_merge_revert_btn
 
                     # 状态显示
-                    conv_merge_status = gr.Markdown(
-                        value='💡 调整参数后点击预览'
+                    conv_merge_status = gr.HTML(
+                        value='<span class="status-text">💡 调整参数后点击预览</span>'
                     )
                     components['md_conv_merge_status'] = conv_merge_status
                 # ========== END Color Merging ==========
 
                 with gr.Group(visible=False):
-                    components['md_conv_loop_section'] = gr.Markdown(
-                        '##### 🔗 挂孔设置'
+                    components['md_conv_loop_section'] = gr.HTML(
+                        '<div class="section-heading">🔗 挂孔设置</div>'
                     )
 
                     with gr.Row():
@@ -363,8 +363,8 @@ def build_right_workspace(components, states):
                 )
             with gr.Column(scale=1):
                 # ========== Outline Settings ==========
-                components['md_conv_outline_section'] = gr.Markdown(
-                    '##### 外轮廓设置'
+                components['md_conv_outline_section'] = gr.HTML(
+                    '<div class="section-heading">外轮廓设置</div>'
                 )
                 with gr.Row():
                     components['checkbox_conv_outline_enable'] = gr.Checkbox(
@@ -378,8 +378,8 @@ def build_right_workspace(components, states):
                 # ========== END Outline Settings ==========
 
                 # ========== Cloisonné Settings ==========
-                components['md_conv_cloisonne_section'] = gr.Markdown(
-                    '##### 掐丝珐琅特效'
+                components['md_conv_cloisonne_section'] = gr.HTML(
+                    '<div class="section-heading">掐丝珐琅特效</div>'
                 )
                 with gr.Row():
                     components['checkbox_conv_cloisonne_enable'] = gr.Checkbox(
@@ -397,8 +397,8 @@ def build_right_workspace(components, states):
                 # ========== END Cloisonné Settings ==========
 
                 # ========== Coating Settings ==========
-                components['md_conv_coating_section'] = gr.Markdown(
-                    '##### 透明镀层'
+                components['md_conv_coating_section'] = gr.HTML(
+                    '<div class="section-heading">透明镀层</div>'
                 )
                 with gr.Row():
                     components['checkbox_conv_coating_enable'] = gr.Checkbox(

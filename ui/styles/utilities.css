@@ -17,6 +17,30 @@
     padding: 6px;
 }
 
+.section-heading {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--body-text-color, #333);
+    margin: 8px 0 6px 0;
+}
+.section-divider {
+    border: none;
+    border-top: 1px solid var(--border-color-primary, #e0e0e0);
+    margin: 12px 0;
+}
+.status-text {
+    padding: 6px 10px;
+    font-size: 13px;
+    color: var(--body-text-color, #4b5563);
+    line-height: 1.5;
+}
+.desc-text {
+    font-size: 13px;
+    color: var(--body-text-color-subdued, #666);
+    margin: 4px 0 8px 0;
+    line-height: 1.4;
+}
+
 .section-title {
     font-weight: 600;
     font-size: 12px;
