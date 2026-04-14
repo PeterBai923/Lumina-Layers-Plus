@@ -9,7 +9,6 @@ import os
 import gradio as gr
 import numpy as np
 
-from core.i18n import I18n
 from core.converter import (
     update_preview_with_loop,
     on_remove_loop,
@@ -24,17 +23,13 @@ from ...callbacks import on_highlight_color_change, on_delete_selected_user_repl
 from ...image_helpers import _preview_update
 
 
-def bind_relief_events(components, states, lang_state, lang):
+def bind_relief_events(components, states):
     """Bind relief / loop / heightmap event handlers.
 
     Args:
         components: Dict of Gradio UI components.
         states: Dict of Gradio state components.
-        lang_state: Gradio State for language (also stored in states['lang_state']).
-        lang: Initial language code string.
     """
-
-    states['lang_state'] = lang_state
 
     # Retrieve the on_color_selected_for_relief function stored by events_color
     on_color_selected_for_relief = states['fn_on_color_selected_for_relief']
@@ -121,7 +116,7 @@ def bind_relief_events(components, states, lang_state, lang):
             )
         else:
             # 开启浮雕模式 - 默认「深色凸起」，隐藏高度图上传区，自动关闭掐丝珐琅
-            gr.Info("⚠️ 2.5D浮雕模式与掐丝珐琅模式互斥，已自动关闭掐丝珐琅 | Relief and Cloisonné are mutually exclusive, Cloisonné disabled")
+            gr.Info("⚠️ 2.5D浮雕模式与掐丝珐琅模式互斥，已自动关闭掐丝珐琅")
             if selected_color:
                 current_height = height_map.get(selected_color, base_thickness)
                 return (
@@ -153,7 +148,7 @@ def bind_relief_events(components, states, lang_state, lang):
     def on_cloisonne_mode_toggle(enable_cloisonne):
         """When cloisonne is enabled, auto-disable relief mode"""
         if enable_cloisonne:
-            gr.Info("⚠️ 掐丝珐琅模式与2.5D浮雕模式互斥，已自动关闭浮雕 | Cloisonné and Relief are mutually exclusive, Relief disabled")
+            gr.Info("⚠️ 掐丝珐琅模式与2.5D浮雕模式互斥，已自动关闭浮雕")
             return gr.update(value=False), gr.update(visible=False), gr.update(visible=False)
         return gr.update(), gr.update(), gr.update()
 
@@ -336,12 +331,12 @@ def bind_relief_events(components, states, lang_state, lang):
                     lut_colors,
                     top_k=10
                 )
-                rec_html = generate_dual_recommendations_html(rec, lang=lang)
+                rec_html = generate_dual_recommendations_html(rec)
         except Exception as e:
             print(f"[DUAL_RECOMMEND] Failed: {e}")
 
         display_hex, state_hex = _resolve_click_selection_hexes(new_cache, q_hex)
-        selected_html = build_selected_dual_color_html(state_hex, display_hex, lang=lang)
+        selected_html = build_selected_dual_color_html(state_hex, display_hex)
         relief_slider, relief_selected_color, _ = on_color_selected_for_relief(
             state_hex, enable_relief, height_map, base_thickness, new_cache
         )
@@ -403,16 +398,16 @@ def bind_relief_events(components, states, lang_state, lang):
         Skip if mode is '根据高度图' (heightmap mode uses uploaded image instead).
         """
         if mode == "根据高度图":
-            gr.Info("ℹ️ 当前为高度图模式，请上传高度图后直接点击生成按钮 | Heightmap mode: upload a heightmap and click Generate")
+            gr.Info("ℹ️ 当前为高度图模式，请上传高度图后直接点击生成按钮")
             return gr.update()
         if cache is None:
-            gr.Warning("⚠️ 请先生成预览图 | Please generate preview first")
+            gr.Warning("⚠️ 请先生成预览图")
             return {}
 
         # Extract unique colors from the preview cache
         # cache structure: {'preview': img_array, 'matched_rgb': rgb_array, ...}
         if 'matched_rgb' not in cache:
-            gr.Warning("⚠️ 预览数据不完整 | Preview data incomplete")
+            gr.Warning("⚠️ 预览数据不完整")
             return {}
 
         matched_rgb = cache['matched_rgb']
@@ -438,7 +433,7 @@ def bind_relief_events(components, states, lang_state, lang):
                 unique_colors.add(f'#{r:02x}{g:02x}{b:02x}')
 
         if not unique_colors:
-            gr.Warning("⚠️ 未找到有效颜色 | No valid colors found")
+            gr.Warning("⚠️ 未找到有效颜色")
             return {}
 
         color_list = list(unique_colors)

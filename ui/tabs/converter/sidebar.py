@@ -8,20 +8,19 @@ import gradio as gr
 
 from config import ModelingMode
 from utils import LUTManager
-from core.i18n import I18n
 from ...settings import (
     load_last_lut_setting, _load_user_settings,
 )
 from .helpers import _get_supported_image_file_types
 
 
-def build_left_sidebar(lang, components, states):
+def build_left_sidebar(components, states):
     """Build left sidebar UI components.
 
     Populates both ``components`` and ``states`` dicts with Gradio references.
     """
     with gr.Column(scale=1, min_width=320, elem_classes=["left-sidebar"]):
-        components['md_conv_input_section'] = gr.Markdown(I18n.get('conv_input_section', lang))
+        components['md_conv_input_section'] = gr.Markdown('#### 📁 输入')
 
         saved_lut = load_last_lut_setting()
         current_choices = LUTManager.get_lut_choices()
@@ -39,7 +38,7 @@ def build_left_sidebar(lang, components, states):
         with gr.Row():
             components['dropdown_conv_lut_dropdown'] = gr.Dropdown(
                 choices=current_choices,
-                label="校准数据 (.npy) / Calibration Data",
+                label='**校准数据 (.npy)**',
                 value=default_lut_value,
                 interactive=True,
                 scale=2
@@ -56,7 +55,7 @@ def build_left_sidebar(lang, components, states):
             states['conv_lut_upload'] = conv_lut_upload
 
         components['md_conv_lut_status'] = gr.Markdown(
-            value=I18n.get('conv_lut_status_default', lang),
+            value='💡 拖放.npy文件自动添加',
             visible=True,
             elem_classes=["lut-status"]
         )
@@ -70,9 +69,9 @@ def build_left_sidebar(lang, components, states):
 
         with gr.Row():
             components['checkbox_conv_batch_mode'] = gr.Checkbox(
-                label=I18n.get('conv_batch_mode', lang),
+                label='📦 批量模式',
                 value=False,
-                info=I18n.get('conv_batch_mode_info', lang)
+                info='一次生成多个模型 (参数共享)'
             )
 
         # ========== Image Crop Extension (Non-invasive) ==========
@@ -106,7 +105,7 @@ def build_left_sidebar(lang, components, states):
         # Cropper.js Modal HTML (JS is loaded via head parameter in main.py)
         from ui.widgets.crop_modal import get_crop_modal_html
         cropper_modal_html = gr.HTML(
-            get_crop_modal_html(lang),
+            get_crop_modal_html(),
             elem_classes=["crop-modal-container"]
         )
         components['html_crop_modal'] = cropper_modal_html
@@ -121,7 +120,7 @@ def build_left_sidebar(lang, components, states):
         # ========== END Image Crop Extension ==========
 
         components['image_conv_image_label'] = gr.Image(
-            label=I18n.get('conv_image_label', lang),
+            label='输入图像',
             type="filepath",
             image_mode=None,  # Auto-detect mode to support both JPEG and PNG
             height=400,
@@ -129,27 +128,27 @@ def build_left_sidebar(lang, components, states):
             elem_id="conv-image-input",
         )
         components['file_conv_batch_input'] = gr.File(
-            label=I18n.get('conv_batch_input', lang),
+            label='📤 批量上传图片',
             file_count="multiple",
             file_types=_get_supported_image_file_types(),
             visible=False
         )
-        components['md_conv_params_section'] = gr.Markdown(I18n.get('conv_params_section', lang))
+        components['md_conv_params_section'] = gr.Markdown('#### ⚙️ 参数')
 
         with gr.Row(elem_classes=["compact-row"]):
             components['slider_conv_width'] = gr.Slider(
                 minimum=10, maximum=400, value=60, step=1,
-                label=I18n.get('conv_width', lang),
+                label='宽度 (mm)',
                 interactive=True
             )
             components['slider_conv_height'] = gr.Slider(
                 minimum=10, maximum=400, value=60, step=1,
-                label=I18n.get('conv_height', lang),
+                label='高度 (mm)',
                 interactive=True
             )
             components['slider_conv_thickness'] = gr.Slider(
                 0.2, 3.5, 1.2, step=0.08,
-                label=I18n.get('conv_thickness', lang)
+                label='背板 (mm)'
             )
 
         # Bed size selector removed from sidebar — now overlaid on preview
@@ -246,59 +245,59 @@ def build_left_sidebar(lang, components, states):
                     ("🔀 Merged", "Merged"),
                 ],
                 value=saved_color_mode,
-                label=I18n.get('conv_color_mode', lang),
+                label='色彩模式',
                 interactive=False,
                 visible=False,
             )
 
             components['radio_conv_structure'] = gr.Radio(
                 choices=[
-                    (I18n.get('conv_structure_double', lang), I18n.get('conv_structure_double', 'en')),
-                    (I18n.get('conv_structure_single', lang), I18n.get('conv_structure_single', 'en'))
+                    ('双面 (钥匙扣)', 'double'),
+                    ('单面 (浮雕)', 'single')
                 ],
-                value=I18n.get('conv_structure_double', 'en'),
-                label=I18n.get('conv_structure', lang)
+                value='double',
+                label='结构'
             )
 
         with gr.Row(elem_classes=["compact-row"]):
             components['radio_conv_modeling_mode'] = gr.Radio(
                 choices=[
-                    (I18n.get('conv_modeling_mode_hifi', lang), ModelingMode.HIGH_FIDELITY),
-                    (I18n.get('conv_modeling_mode_pixel', lang), ModelingMode.PIXEL),
-                    (I18n.get('conv_modeling_mode_vector', lang), ModelingMode.VECTOR)
+                    ('🎨 高保真', ModelingMode.HIGH_FIDELITY),
+                    ('🧱 像素艺术', ModelingMode.PIXEL),
+                    ('📐 SVG模式', ModelingMode.VECTOR)
                 ],
                 value=saved_modeling_mode,
-                label=I18n.get('conv_modeling_mode', lang),
-                info=I18n.get('conv_modeling_mode_info', lang),
+                label='🎨 建模模式',
+                info='高保真：RLE无缝拼接，水密模型 | 像素艺术：经典方块美学 | SVG模式：矢量直接转换',
                 elem_classes=["vertical-radio"],
                 scale=2
             )
 
-        with gr.Accordion(label=I18n.get('conv_advanced', lang), open=False) as conv_advanced_acc:
+        with gr.Accordion(label='🛠️ 高级设置', open=False) as conv_advanced_acc:
             components['accordion_conv_advanced'] = conv_advanced_acc
             with gr.Row():
                 components['slider_conv_quantize_colors'] = gr.Slider(
                     minimum=8, maximum=256, step=8, value=48,
-                    label=I18n.get('conv_quantize_colors', lang),
-                    info=I18n.get('conv_quantize_info', lang)
+                    label='🎨 色彩细节',
+                    info='颜色数量越多细节越丰富，但生成越慢'
                 )
             with gr.Row():
                 components['btn_conv_auto_color'] = gr.Button(
-                    I18n.get('conv_auto_color_btn', lang),
+                    '🔍 自动计算',
                     variant="secondary",
                     size="sm"
                 )
             with gr.Row():
                 components['slider_conv_tolerance'] = gr.Slider(
                     0, 150, 40,
-                    label=I18n.get('conv_tolerance', lang),
-                    info=I18n.get('conv_tolerance_info', lang)
+                    label='容差',
+                    info='背景容差值 (0-150)，值越大移除越多'
                 )
             with gr.Row():
                 components['checkbox_conv_auto_bg'] = gr.Checkbox(
-                    label=I18n.get('conv_auto_bg', lang),
+                    label='🗑️ 移除背景',
                     value=False,
-                    info=I18n.get('conv_auto_bg_info', lang)
+                    info='自动移除图像背景色'
                 )
             with gr.Row():
                 components['checkbox_conv_cleanup'] = gr.Checkbox(

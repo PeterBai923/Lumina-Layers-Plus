@@ -9,22 +9,20 @@ Click handlers are defined globally in crop_extension.py to survive Gradio re-re
 
 from typing import List
 
-from core.i18n import I18n
-
 
 def build_hue_filter_bar_html(lang: str = "zh") -> str:
     """Build the hue filter button bar HTML (shared by swatch, card, and palette grids)."""
     hue_labels = [
-        ("all", I18n.get("lut_grid_hue_all", lang), "#666"),
-        ("red", I18n.get("lut_grid_hue_red", lang), "#e53935"),
-        ("orange", I18n.get("lut_grid_hue_orange", lang), "#fb8c00"),
-        ("yellow", I18n.get("lut_grid_hue_yellow", lang), "#fdd835"),
-        ("green", I18n.get("lut_grid_hue_green", lang), "#43a047"),
-        ("cyan", I18n.get("lut_grid_hue_cyan", lang), "#00acc1"),
-        ("blue", I18n.get("lut_grid_hue_blue", lang), "#1e88e5"),
-        ("purple", I18n.get("lut_grid_hue_purple", lang), "#8e24aa"),
-        ("neutral", I18n.get("lut_grid_hue_neutral", lang), "#9e9e9e"),
-        ("fav", I18n.get("lut_grid_hue_fav", lang), "#ffc107"),
+        ("all", "全部", "#666"),
+        ("red", "红色", "#e53935"),
+        ("orange", "橙色", "#fb8c00"),
+        ("yellow", "黄色", "#fdd835"),
+        ("green", "绿色", "#43a047"),
+        ("cyan", "青色", "#00acc1"),
+        ("blue", "蓝色", "#1e88e5"),
+        ("purple", "紫色", "#8e24aa"),
+        ("neutral", "灰色", "#9e9e9e"),
+        ("fav", "收藏", "#ffc107"),
     ]
     parts = [
         '<div id="lut-hue-filter-bar" class="flex-center gap-xs" style="flex-wrap:wrap; margin-bottom:8px;">'
@@ -50,8 +48,8 @@ def build_hue_filter_bar_html(lang: str = "zh") -> str:
 
 def build_search_bar_html(lang: str = "zh") -> str:
     """Build the search input bar HTML (shared by swatch and card grids)."""
-    search_placeholder = I18n.get("lut_grid_search_hex_placeholder", lang)
-    search_clear = I18n.get("lut_grid_search_clear", lang)
+    search_placeholder = "搜索十六进制颜色..."
+    search_clear = "清除"
     return f"""<div class="flex-center gap-md" style="margin-bottom:8px;">
         <span style="font-size:12px; color:#666;">🔍</span>
         <input type="text" id="lut-color-search" class="lut-search-input" placeholder="{search_placeholder}"
@@ -87,7 +85,7 @@ def generate_palette_html(
 ) -> str:
     """渲染已生效替换区：左用户替换列表 + 右自动配准列表（行级交互）。"""
     if not palette and not replacement_regions:
-        return f'<p class="placeholder-text">{I18n.get("palette_empty", lang)}</p>'
+        return f'<p class="placeholder-text">{"暂无颜色，请先生成预览。"}</p>'
 
     replacement_regions = replacement_regions or []
 
@@ -134,11 +132,11 @@ def generate_palette_html(
             f"<span class='text-caption'>{hex_color}</span>"
         )
 
-    user_title = I18n.get("conv_palette_user_replacements_title", lang)
-    auto_title = I18n.get("conv_palette_auto_pairs_title", lang)
-    delete_btn_text = I18n.get("conv_palette_delete_selected_btn", lang)
-    user_empty = I18n.get("conv_palette_user_empty", lang)
-    auto_empty = I18n.get("conv_palette_auto_empty", lang)
+    user_title = "用户替换"
+    auto_title = "自动配准"
+    delete_btn_text = "删除选中"
+    user_empty = "暂无替换"
+    auto_empty = "暂无自动配准"
     delete_disabled = " disabled" if not selected_user_row_id else ""
 
     html = [
@@ -212,8 +210,8 @@ def build_selected_dual_color_html(
     qh = quantized_hex.lower() if isinstance(quantized_hex, str) else "#000000"
     mh = matched_hex.lower() if isinstance(matched_hex, str) else "#000000"
 
-    q_label = "量化色" if lang == "zh" else "Quantized"
-    m_label = "原配准色" if lang == "zh" else "Matched"
+    q_label = "量化色"
+    m_label = "原配准色"
 
     def _card(label, hex_color):
         return (
@@ -253,7 +251,7 @@ def generate_lut_color_grid_html(
         HTML string showing available colors as a clickable grid with search & filters
     """
     if not colors:
-        return f'<p class="placeholder-text">{I18n.get("lut_grid_load_hint", lang)}</p>'
+        return '<p class="placeholder-text">💡 拖放.npy文件自动添加</p>'
 
     used_colors = used_colors or set()
     used_colors_lower = {c.lower() for c in used_colors}
@@ -269,7 +267,7 @@ def generate_lut_color_grid_html(
         else:
             not_used.append(entry)
 
-    count_text = I18n.get("lut_grid_count", lang).format(count=len(colors))
+    count_text = f'🎨 当前 LUT 包含 <b>{len(colors)}</b> 种可打印颜色（点击选择）'
 
     html_parts = [
         f'<p class="text-caption" style="margin-bottom:8px;">{count_text}: <span id="lut-color-visible-count">{len(colors)}</span></p>',
@@ -331,7 +329,7 @@ def generate_lut_color_grid_html(
                 else ""
             )
 
-            tooltip = I18n.get("lut_grid_tooltip", lang).format(hex=hex_color)
+            tooltip = f"点击高亮: {hex_color}"
             parts.append(
                 f"""
             <div class="lut-color-swatch-container flex-col-center gap-xs" data-hue="{hue_cat}">
@@ -346,14 +344,14 @@ def generate_lut_color_grid_html(
 
     # Render used colors section (if any)
     if used_in_image:
-        section_title = I18n.get("lut_grid_used", lang).format(count=len(used_in_image))
+        section_title = f"✅ 图像中使用 ({len(used_in_image)})"
         html_parts.extend(render_color_grid(used_in_image, section_title, "#4CAF50"))
 
     # Render unused colors section
     if not_used:
         section_title = None
         if used_in_image:
-            section_title = I18n.get("lut_grid_other", lang).format(count=len(not_used))
+            section_title = f"其他 ({len(not_used)})"
         html_parts.extend(render_color_grid(not_used, section_title, "#888"))
 
     html_parts.append("</div>")
@@ -369,8 +367,8 @@ def generate_dual_recommendations_html(recommendations: dict, lang: str = "zh") 
     by_q = recommendations.get("by_quantized", [])
     by_m = recommendations.get("by_matched", [])
 
-    title_q = "按量化色推荐" if lang == "zh" else "By Quantized"
-    title_m = "按原配准色推荐" if lang == "zh" else "By Matched"
+    title_q = "按量化色推荐"
+    title_m = "按原配准色推荐"
 
     def _render_group(title, items):
         parts = [

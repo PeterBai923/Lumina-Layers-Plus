@@ -6,23 +6,20 @@ This module provides image cropping capabilities without modifying the core layo
 It uses a decorator pattern to wrap the original create_app function.
 """
 
-from core.i18n import I18n
-
-
-def get_crop_modal_html(lang: str) -> str:
-    """Return the crop modal HTML for the given language.
+def get_crop_modal_html() -> str:
+    """Return the crop modal HTML.
     CSS styles are loaded from ui/styles/crop-modal.css."""
-    title = I18n.get("crop_title", lang)
-    original_size = I18n.get("crop_original_size", lang)
-    selection_size = I18n.get("crop_selection_size", lang)
-    label_x = I18n.get("crop_x", lang)
-    label_y = I18n.get("crop_y", lang)
-    label_w = I18n.get("crop_width", lang)
-    label_h = I18n.get("crop_height", lang)
-    btn_use_original = I18n.get("crop_use_original", lang)
-    btn_confirm = I18n.get("crop_confirm", lang)
-    lbl_ratio = "比例预设 | Ratio" if lang == "zh" else "Aspect Ratio"
-    lbl_free = "自由" if lang == "zh" else "Free"
+    title = "图片裁剪"
+    original_size = "原图尺寸"
+    selection_size = "选区尺寸"
+    label_x = "X 偏移"
+    label_y = "Y 偏移"
+    label_w = "宽度"
+    label_h = "高度"
+    btn_use_original = "使用原图"
+    btn_confirm = "确认裁剪"
+    lbl_ratio = "比例预设"
+    lbl_free = "自由"
 
     template = """
 <!-- CDN scripts (jQuery, Cropper.js) and JS functions are loaded via head parameter in main.py -->

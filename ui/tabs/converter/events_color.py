@@ -6,7 +6,6 @@ Binds all color replacement / merge / selection event handlers for the converter
 
 import gradio as gr
 
-from core.i18n import I18n
 from core.converter import (
     on_preview_click_select_color,
     _build_dual_recommendations,
@@ -27,15 +26,13 @@ from ...callbacks import (
 from ...image_helpers import _preview_update
 
 
-def bind_color_events(components, states, lang_state, theme_state, lang):
+def bind_color_events(components, states, theme_state):
     """Bind all color replacement / merge / selection event handlers.
 
     Args:
         components: dict of Gradio UI components keyed by name.
         states: dict of Gradio State components keyed by name.
-        lang_state: Gradio State for current language code.
         theme_state: Gradio State for dark/light theme flag.
-        lang: Initial language code string ('zh' or 'en').
     """
 
     # ------------------------------------------------------------------
@@ -90,14 +87,11 @@ def bind_color_events(components, states, lang_state, theme_state, lang):
         replacement_regions,
         selected_user_row_id,
         selected_auto_row_id,
-        lang_state_val,
     ):
         from ui.widgets.palette import generate_palette_html
 
         if cache is None:
-            placeholder = I18n.get(
-                "conv_palette_replacements_placeholder", lang_state_val
-            )
+            placeholder = '生成预览后显示替换列表'
             return f'<p class="placeholder-text">{placeholder}</p>'
 
         palette = cache.get("color_palette", [])
@@ -119,7 +113,7 @@ def bind_color_events(components, states, lang_state, theme_state, lang):
             palette,
             replacements={},
             selected_color=None,
-            lang=lang_state_val,
+            lang="zh",
             replacement_regions=replacement_regions or [],
             auto_pairs=auto_pairs,
             selected_user_row_id=selected_user_row_id,
@@ -173,7 +167,6 @@ def bind_color_events(components, states, lang_state, theme_state, lang):
             states["conv_replacement_regions"],
             states["conv_selected_user_row_id"],
             states["conv_selected_auto_row_id"],
-            lang_state,
         ],
         outputs=[states["conv_palette_html"]],
     )
@@ -189,7 +182,6 @@ def bind_color_events(components, states, lang_state, theme_state, lang):
         loop_length,
         loop_hole,
         loop_angle,
-        lang_state_val,
     ):
         (
             display,
@@ -210,7 +202,6 @@ def bind_color_events(components, states, lang_state, theme_state, lang):
             loop_length,
             loop_hole,
             loop_angle,
-            lang_state_val,
         )
         return (
             display,
@@ -235,7 +226,6 @@ def bind_color_events(components, states, lang_state, theme_state, lang):
             components["slider_conv_loop_length"],
             components["slider_conv_loop_hole"],
             components["slider_conv_loop_angle"],
-            lang_state,
         ],
         outputs=[
             states["conv_preview"],
@@ -319,7 +309,6 @@ def bind_color_events(components, states, lang_state, theme_state, lang):
         loop_length,
         loop_hole,
         loop_angle,
-        lang_state_val,
     ):
         display, updated_cache, palette_html, new_regions, new_history, status = (
             on_apply_color_replacement(
@@ -334,7 +323,6 @@ def bind_color_events(components, states, lang_state, theme_state, lang):
                 loop_length,
                 loop_hole,
                 loop_angle,
-                lang_state_val,
             )
         )
         return (
@@ -360,7 +348,6 @@ def bind_color_events(components, states, lang_state, theme_state, lang):
             components["slider_conv_loop_length"],
             components["slider_conv_loop_hole"],
             components["slider_conv_loop_angle"],
-            lang_state,
         ],
         outputs=[
             states["conv_preview"],
@@ -392,7 +379,6 @@ def bind_color_events(components, states, lang_state, theme_state, lang):
         loop_length,
         loop_hole,
         loop_angle,
-        lang_state_val,
     ):
         display, updated_cache, palette_html, new_regions, new_history, status = (
             on_undo_color_replacement(
@@ -405,7 +391,6 @@ def bind_color_events(components, states, lang_state, theme_state, lang):
                 loop_length,
                 loop_hole,
                 loop_angle,
-                lang_state_val,
             )
         )
         return (
@@ -429,7 +414,6 @@ def bind_color_events(components, states, lang_state, theme_state, lang):
             components["slider_conv_loop_length"],
             components["slider_conv_loop_hole"],
             components["slider_conv_loop_angle"],
-            lang_state,
         ],
         outputs=[
             states["conv_preview"],
@@ -461,7 +445,6 @@ def bind_color_events(components, states, lang_state, theme_state, lang):
         loop_length,
         loop_hole,
         loop_angle,
-        lang_state_val,
     ):
         display, updated_cache, palette_html, new_regions, new_history, status = (
             on_clear_color_replacements(
@@ -474,7 +457,6 @@ def bind_color_events(components, states, lang_state, theme_state, lang):
                 loop_length,
                 loop_hole,
                 loop_angle,
-                lang_state_val,
             )
         )
         return (
@@ -498,7 +480,6 @@ def bind_color_events(components, states, lang_state, theme_state, lang):
             components["slider_conv_loop_length"],
             components["slider_conv_loop_hole"],
             components["slider_conv_loop_angle"],
-            lang_state,
         ],
         outputs=[
             states["conv_preview"],
@@ -579,7 +560,6 @@ def bind_color_events(components, states, lang_state, theme_state, lang):
         loop_length,
         loop_hole,
         loop_angle,
-        lang_state_val,
     ):
         display, updated_cache, palette_html, merge_map, merge_stats, status = (
             on_merge_preview(
@@ -593,7 +573,6 @@ def bind_color_events(components, states, lang_state, theme_state, lang):
                 loop_length,
                 loop_hole,
                 loop_angle,
-                lang_state_val,
             )
         )
         return (
@@ -618,7 +597,6 @@ def bind_color_events(components, states, lang_state, theme_state, lang):
             components["slider_conv_loop_length"],
             components["slider_conv_loop_hole"],
             components["slider_conv_loop_angle"],
-            lang_state,
         ],
         outputs=[
             states["conv_preview"],
@@ -641,7 +619,6 @@ def bind_color_events(components, states, lang_state, theme_state, lang):
         loop_length,
         loop_hole,
         loop_angle,
-        lang_state_val,
     ):
         display, updated_cache, palette_html, status = on_merge_apply(
             cache,
@@ -653,7 +630,6 @@ def bind_color_events(components, states, lang_state, theme_state, lang):
             loop_length,
             loop_hole,
             loop_angle,
-            lang_state_val,
         )
         return _preview_update(display), updated_cache, palette_html, status
 
@@ -669,7 +645,6 @@ def bind_color_events(components, states, lang_state, theme_state, lang):
             components["slider_conv_loop_length"],
             components["slider_conv_loop_hole"],
             components["slider_conv_loop_angle"],
-            lang_state,
         ],
         outputs=[
             states["conv_preview"],
@@ -688,7 +663,6 @@ def bind_color_events(components, states, lang_state, theme_state, lang):
         loop_length,
         loop_hole,
         loop_angle,
-        lang_state_val,
     ):
         display, updated_cache, palette_html, empty_map, empty_stats, status = (
             on_merge_revert(
@@ -699,7 +673,6 @@ def bind_color_events(components, states, lang_state, theme_state, lang):
                 loop_length,
                 loop_hole,
                 loop_angle,
-                lang_state_val,
             )
         )
         return (
@@ -721,7 +694,6 @@ def bind_color_events(components, states, lang_state, theme_state, lang):
             components["slider_conv_loop_length"],
             components["slider_conv_loop_hole"],
             components["slider_conv_loop_angle"],
-            lang_state,
         ],
         outputs=[
             states["conv_preview"],
@@ -759,13 +731,13 @@ def bind_color_events(components, states, lang_state, theme_state, lang):
                         lut_colors,
                         top_k=10,
                     )
-                    rec_html = generate_dual_recommendations_html(rec, lang=lang)
+                    rec_html = generate_dual_recommendations_html(rec, lang="zh")
         except Exception as e:
             print(f"[DUAL_RECOMMEND] Failed: {e}")
 
         display_hex, state_hex = _resolve_click_selection_hexes(cache, hex_val)
         selected_html = build_selected_dual_color_html(
-            state_hex, display_hex, lang=lang
+            state_hex, display_hex, lang="zh"
         )
         return _preview_update(img), selected_html, state_hex, rec_html, msg
 

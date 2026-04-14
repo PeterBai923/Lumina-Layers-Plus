@@ -9,23 +9,8 @@ import numpy as np
 
 from config import ModelingMode
 from core.converter import _normalize_color_replacements_input
-from core.i18n import I18n
 from ui.callbacks import on_apply_color_replacement, on_delete_selected_user_replacement
 from ui.widgets.palette import generate_palette_html
-
-
-def test_palette_list_i18n_keys_exist():
-    keys = [
-        'conv_palette_user_replacements_title',
-        'conv_palette_auto_pairs_title',
-        'conv_palette_delete_selected_btn',
-        'conv_palette_delete_selected_empty',
-        'conv_palette_user_empty',
-        'conv_palette_auto_empty',
-    ]
-    for k in keys:
-        assert I18n.get(k, 'zh')
-        assert I18n.get(k, 'en')
 
 
 def test_generate_palette_html_uses_list_cards_and_selected_classes():
@@ -367,9 +352,8 @@ def test_create_converter_tab_content_initializes_without_replacement_map_nameer
     from ui.tabs.converter import create_converter_tab_content
 
     with gr.Blocks():
-        lang_state = gr.State(value='zh')
         theme_state = gr.State(value=False)
-        components = create_converter_tab_content('zh', lang_state, theme_state)
+        components = create_converter_tab_content(theme_state)
 
     assert isinstance(components, dict)
 

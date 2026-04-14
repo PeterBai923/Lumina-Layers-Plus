@@ -5,7 +5,6 @@ Self-contained module for calibration board generation: UI, callbacks, and helpe
 """
 
 import gradio as gr
-from core.i18n import I18n
 from core.calibration import (
     generate_calibration_board,
     generate_smart_board,
@@ -44,13 +43,13 @@ def generate_board_wrapper(color_mode, block_size, gap, backing):
 # Tab UI Builder
 # ═══════════════════════════════════════════════════════════════
 
-def create_calibration_tab_content(lang: str) -> dict:
+def create_calibration_tab_content() -> dict:
     """Build calibration board tab UI and events. Returns component dict."""
     components = {}
 
     with gr.Row():
         with gr.Column(scale=1):
-            components['md_cal_params'] = gr.Markdown(I18n.get('cal_params', lang))
+            components['md_cal_params'] = gr.Markdown('#### ⚙️ 参数')
 
             components['radio_cal_color_mode'] = gr.Radio(
                 choices=[
@@ -61,38 +60,38 @@ def create_calibration_tab_content(lang: str) -> dict:
                     ("8-Color Max", "8-Color Max")
                 ],
                 value="4-Color",
-                label=I18n.get('cal_color_mode', lang)
+                label='色彩模式'
             )
 
             components['slider_cal_block_size'] = gr.Slider(
                 3, 10, 5, step=1,
-                label=I18n.get('cal_block_size', lang)
+                label='色块尺寸 (mm)'
             )
 
             components['slider_cal_gap'] = gr.Slider(
                 0.4, 2.0, 0.82, step=0.02,
-                label=I18n.get('cal_gap', lang)
+                label='间隙 (mm)'
             )
 
             components['dropdown_cal_backing'] = gr.Dropdown(
                 choices=["White", "Cyan", "Magenta", "Yellow", "Red", "Blue"],
                 value="White",
-                label=I18n.get('cal_backing', lang)
+                label='底板颜色'
             )
 
             components['btn_cal_generate_btn'] = gr.Button(
-                I18n.get('cal_generate_btn', lang),
+                '🚀 生成',
                 variant="primary",
                 elem_classes=["primary-btn"]
             )
 
             components['textbox_cal_status'] = gr.Textbox(
-                label=I18n.get('cal_status', lang),
+                label='状态',
                 interactive=False
             )
 
         with gr.Column(scale=1):
-            components['md_cal_preview'] = gr.Markdown(I18n.get('cal_preview', lang))
+            components['md_cal_preview'] = gr.Markdown('#### 👁️ 预览')
 
             cal_preview = gr.Image(
                 label="Calibration Preview",
@@ -100,7 +99,7 @@ def create_calibration_tab_content(lang: str) -> dict:
             )
 
             components['file_cal_download'] = gr.File(
-                label=I18n.get('cal_download', lang)
+                label='下载 3MF'
             )
 
     # Event binding

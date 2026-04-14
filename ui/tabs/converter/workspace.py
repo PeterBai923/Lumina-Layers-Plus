@@ -7,12 +7,11 @@ UI construction for the right workspace (original lines 559-1037).
 import gradio as gr
 
 from config import BedManager
-from core.i18n import I18n
 from core.converter import render_preview, generate_empty_bed_glb
 from ...slicer_integration import _get_slicer_choices, _get_default_slicer, _slicer_css_class
 
 
-def build_right_workspace(lang, components, states):
+def build_right_workspace(components, states):
     """Build right workspace UI components.
 
     Populates both ``components`` and ``states`` dicts with Gradio references.
@@ -21,7 +20,7 @@ def build_right_workspace(lang, components, states):
         with gr.Row():
             with gr.Column(scale=3):
                 components['md_conv_preview_section'] = gr.Markdown(
-                    I18n.get('conv_preview_section', lang)
+                    '#### 🎨 2D预览'
                 )
 
                 # Bed size dropdown overlaid on preview top-right
@@ -48,7 +47,7 @@ def build_right_workspace(lang, components, states):
                 states['conv_preview'] = conv_preview
 
                 # ========== Color Palette & Replacement ==========
-                with gr.Accordion(I18n.get('conv_palette', lang), open=False) as conv_palette_acc:
+                with gr.Accordion('🎨 颜色调色板', open=False) as conv_palette_acc:
                     components['accordion_conv_palette'] = conv_palette_acc
                     # 状态变量
                     conv_selected_color = gr.State(None)  # 原图中被点击的颜色
@@ -156,11 +155,11 @@ def build_right_workspace(lang, components, states):
                         # 左侧：当前选中的原图颜色
                         with gr.Column(scale=1):
                             components['md_conv_palette_step1'] = gr.Markdown(
-                                I18n.get('conv_palette_step1', lang)
+                                '### 1. 原图颜色（点击预览图）'
                             )
                             conv_selected_display = gr.HTML(
-                                value=build_selected_dual_color_html("#000000", "#000000", lang=lang),
-                                label=I18n.get('conv_palette_selected_label', lang),
+                                value=build_selected_dual_color_html("#000000", "#000000"),
+                                label='当前选中',
                                 show_label=True
                             )
                             components['color_conv_palette_selected_label'] = conv_selected_display
@@ -169,19 +168,19 @@ def build_right_workspace(lang, components, states):
                         # 右侧：LUT 真实色盘
                         with gr.Column(scale=2):
                             components['md_conv_palette_step2'] = gr.Markdown(
-                                I18n.get('conv_palette_step2', lang)
+                                '### 2. 替换为（点击色块）'
                             )
 
                             # 以色找色 ColorPicker
                             with gr.Row():
                                 conv_color_picker_search = gr.ColorPicker(
-                                    label=I18n.get('lut_grid_picker_label', lang),
+                                    label='🎯 以色找色',
                                     value="#ff0000",
                                     interactive=True,
-                                    info=I18n.get('lut_grid_picker_hint', lang)
+                                    info='输入颜色查找最近LUT色'
                                 )
                                 conv_color_picker_btn = gr.Button(
-                                    I18n.get('lut_grid_picker_btn', lang),
+                                    '🔍 查找',
                                     variant="secondary",
                                     size="sm"
                                 )
@@ -197,7 +196,7 @@ def build_right_workspace(lang, components, states):
 
                             # LUT 网格 HTML
                             conv_lut_grid_view = gr.HTML(
-                                value=f'<div class="placeholder-text" style="padding:10px;">{I18n.get("conv_palette_lut_loading", lang)}</div>',
+                                value='<div class="placeholder-text" style="padding:10px;">⏳ 正在加载 LUT 颜色...</div>',
                                 label="",
                                 show_label=False
                             )
@@ -205,16 +204,16 @@ def build_right_workspace(lang, components, states):
 
                             # 显示用户选中的替换色
                             conv_replacement_display = gr.ColorPicker(
-                                label=I18n.get('conv_palette_replace_label', lang),
+                                label='将替换为',
                                 interactive=False
                             )
                             components['color_conv_palette_replace_label'] = conv_replacement_display
 
                     # 操作按钮区
                     with gr.Row():
-                        conv_apply_replacement = gr.Button(I18n.get('conv_palette_apply_btn', lang), variant="primary")
-                        conv_undo_replacement = gr.Button(I18n.get('conv_palette_undo_btn', lang))
-                        conv_clear_replacements = gr.Button(I18n.get('conv_palette_clear_btn', lang))
+                        conv_apply_replacement = gr.Button('✅ 确认替换', variant="primary")
+                        conv_undo_replacement = gr.Button('↩️ 撤销')
+                        conv_clear_replacements = gr.Button('🗑️ 清除所有')
                         components['btn_conv_palette_apply_btn'] = conv_apply_replacement
                         components['btn_conv_palette_undo_btn'] = conv_undo_replacement
                         components['btn_conv_palette_clear_btn'] = conv_clear_replacements
@@ -222,11 +221,11 @@ def build_right_workspace(lang, components, states):
                     # 自由色功能
                     with gr.Row():
                         conv_free_color_btn = gr.Button(
-                            I18n.get('conv_free_color_btn', lang),
+                            '🎯 标记为自由色',
                             variant="secondary", size="sm"
                         )
                         conv_free_color_clear_btn = gr.Button(
-                            I18n.get('conv_free_color_clear_btn', lang),
+                            '清除自由色',
                             size="sm"
                         )
                         components['btn_conv_free_color'] = conv_free_color_btn
@@ -240,10 +239,10 @@ def build_right_workspace(lang, components, states):
 
                     # 调色板预览 HTML (保持原有逻辑，用于显示已替换列表)
                     components['md_conv_palette_replacements_label'] = gr.Markdown(
-                        I18n.get('conv_palette_replacements_label', lang)
+                        '已生效的替换'
                     )
                     conv_palette_html = gr.HTML(
-                        value=f'<p class="placeholder-text">{I18n.get("conv_palette_replacements_placeholder", lang)}</p>',
+                        value='<p class="placeholder-text">生成预览后显示替换列表</p>',
                         label="",
                         show_label=False
                     )
@@ -251,7 +250,7 @@ def build_right_workspace(lang, components, states):
                 # ========== END Color Palette ==========
 
                 # ========== Color Merging ==========
-                with gr.Accordion(I18n.get('merge_accordion_title', lang), open=False) as conv_merge_acc:
+                with gr.Accordion('🎨 颜色合并', open=False) as conv_merge_acc:
                     components['accordion_conv_merge'] = conv_merge_acc
 
                     # 状态变量
@@ -262,9 +261,9 @@ def build_right_workspace(lang, components, states):
 
                     # 启用/禁用复选框
                     conv_merge_enable = gr.Checkbox(
-                        label=I18n.get('merge_enable_label', lang),
+                        label='启用自动颜色合并',
                         value=True,  # 默认启用以便测试
-                        info=I18n.get('merge_enable_info', lang)
+                        info='自动合并低使用率颜色到相近颜色'
                     )
                     components['checkbox_conv_merge_enable'] = conv_merge_enable
 
@@ -275,8 +274,8 @@ def build_right_workspace(lang, components, states):
                             maximum=5.0,
                             value=0.5,
                             step=0.1,
-                            label=I18n.get('merge_threshold_label', lang),
-                            info=I18n.get('merge_threshold_info', lang)
+                            label='使用率阈值 (%)',
+                            info='低于此百分比的颜色将被合并'
                         )
                         components['slider_conv_merge_threshold'] = conv_merge_threshold
 
@@ -285,23 +284,23 @@ def build_right_workspace(lang, components, states):
                             maximum=50,
                             value=20,
                             step=1,
-                            label=I18n.get('merge_max_distance_label', lang),
-                            info=I18n.get('merge_max_distance_info', lang)
+                            label='最大颜色距离 (Delta-E)',
+                            info='只合并距离小于此值的颜色'
                         )
                         components['slider_conv_merge_max_distance'] = conv_merge_max_distance
 
                     # 操作按钮
                     with gr.Row():
                         conv_merge_preview_btn = gr.Button(
-                            I18n.get('merge_preview_btn', lang),
+                            '🔍 预览合并效果',
                             variant="primary"
                         )
                         conv_merge_apply_btn = gr.Button(
-                            I18n.get('merge_apply_btn', lang),
+                            '✅ 应用合并',
                             variant="secondary"
                         )
                         conv_merge_revert_btn = gr.Button(
-                            I18n.get('merge_revert_btn', lang)
+                            '↩️ 恢复原始'
                         )
                         components['btn_conv_merge_preview'] = conv_merge_preview_btn
                         components['btn_conv_merge_apply'] = conv_merge_apply_btn
@@ -309,54 +308,54 @@ def build_right_workspace(lang, components, states):
 
                     # 状态显示
                     conv_merge_status = gr.Markdown(
-                        value=I18n.get('merge_status_empty', lang)
+                        value='💡 调整参数后点击预览'
                     )
                     components['md_conv_merge_status'] = conv_merge_status
                 # ========== END Color Merging ==========
 
                 with gr.Group(visible=False):
                     components['md_conv_loop_section'] = gr.Markdown(
-                        I18n.get('conv_loop_section', lang)
+                        '##### 🔗 挂孔设置'
                     )
 
                     with gr.Row():
                         components['checkbox_conv_loop_enable'] = gr.Checkbox(
-                            label=I18n.get('conv_loop_enable', lang),
+                            label='启用挂孔',
                             value=False
                         )
                         components['btn_conv_loop_remove'] = gr.Button(
-                            I18n.get('conv_loop_remove', lang),
+                            '🗑️ 移除挂孔',
                             size="sm"
                         )
 
                     with gr.Row():
                         components['slider_conv_loop_width'] = gr.Slider(
                             2, 10, 4, step=0.5,
-                            label=I18n.get('conv_loop_width', lang)
+                            label='宽度(mm)'
                         )
                         components['slider_conv_loop_length'] = gr.Slider(
                             4, 15, 8, step=0.5,
-                            label=I18n.get('conv_loop_length', lang)
+                            label='长度(mm)'
                         )
                         components['slider_conv_loop_hole'] = gr.Slider(
                             1, 5, 2.5, step=0.25,
-                            label=I18n.get('conv_loop_hole', lang)
+                            label='孔径(mm)'
                         )
 
                     with gr.Row():
                         components['slider_conv_loop_angle'] = gr.Slider(
                             -180, 180, 0, step=5,
-                            label=I18n.get('conv_loop_angle', lang)
+                            label='旋转角度°'
                         )
                         components['textbox_conv_loop_info'] = gr.Textbox(
-                            label=I18n.get('conv_loop_info', lang),
+                            label='挂孔位置',
                             interactive=False,
                             scale=2
                         )
                 # ========== Outline Settings (moved to right column) ==========
 
                 components['textbox_conv_status'] = gr.Textbox(
-                    label=I18n.get('conv_status', lang),
+                    label='状态',
                     lines=3,
                     interactive=False,
                     max_lines=10,
@@ -365,68 +364,68 @@ def build_right_workspace(lang, components, states):
             with gr.Column(scale=1):
                 # ========== Outline Settings ==========
                 components['md_conv_outline_section'] = gr.Markdown(
-                    I18n.get('conv_outline_section', lang)
+                    '##### 外轮廓设置'
                 )
                 with gr.Row():
                     components['checkbox_conv_outline_enable'] = gr.Checkbox(
-                        label=I18n.get('conv_outline_enable', lang),
+                        label='启用外轮廓',
                         value=False
                     )
                 components['slider_conv_outline_width'] = gr.Slider(
                     0.5, 10, 2, step=0.5,
-                    label=I18n.get('conv_outline_width', lang)
+                    label='轮廓宽度(mm)'
                 )
                 # ========== END Outline Settings ==========
 
                 # ========== Cloisonné Settings ==========
                 components['md_conv_cloisonne_section'] = gr.Markdown(
-                    I18n.get('conv_cloisonne_section', lang)
+                    '##### 掐丝珐琅特效'
                 )
                 with gr.Row():
                     components['checkbox_conv_cloisonne_enable'] = gr.Checkbox(
-                        label=I18n.get('conv_cloisonne_enable', lang),
+                        label='启用掐丝珐琅',
                         value=False
                     )
                 components['slider_conv_wire_width'] = gr.Slider(
                     0.2, 1.2, 0.4, step=0.1,
-                    label=I18n.get('conv_cloisonne_wire_width', lang)
+                    label='丝线宽度(mm)'
                 )
                 components['slider_conv_wire_height'] = gr.Slider(
                     0.04, 1.0, 0.4, step=0.04,
-                    label=I18n.get('conv_cloisonne_wire_height', lang)
+                    label='丝线高度(mm)'
                 )
                 # ========== END Cloisonné Settings ==========
 
                 # ========== Coating Settings ==========
                 components['md_conv_coating_section'] = gr.Markdown(
-                    I18n.get('conv_coating_section', lang)
+                    '##### 透明镀层'
                 )
                 with gr.Row():
                     components['checkbox_conv_coating_enable'] = gr.Checkbox(
-                        label=I18n.get('conv_coating_enable', lang),
+                        label='启用透明镀层',
                         value=False
                     )
                 components['slider_conv_coating_height'] = gr.Slider(
                     0.08, 0.16, 0.08, step=0.08,
-                    label=I18n.get('conv_coating_height', lang)
+                    label='镀层厚度(mm)'
                 )
                 # ========== END Coating Settings ==========
 
                 # Action buttons (preview + generate)
                 with gr.Row(elem_classes=["action-buttons"]):
                     components['btn_conv_preview_btn'] = gr.Button(
-                        I18n.get('conv_preview_btn', lang),
+                        '👁️ 生成预览',
                         variant="secondary",
                         size="lg"
                     )
                     components['btn_conv_generate_btn'] = gr.Button(
-                        I18n.get('conv_generate_btn', lang),
+                        '🚀 生成3MF',
                         variant="primary",
                         size="lg"
                     )
 
                 # Individual slicer buttons (one per installed slicer + download)
-                slicer_choices = _get_slicer_choices(lang)
+                slicer_choices = _get_slicer_choices()
                 default_slicer = _get_default_slicer()
 
                 with gr.Row(elem_id="conv-slicer-split-btn"):
@@ -453,7 +452,7 @@ def build_right_workspace(lang, components, states):
                 # Hidden file component for download fallback
                 _show_file = (default_slicer == "download")
                 components['file_conv_download_file'] = gr.File(
-                    label=I18n.get('conv_download_file', lang),
+                    label='3MF文件',
                     visible=_show_file
                 )
 
@@ -464,7 +463,7 @@ def build_right_workspace(lang, components, states):
                 )
 
                 components['btn_conv_stop'] = gr.Button(
-                    value=I18n.get('conv_stop', lang),
+                    value='🛑 停止生成',
                     variant="stop",
                     size="lg"
                 )

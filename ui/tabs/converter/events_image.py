@@ -11,7 +11,6 @@ import xml.etree.ElementTree as ET
 
 import gradio as gr
 
-from core.i18n import I18n
 from config import ModelingMode
 from core.image_preprocessor import ImagePreprocessor
 from core.converter import detect_image_type
@@ -28,14 +27,12 @@ from .helpers import (
 )
 
 
-def bind_image_events(components, states, lang_state, lang):
+def bind_image_events(components, states):
     """Bind all image/LUT/mode event handlers.
 
     Args:
         components: Dict of Gradio UI components keyed by name.
         states: Dict of Gradio state components keyed by name.
-        lang_state: Gradio State holding the current language code.
-        lang: Initial language code string.
     """
 
     # ==================== Batch mode toggle ====================
@@ -349,13 +346,7 @@ def bind_image_events(components, states, lang_state, lang):
                 const recommended = parseInt(trigger.dataset.recommended) || 0;
                 const maxSafe = parseInt(trigger.dataset.maxsafe) || 0;
                 if (recommended > 0 && typeof window.showColorRecommendationToast === 'function') {
-                    const lang = document.documentElement.lang || 'zh';
-                    let msg;
-                    if (lang === 'en') {
-                        msg = '💡 Color detail set to <b>' + recommended + '</b> (max safe: ' + maxSafe + ')';
-                    } else {
-                        msg = '💡 色彩细节已设置为 <b>' + recommended + '</b>（最大安全值: ' + maxSafe + '）';
-                    }
+                    msg = '💡 色彩细节已设置为 <b>' + recommended + '</b>（最大安全值: ' + maxSafe + '）';
                     window.showColorRecommendationToast(msg);
                 }
                 trigger.remove();
@@ -408,7 +399,7 @@ def bind_image_events(components, states, lang_state, lang):
             outputs=None
     ).then(
             fn=_update_lut_grid,
-            inputs=[states['conv_lut_path'], lang_state, states['conv_palette_mode']],
+            inputs=[states['conv_lut_path'], states['conv_palette_mode']],
             outputs=[components['conv_lut_grid_view']]
     ).then(
             fn=_detect_and_enforce_structure,
@@ -566,7 +557,7 @@ def bind_image_events(components, states, lang_state, lang):
         """
         if color_mode and "5-Color Extended" in color_mode:
             return gr.update(
-                value=I18n.get('conv_structure_single', 'en'),
+                value='single',
                 interactive=False,
             ), gr.update(value=False, interactive=False)
         return gr.update(interactive=True), gr.update(interactive=True)
@@ -597,7 +588,7 @@ def bind_image_events(components, states, lang_state, lang):
             outputs=[states['conv_preview'], states['conv_preview_cache'], components['textbox_conv_status'], states['conv_3d_preview']]
     ).then(
             on_preview_generated_update_palette,
-            inputs=[states['conv_preview_cache'], lang_state],
+            inputs=[states['conv_preview_cache']],
             outputs=[states['conv_palette_html'], states['conv_selected_color']]
     ).then(
             fn=lambda: (None, None),

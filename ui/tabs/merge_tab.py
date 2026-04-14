@@ -5,7 +5,6 @@ Self-contained module for LUT merging: UI and event bindings.
 """
 
 import gradio as gr
-from core.i18n import I18n
 from utils import LUTManager
 from ..callbacks import (
     on_merge_primary_select,
@@ -18,55 +17,51 @@ from ..callbacks import (
 # Tab UI Builder
 # ═══════════════════════════════════════════════════════════════
 
-def create_merge_tab_content(lang: str, lang_state=None) -> dict:
-    """Build LUT Merge tab UI and events. Returns component dict.
-
-    Layout: Primary LUT dropdown (single) + Secondary LUTs dropdown (multi-select)
-    Primary must be 6-Color or 8-Color. Secondary options are filtered based on primary mode.
-    """
+def create_merge_tab_content() -> dict:
+    """Build LUT Merge tab UI and events. Returns component dict."""
     components = {}
 
-    components['md_merge_title'] = gr.Markdown(I18n.get('merge_title', lang))
-    components['md_merge_desc'] = gr.Markdown(I18n.get('merge_desc', lang))
+    components['md_merge_title'] = gr.Markdown('### 🔀 色卡合并')
+    components['md_merge_desc'] = gr.Markdown('将不同色彩模式的LUT色卡合并为一个，获得更丰富的色彩。')
 
     with gr.Row():
         with gr.Column():
             components['dd_merge_primary'] = gr.Dropdown(
                 choices=LUTManager.get_lut_choices(),
-                label=I18n.get('merge_lut_primary_label', lang),
+                label='🎯 主色卡（6色或8色）',
                 interactive=True,
             )
             components['md_merge_mode_primary'] = gr.Markdown(
-                I18n.get('merge_primary_hint', lang)
+                '💡 请先选择一个6色或8色的主色卡'
             )
         with gr.Column():
             components['dd_merge_secondary'] = gr.Dropdown(
                 choices=[],
-                label=I18n.get('merge_lut_secondary_label', lang),
+                label='➕ 副色卡（可多选）',
                 multiselect=True,
                 interactive=True,
             )
             components['md_merge_secondary_info'] = gr.Markdown(
-                I18n.get('merge_secondary_none', lang)
+                '未选择副色卡'
             )
 
     components['slider_dedup_threshold'] = gr.Slider(
         minimum=0, maximum=20, value=3, step=0.5,
-        label=I18n.get('merge_dedup_label', lang),
-        info=I18n.get('merge_dedup_info', lang),
+        label='Delta-E 去重阈值',
+        info='值越大去除的相近色越多，0=仅精确去重',
     )
 
     components['btn_merge'] = gr.Button(
-        I18n.get('merge_btn', lang),
+        '🔀 执行合并',
         variant="primary",
     )
 
-    components['md_merge_status'] = gr.Markdown(I18n.get('merge_status_ready', lang))
+    components['md_merge_status'] = gr.Markdown('💡 选择两个LUT后点击合并')
 
     # Event bindings
     components['dd_merge_primary'].change(
         fn=on_merge_primary_select,
-        inputs=[components['dd_merge_primary'], lang_state],
+        inputs=[components['dd_merge_primary']],
         outputs=[
             components['md_merge_mode_primary'],
             components['dd_merge_secondary'],
@@ -74,7 +69,7 @@ def create_merge_tab_content(lang: str, lang_state=None) -> dict:
     )
     components['dd_merge_secondary'].change(
         fn=on_merge_secondary_change,
-        inputs=[components['dd_merge_secondary'], lang_state],
+        inputs=[components['dd_merge_secondary']],
         outputs=[components['md_merge_secondary_info']],
     )
     components['btn_merge'].click(
@@ -83,7 +78,6 @@ def create_merge_tab_content(lang: str, lang_state=None) -> dict:
             components['dd_merge_primary'],
             components['dd_merge_secondary'],
             components['slider_dedup_threshold'],
-            lang_state,
         ],
         outputs=[
             components['md_merge_status'],

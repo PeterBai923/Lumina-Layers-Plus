@@ -15,15 +15,13 @@ from .helpers import process_batch_generation, generate_preview_cached_with_fit
 from ...image_helpers import _preview_update
 
 
-def bind_generate_events(components, states, lang_state, theme_state, lang):
+def bind_generate_events(components, states, theme_state):
     """Bind generation / slicer / fullscreen event handlers.
 
     Args:
         components: dict of Gradio component references.
         states: dict of Gradio State references.
-        lang_state: Gradio State for language.
         theme_state: Gradio State for theme (False=light, True=dark).
-        lang: Initial language code ('zh' or 'en').
     """
 
     # Unpack frequently-used state refs for readability
@@ -71,7 +69,7 @@ def bind_generate_events(components, states, lang_state, theme_state, lang):
         # Resolve UI radio value to backend height_mode parameter
         height_mode = resolve_height_mode(radio_height_mode)
 
-        progress(0.0, desc="开始生成... | Starting...")
+        progress(0.0, desc="开始生成...")
         return process_batch_generation(
             batch_files, is_batch, single_image, lut_path, target_width_mm,
             spacer_thick, structure_mode, auto_bg, bg_tol, color_mode,
@@ -328,7 +326,7 @@ def bind_generate_events(components, states, lang_state, theme_state, lang):
         components['textbox_conv_status']
     ]
 
-    for _label, _sid in _get_slicer_choices(lang):
+    for _label, _sid in _get_slicer_choices():
         _btn_key = f'btn_conv_slicer_{_sid}'
         _btn = components.get(_btn_key)
         if _btn is not None:

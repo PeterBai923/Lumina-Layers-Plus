@@ -7,7 +7,6 @@ import os
 import numpy as np
 import gradio as gr
 
-from core.i18n import I18n
 from core.color_utils import hex_to_rgb
 from utils import LUTManager
 
@@ -112,8 +111,7 @@ def on_lut_upload_save(uploaded_file):
 def on_apply_color_replacement(cache, selected_color, replacement_color,
                                replacement_regions, replacement_history,
                                loop_pos, add_loop,
-                               loop_width, loop_length, loop_hole, loop_angle,
-                               lang: str = "zh"):
+                               loop_width, loop_length, loop_hole, loop_angle):
     """
     Apply a color replacement to the preview.
 
@@ -124,13 +122,13 @@ def on_apply_color_replacement(cache, selected_color, replacement_color,
     from core.converter import update_preview_with_replacements
 
     if cache is None:
-        return None, None, "", replacement_regions, replacement_history, I18n.get('palette_need_preview', lang)
+        return None, None, "", replacement_regions, replacement_history, '❌ 请先生成预览'
 
     if not selected_color:
-        return gr.update(), cache, gr.update(), replacement_regions, replacement_history, I18n.get('palette_need_original', lang)
+        return gr.update(), cache, gr.update(), replacement_regions, replacement_history, '❌ 请先选择要替换的颜色'
 
     if not replacement_color:
-        return gr.update(), cache, gr.update(), replacement_regions, replacement_history, I18n.get('palette_need_replacement', lang)
+        return gr.update(), cache, gr.update(), replacement_regions, replacement_history, '❌ 请先选择替换颜色'
 
     # Save current regions-only state to history
     new_history = replacement_history.copy() if replacement_history else []
@@ -153,19 +151,17 @@ def on_apply_color_replacement(cache, selected_color, replacement_color,
 
     display, updated_cache, palette_html = update_preview_with_replacements(
         cache, new_regions, loop_pos, add_loop,
-        loop_width, loop_length, loop_hole, loop_angle,
-        lang=lang
+        loop_width, loop_length, loop_hole, loop_angle
     )
 
-    status_msg = I18n.get('palette_replaced', lang).format(src=selected_color, dst=replacement_color)
+    status_msg = '✅ 已替换 {src} → {dst}'.format(src=selected_color, dst=replacement_color)
     return display, updated_cache, palette_html, new_regions, new_history, status_msg
 
 
 
 def on_clear_color_replacements(cache, replacement_regions, replacement_history,
                                 loop_pos, add_loop,
-                                loop_width, loop_length, loop_hole, loop_angle,
-                                lang: str = "zh"):
+                                loop_width, loop_length, loop_hole, loop_angle):
     """
     Clear all color replacements and restore original preview.
 
@@ -176,7 +172,7 @@ def on_clear_color_replacements(cache, replacement_regions, replacement_history,
     from core.converter import update_preview_with_replacements
 
     if cache is None:
-        return None, None, "", [], [], I18n.get('palette_need_preview', lang)
+        return None, None, "", [], [], '❌ 请先生成预览'
 
     # Save current regions-only state to history before clearing
     new_history = replacement_history.copy() if replacement_history else []
@@ -185,15 +181,14 @@ def on_clear_color_replacements(cache, replacement_regions, replacement_history,
 
     display, updated_cache, palette_html = update_preview_with_replacements(
         cache, [], loop_pos, add_loop,
-        loop_width, loop_length, loop_hole, loop_angle,
-        lang=lang
+        loop_width, loop_length, loop_hole, loop_angle
     )
 
-    return display, updated_cache, palette_html, [], new_history, I18n.get('palette_cleared', lang)
+    return display, updated_cache, palette_html, [], new_history, '✅ 已清除所有颜色替换'
 
 
 
-def on_preview_generated_update_palette(cache, lang: str = "zh"):
+def on_preview_generated_update_palette(cache):
     """
     Update palette display after preview is generated.
 
@@ -206,7 +201,7 @@ def on_preview_generated_update_palette(cache, lang: str = "zh"):
     from ui.widgets.palette import generate_palette_html
 
     if cache is None:
-        placeholder = I18n.get('conv_palette_replacements_placeholder', lang)
+        placeholder = '生成预览后显示替换列表'
         return (
             f'<p class="placeholder-text">{placeholder}</p>',
             None  # selected_color state
@@ -232,7 +227,6 @@ def on_preview_generated_update_palette(cache, lang: str = "zh"):
         palette,
         {},
         None,
-        lang=lang,
         replacement_regions=[],
         auto_pairs=auto_pairs,
     )
@@ -349,8 +343,7 @@ def on_clear_highlight(cache, loop_pos, add_loop,
 def on_delete_selected_user_replacement(
     cache, replacement_regions, replacement_history,
     selected_user_row_id,
-    loop_pos, add_loop, loop_width, loop_length, loop_hole, loop_angle,
-    lang: str = 'zh'
+    loop_pos, add_loop, loop_width, loop_length, loop_hole, loop_angle
 ):
     """按选中用户行删除并刷新预览（regions-only）。"""
     updater = globals().get('update_preview_with_replacements')
@@ -358,10 +351,10 @@ def on_delete_selected_user_replacement(
         from core.converter import update_preview_with_replacements as updater
 
     if cache is None:
-        return None, None, "", replacement_regions, replacement_history, I18n.get('palette_need_preview', lang), selected_user_row_id
+        return None, None, "", replacement_regions, replacement_history, '❌ 请先生成预览', selected_user_row_id
 
     if not selected_user_row_id:
-        return gr.update(), cache, gr.update(), replacement_regions, replacement_history, I18n.get('conv_palette_delete_selected_empty', lang), selected_user_row_id
+        return gr.update(), cache, gr.update(), replacement_regions, replacement_history, '❌ 请先选中一项用户替换', selected_user_row_id
 
     old_regions = replacement_regions.copy() if replacement_regions else []
 
@@ -388,7 +381,7 @@ def on_delete_selected_user_replacement(
 
     target = next((r for r in user_rows if r['row_id'] == selected_user_row_id), None)
     if target is None:
-        return gr.update(), cache, gr.update(), old_regions, new_history, I18n.get('conv_palette_delete_selected_empty', lang), None
+        return gr.update(), cache, gr.update(), old_regions, new_history, '❌ 请先选中一项用户替换', None
 
     new_regions = old_regions.copy()
 
@@ -408,44 +401,42 @@ def on_delete_selected_user_replacement(
 
     display, updated_cache, palette_html = updater(
         cache, new_regions,
-        loop_pos, add_loop, loop_width, loop_length, loop_hole, loop_angle,
-        lang=lang
+        loop_pos, add_loop, loop_width, loop_length, loop_hole, loop_angle
     )
 
-    return display, updated_cache, palette_html, new_regions, new_history, I18n.get('palette_cleared', lang), None
+    return display, updated_cache, palette_html, new_regions, new_history, '✅ 已清除所有颜色替换', None
 
 
 def on_undo_color_replacement(cache, replacement_regions, replacement_history,
                                loop_pos, add_loop, loop_width, loop_length,
-                               loop_hole, loop_angle, lang: str = "zh"):
+                               loop_hole, loop_angle):
     """
     Undo the last color replacement operation (regions-only).
     """
     from core.converter import update_preview_with_replacements
 
     if cache is None:
-        return None, None, "", replacement_regions, replacement_history, I18n.get('palette_need_preview', lang)
+        return None, None, "", replacement_regions, replacement_history, '❌ 请先生成预览'
 
     if not replacement_history:
-        return None, cache, "", replacement_regions, replacement_history, I18n.get('palette_undo_empty', lang)
+        return None, cache, "", replacement_regions, replacement_history, '❌ 没有可撤销的操作'
 
     new_history = replacement_history.copy()
     previous_regions = new_history.pop()
 
     display, updated_cache, palette_html = update_preview_with_replacements(
         cache, previous_regions, loop_pos, add_loop,
-        loop_width, loop_length, loop_hole, loop_angle,
-        lang=lang
+        loop_width, loop_length, loop_hole, loop_angle
     )
 
-    return display, updated_cache, palette_html, previous_regions, new_history, I18n.get('palette_undone', lang)
+    return display, updated_cache, palette_html, previous_regions, new_history, '↩️ 已撤销'
 
 
 # ═══════════════════════════════════════════════════════════════
 # LUT Merge Callbacks
 # ═══════════════════════════════════════════════════════════════
 
-def on_merge_primary_select(display_name, lang="zh"):
+def on_merge_primary_select(display_name):
     """
     When user selects the primary LUT, detect its mode and filter secondary choices.
 
@@ -460,14 +451,14 @@ def on_merge_primary_select(display_name, lang="zh"):
 
     if not display_name:
         return (
-            I18n.get('merge_primary_hint', lang),
+            '💡 请先选择一个6色或8色的主色卡',
             gr.Dropdown(choices=[], value=[]),
         )
 
     lut_path = LUTManager.get_lut_path(display_name)
     if not lut_path:
         return (
-            f"**{I18n.get('merge_mode_label', lang)}**: ❌ File not found",
+            f"**{'检测到的模式'}**: ❌ File not found",
             gr.Dropdown(choices=[], value=[]),
         )
 
@@ -475,18 +466,18 @@ def on_merge_primary_select(display_name, lang="zh"):
         mode, count = LUTMerger.detect_color_mode(lut_path)
     except Exception as e:
         return (
-            f"**{I18n.get('merge_mode_label', lang)}**: ❌ {e}",
+            f"**{'检测到的模式'}**: ❌ {e}",
             gr.Dropdown(choices=[], value=[]),
         )
 
     # Primary must be 6-Color or 8-Color
     if mode not in ("6-Color", "8-Color"):
         return (
-            I18n.get('merge_primary_not_high', lang),
+            '❌ 主色卡必须是6色或8色模式',
             gr.Dropdown(choices=[], value=[]),
         )
 
-    mode_md = f"**{I18n.get('merge_mode_label', lang)}**: {mode} ({count} colors)"
+    mode_md = f"**{'检测到的模式'}**: {mode} ({count} colors)"
 
     # Determine allowed secondary modes
     # Exclude "Merged" to prevent stale/corrupt merged LUTs from being re-merged
@@ -517,7 +508,7 @@ def on_merge_primary_select(display_name, lang="zh"):
     )
 
 
-def on_merge_secondary_change(selected_names, lang="zh"):
+def on_merge_secondary_change(selected_names):
     """
     When user changes secondary LUT selection, show detected modes.
 
@@ -530,9 +521,9 @@ def on_merge_secondary_change(selected_names, lang="zh"):
     from core.lut_merger import LUTMerger
 
     if not selected_names:
-        return I18n.get('merge_secondary_none', lang)
+        return '未选择副色卡'
 
-    lines = [f"**{I18n.get('merge_secondary_modes', lang)}**:"]
+    lines = [f"**{'已选副色卡'}**:"]
     for name in selected_names:
         path = LUTManager.get_lut_path(name)
         if not path:
@@ -547,7 +538,7 @@ def on_merge_secondary_change(selected_names, lang="zh"):
     return "\n".join(lines)
 
 
-def on_merge_execute(primary_name, secondary_names, dedup_threshold, lang="zh"):
+def on_merge_execute(primary_name, secondary_names, dedup_threshold):
     """
     Execute LUT merge: primary + multiple secondary LUTs.
 
@@ -559,15 +550,15 @@ def on_merge_execute(primary_name, secondary_names, dedup_threshold, lang="zh"):
 
     # Validate primary
     if not primary_name:
-        return I18n.get('merge_error_no_lut', lang), gr.update(), gr.update()
+        return '❌ 请选择至少两个LUT文件', gr.update(), gr.update()
 
     # Validate secondary
     if not secondary_names or len(secondary_names) == 0:
-        return I18n.get('merge_error_no_secondary', lang), gr.update(), gr.update()
+        return '❌ 请至少选择一个副色卡', gr.update(), gr.update()
 
     primary_path = LUTManager.get_lut_path(primary_name)
     if not primary_path:
-        return I18n.get('merge_error_no_lut', lang), gr.update(), gr.update()
+        return '❌ 请选择至少两个LUT文件', gr.update(), gr.update()
 
     try:
         # Detect primary mode
@@ -592,12 +583,12 @@ def on_merge_execute(primary_name, secondary_names, dedup_threshold, lang="zh"):
             all_modes.append(sec_mode)
 
         if len(entries) < 2:
-            return I18n.get('merge_error_no_lut', lang), gr.update(), gr.update()
+            return '❌ 请选择至少两个LUT文件', gr.update(), gr.update()
 
         # Validate compatibility
         valid, err_msg = LUTMerger.validate_compatibility(all_modes)
         if not valid:
-            return I18n.get('merge_error_incompatible', lang).format(msg=err_msg), gr.update(), gr.update()
+            return '❌ 不兼容的LUT组合: {msg}'.format(msg=err_msg), gr.update(), gr.update()
 
         # Merge
         merged_rgb, merged_stacks, stats = LUTMerger.merge_luts(entries, dedup_threshold=dedup_threshold)
@@ -613,7 +604,7 @@ def on_merge_execute(primary_name, secondary_names, dedup_threshold, lang="zh"):
         saved_path = LUTMerger.save_merged_lut(merged_rgb, merged_stacks, output_path)
 
         # Build success message
-        status = I18n.get('merge_status_success', lang).format(
+        status = '✅ 合并完成！合并前: {before} 色 → 合并后: {after} 色（精确去重: {exact}，相近色去除: {similar}）\n保存至: {path}'.format(
             before=stats['total_before'],
             after=stats['total_after'],
             exact=stats['exact_dupes'],
@@ -629,7 +620,7 @@ def on_merge_execute(primary_name, secondary_names, dedup_threshold, lang="zh"):
         print(f"[MERGE] Error: {e}")
         import traceback
         traceback.print_exc()
-        return I18n.get('merge_error_failed', lang).format(msg=str(e)), gr.update(), gr.update()
+        return '❌ 合并失败: {msg}'.format(msg=str(e)), gr.update(), gr.update()
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -637,8 +628,7 @@ def on_merge_execute(primary_name, secondary_names, dedup_threshold, lang="zh"):
 # ═══════════════════════════════════════════════════════════════
 
 def on_merge_preview(cache, merge_enable, merge_threshold, merge_max_distance,
-                    loop_pos, add_loop, loop_width, loop_length, loop_hole, loop_angle,
-                    lang: str = "zh"):
+                    loop_pos, add_loop, loop_width, loop_length, loop_hole, loop_angle):
     """
     Generate preview with color merging applied.
     
@@ -664,21 +654,21 @@ def on_merge_preview(cache, merge_enable, merge_threshold, merge_max_distance,
     from ui.widgets.palette import generate_palette_html
     
     if cache is None:
-        return None, None, "", {}, {}, I18n.get('palette_need_preview', lang)
-    
+        return None, None, "", {}, {}, '❌ 请先生成预览'
+
     # If merging is disabled, return empty merge map
     if not merge_enable:
-        return gr.update(), cache, gr.update(), {}, {}, I18n.get('merge_status_empty', lang)
-    
+        return gr.update(), cache, gr.update(), {}, {}, '💡 调整参数后点击预览'
+
     # Extract color palette from cache
     palette = cache.get('color_palette', [])
-    
+
     if not palette:
-        return gr.update(), cache, gr.update(), {}, {}, I18n.get('merge_error_empty_palette', lang)
-    
+        return gr.update(), cache, gr.update(), {}, {}, '❌ 调色板为空，无法执行颜色合并'
+
     # Handle edge cases
     if len(palette) == 1:
-        return gr.update(), cache, gr.update(), {}, {}, I18n.get('merge_error_single_color', lang)
+        return gr.update(), cache, gr.update(), {}, {}, '❌ 图像只包含一种颜色，已禁用颜色合并'
     
     # Build merge map using ColorMerger
     merger = ColorMerger(LuminaImageProcessor._rgb_to_lab)
@@ -688,11 +678,11 @@ def on_merge_preview(cache, merge_enable, merge_threshold, merge_max_distance,
     if not merge_map and len(palette) > 1:
         low_usage_colors = merger.identify_low_usage_colors(palette, merge_threshold)
         if len(low_usage_colors) >= len(palette):
-            return gr.update(), cache, gr.update(), {}, {}, I18n.get('merge_error_all_below_threshold', lang)
+            return gr.update(), cache, gr.update(), {}, {}, '⚠️ 所有颜色使用率都低于阈值，已禁用颜色合并以防止颜色丢失'
     
     # If no colors to merge, return info message
     if not merge_map:
-        return gr.update(), cache, gr.update(), {}, {}, I18n.get('merge_info_low_usage', lang).format(
+        return gr.update(), cache, gr.update(), {}, {}, '💡 检测到 {count} 种低使用率颜色 (<{threshold}%)'.format(
             count=0, threshold=merge_threshold
         )
     
@@ -729,12 +719,11 @@ def on_merge_preview(cache, merge_enable, merge_threshold, merge_max_distance,
     display, updated_cache, palette_html = update_preview_with_replacements(
         temp_cache, {}, loop_pos, add_loop,
         loop_width, loop_length, loop_hole, loop_angle,
-        merge_map=None,  # Don't pass merge_map here since temp_cache already has merged colors
-        lang=lang
+        merge_map=None  # Don't pass merge_map here since temp_cache already has merged colors
     )
-    
+
     # Status message
-    status_msg = I18n.get('merge_status_preview', lang).format(
+    status_msg = '🔍 预览: {merged} 种颜色被合并 (质量: {quality:.1f})'.format(
         merged=len(merge_map),
         quality=quality
     )
@@ -743,8 +732,7 @@ def on_merge_preview(cache, merge_enable, merge_threshold, merge_max_distance,
 
 
 def on_merge_apply(cache, merge_map, merge_stats, loop_pos, add_loop,
-                  loop_width, loop_length, loop_hole, loop_angle,
-                  lang: str = "zh"):
+                  loop_width, loop_length, loop_hole, loop_angle):
     """
     Apply color merging to the cached image data.
     
@@ -768,10 +756,10 @@ def on_merge_apply(cache, merge_map, merge_stats, loop_pos, add_loop,
     from core.image_processing import LuminaImageProcessor
     
     if cache is None:
-        return None, None, "", I18n.get('palette_need_preview', lang)
-    
+        return None, None, "", '❌ 请先生成预览'
+
     if not merge_map:
-        return gr.update(), cache, gr.update(), I18n.get('merge_status_empty', lang)
+        return gr.update(), cache, gr.update(), '💡 调整参数后点击预览'
     
     # Save original matched_rgb for potential revert
     if 'original_matched_rgb' not in cache:
@@ -796,20 +784,18 @@ def on_merge_apply(cache, merge_map, merge_stats, loop_pos, add_loop,
     # Generate updated preview
     display, updated_cache, palette_html = update_preview_with_replacements(
         cache, {}, loop_pos, add_loop,
-        loop_width, loop_length, loop_hole, loop_angle,
-        lang=lang
+        loop_width, loop_length, loop_hole, loop_angle
     )
-    
+
     # Status message
-    status_msg = I18n.get('merge_status_applied', lang).format(
+    status_msg = '✅ 已应用: {merged} 种颜色被合并'.format(
         merged=len(merge_map)
     )
-    
+
     return display, updated_cache, palette_html, status_msg
 
 
-def on_merge_revert(cache, loop_pos, add_loop, loop_width, loop_length, loop_hole, loop_angle,
-                   lang: str = "zh"):
+def on_merge_revert(cache, loop_pos, add_loop, loop_width, loop_length, loop_hole, loop_angle):
     """
     Revert color merging and restore original colors.
     
@@ -829,7 +815,7 @@ def on_merge_revert(cache, loop_pos, add_loop, loop_width, loop_length, loop_hol
     from core.converter import update_preview_with_replacements, extract_color_palette
     
     if cache is None:
-        return None, None, "", {}, {}, I18n.get('palette_need_preview', lang)
+        return None, None, "", {}, {}, '❌ 请先生成预览'
     
     # Restore original matched_rgb if it exists
     if 'original_matched_rgb' in cache:
@@ -849,11 +835,10 @@ def on_merge_revert(cache, loop_pos, add_loop, loop_width, loop_length, loop_hol
     # Generate updated preview
     display, updated_cache, palette_html = update_preview_with_replacements(
         cache, {}, loop_pos, add_loop,
-        loop_width, loop_length, loop_hole, loop_angle,
-        lang=lang
+        loop_width, loop_length, loop_hole, loop_angle
     )
-    
+
     # Status message
-    status_msg = I18n.get('merge_status_reverted', lang)
+    status_msg = '↩️ 已恢复到原始颜色'
     
     return display, updated_cache, palette_html, {}, {}, status_msg

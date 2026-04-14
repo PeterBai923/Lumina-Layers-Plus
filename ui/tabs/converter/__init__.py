@@ -15,12 +15,10 @@ from .events_relief import bind_relief_events
 from .events_generate import bind_generate_events
 
 
-def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -> dict:
-    """Build converter tab UI and events. Returns component dict for i18n.
+def create_converter_tab_content(theme_state=None) -> dict:
+    """Build converter tab UI and events. Returns component dict.
 
     Args:
-        lang: Initial language code ('zh' or 'en').
-        lang_state: Gradio State for language.
         theme_state: Gradio State for theme (False=light, True=dark).
 
     Returns:
@@ -29,24 +27,20 @@ def create_converter_tab_content(lang: str, lang_state=None, theme_state=None) -
     components = {}
     states = {}
 
-    if lang_state is None:
-        lang_state = gr.State(value=lang)
-
     # Create top-level shared states
     states['conv_loop_pos'] = gr.State(None)
     states['conv_preview_cache'] = gr.State(None)
-    states['lang_state'] = lang_state
     states['theme_state'] = theme_state
 
     with gr.Row():
-        build_left_sidebar(lang, components, states)
-        build_right_workspace(lang, components, states)
+        build_left_sidebar(components, states)
+        build_right_workspace(components, states)
 
     # Bind events
-    bind_image_events(components, states, lang_state, lang)
-    bind_color_events(components, states, lang_state, theme_state, lang)
-    bind_relief_events(components, states, lang_state, lang)
-    bind_generate_events(components, states, lang_state, theme_state, lang)
+    bind_image_events(components, states)
+    bind_color_events(components, states, theme_state)
+    bind_relief_events(components, states)
+    bind_generate_events(components, states, theme_state)
 
     # Expose internal state refs for theme toggle in create_app
     components['_conv_preview'] = states['conv_preview']

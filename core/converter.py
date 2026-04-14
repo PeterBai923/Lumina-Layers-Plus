@@ -3845,11 +3845,10 @@ def on_preview_click_select_color(cache, evt: gr.SelectData, bed_label=None):
     return display_img, display_text, q_hex, status_msg
 
 
-def generate_lut_grid_html(lut_path, lang: str = "zh"):
+def generate_lut_grid_html(lut_path):
     """
     生成 LUT 可用颜色的 HTML 网格 (with hue filter + smart search)
     """
-    from core.i18n import I18n
     import colorsys
     colors = extract_lut_available_colors(lut_path)
 
@@ -3888,10 +3887,10 @@ def generate_lut_grid_html(lut_path, lang: str = "zh"):
     html = f"""
     <div class="lut-grid-container">
         <div style="margin-bottom: 8px; font-size: 12px; color: #666;">
-            {I18n.get('lut_grid_count', lang).format(count=count)}: <span id="lut-color-visible-count">{count}</span>
+            🎨 当前 LUT 包含 <b>{count}</b> 种可打印颜色（点击选择）: <span id="lut-color-visible-count">{count}</span>
         </div>
-        {build_search_bar_html(lang)}
-        {build_hue_filter_bar_html(lang)}
+        {build_search_bar_html('zh')}
+        {build_hue_filter_bar_html('zh')}
         <div id="lut-color-grid-container" data-lut-key="{_lut_key}" style="
             display: flex;
             flex-wrap: wrap;
@@ -3924,7 +3923,7 @@ def generate_lut_grid_html(lut_path, lang: str = "zh"):
     return html
 
 
-def generate_lut_card_grid_html(lut_path, lang: str = "zh"):
+def generate_lut_card_grid_html(lut_path):
     """
     Generate a calibration-card-style (色卡) HTML grid for the LUT.
 
@@ -3949,7 +3948,6 @@ def generate_lut_card_grid_html(lut_path, lang: str = "zh"):
 
     total = len(measured_colors)
 
-    from core.i18n import I18n
     import colorsys
 
     def _classify_hue(r, g, b):
@@ -3981,12 +3979,12 @@ def generate_lut_card_grid_html(lut_path, lang: str = "zh"):
         dim1 = int(math.ceil(math.sqrt(half)))
         dim2 = int(math.ceil(math.sqrt(remainder)))
         grids = [
-            (measured_colors[:half], dim1, "色卡 A" if lang == "zh" else "Card A"),
-            (measured_colors[half:], dim2, "色卡 B" if lang == "zh" else "Card B"),
+            (measured_colors[:half], dim1, "色卡 A"),
+            (measured_colors[half:], dim2, "色卡 B"),
         ]
     else:
         dim = int(math.ceil(math.sqrt(total)))
-        label = f"{total} 色色卡" if lang == "zh" else f"{total}-color Card"
+        label = f"{total} 色色卡"
         grids = [(measured_colors, dim, label)]
 
     cell = 18
@@ -3995,9 +3993,9 @@ def generate_lut_card_grid_html(lut_path, lang: str = "zh"):
     from ui.widgets.palette import build_search_bar_html, build_hue_filter_bar_html
 
     html_parts = [
-        f'<div style="margin-bottom:8px; font-size:12px; color:#666;">{I18n.get("lut_grid_count", lang).format(count=total)}: <span id="lut-color-visible-count">{total}</span></div>',
-        build_search_bar_html(lang),
-        build_hue_filter_bar_html(lang),
+        f'<div style="margin-bottom:8px; font-size:12px; color:#666;">🎨 当前 LUT 包含 <b>{total}</b> 种可打印颜色（点击选择）: <span id="lut-color-visible-count">{total}</span></div>',
+        build_search_bar_html('zh'),
+        build_hue_filter_bar_html('zh'),
     ]
 
     # Derive LUT key for favorites persistence

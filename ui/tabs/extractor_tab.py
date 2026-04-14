@@ -9,7 +9,6 @@ import numpy as np
 import gradio as gr
 from PIL import Image as PILImage
 
-from core.i18n import I18n
 from config import ColorSystem, LUT_FILE_PATH
 from core.extractor import (
     rotate_image,
@@ -356,7 +355,7 @@ def get_extractor_reference_image(mode_str, page_choice="Page 1"):
 # Tab UI Builder (main entry point)
 # ═══════════════════════════════════════════════════════════════
 
-def create_extractor_tab_content(lang: str) -> dict:
+def create_extractor_tab_content() -> dict:
     """Build color extractor tab UI and events. Returns component dict."""
     components = {}
     ext_state_img = gr.State(None)
@@ -368,7 +367,7 @@ def create_extractor_tab_content(lang: str) -> dict:
     with gr.Row():
         with gr.Column(scale=1):
             components['md_ext_upload_section'] = gr.Markdown(
-                I18n.get('ext_upload_section', lang)
+                '#### 📸 上传照片'
             )
 
             components['radio_ext_color_mode'] = gr.Radio(
@@ -380,7 +379,7 @@ def create_extractor_tab_content(lang: str) -> dict:
                     ("8-Color Max", "8-Color Max")
                 ],
                 value="4-Color",
-                label=I18n.get('ext_color_mode', lang)
+                label='🎨 色彩模式'
             )
 
             # Page selection for dual-page modes (8-Color and 5-Color Extended)
@@ -392,57 +391,57 @@ def create_extractor_tab_content(lang: str) -> dict:
             )
 
             ext_img_in = gr.Image(
-                label=I18n.get('ext_photo', lang),
+                label='校准板照片',
                 type="numpy",
                 interactive=True,
             )
 
             with gr.Row():
                 components['btn_ext_rotate_btn'] = gr.Button(
-                    I18n.get('ext_rotate_btn', lang)
+                    '↺ 旋转'
                 )
                 components['btn_ext_reset_btn'] = gr.Button(
-                    I18n.get('ext_reset_btn', lang)
+                    '🗑️ 重置'
                 )
 
             components['md_ext_correction_section'] = gr.Markdown(
-                I18n.get('ext_correction_section', lang)
+                '#### 🔧 校正参数'
             )
 
             with gr.Row():
                 components['checkbox_ext_wb'] = gr.Checkbox(
-                    label=I18n.get('ext_wb', lang),
+                    label='自动白平衡',
                     value=False
                 )
                 components['checkbox_ext_vignette'] = gr.Checkbox(
-                    label=I18n.get('ext_vignette', lang),
+                    label='暗角校正',
                     value=False
                 )
 
             components['slider_ext_zoom'] = gr.Slider(
                 0.8, 1.2, 1.0, step=0.005,
-                label=I18n.get('ext_zoom', lang)
+                label='缩放'
             )
 
             components['slider_ext_distortion'] = gr.Slider(
                 -0.2, 0.2, 0.0, step=0.01,
-                label=I18n.get('ext_distortion', lang)
+                label='畸变'
             )
 
             components['slider_ext_offset_x'] = gr.Slider(
                 -30, 30, 0, step=1,
-                label=I18n.get('ext_offset_x', lang)
+                label='X偏移'
             )
 
             components['slider_ext_offset_y'] = gr.Slider(
                 -30, 30, 0, step=1,
-                label=I18n.get('ext_offset_y', lang)
+                label='Y偏移'
             )
 
             # Page selection moved above, controlled by color mode
 
             components['btn_ext_extract_btn'] = gr.Button(
-                I18n.get('ext_extract_btn', lang),
+                '🚀 提取',
                 variant="primary",
                 elem_classes=["primary-btn"]
             )
@@ -453,15 +452,15 @@ def create_extractor_tab_content(lang: str) -> dict:
             )
 
             components['textbox_ext_status'] = gr.Textbox(
-                label=I18n.get('ext_status', lang),
+                label='状态',
                 interactive=False
             )
 
         with gr.Column(scale=1):
-            ext_hint = gr.Markdown(I18n.get('ext_hint_white', lang))
+            ext_hint = gr.Markdown('#### 👉 点击: **白色色块 (左上角)**')
 
             ext_work_img = gr.Image(
-                label=I18n.get('ext_marked', lang),
+                label='标记图',
                 show_label=False,
                 interactive=True
             )
@@ -469,13 +468,13 @@ def create_extractor_tab_content(lang: str) -> dict:
             with gr.Row():
                 with gr.Column():
                     components['md_ext_sampling'] = gr.Markdown(
-                        I18n.get('ext_sampling', lang)
+                        '#### 📍 采样预览'
                     )
                     ext_warp_view = gr.Image(show_label=False)
 
                 with gr.Column():
                     components['md_ext_reference'] = gr.Markdown(
-                        I18n.get('ext_reference', lang)
+                        '#### 🎯 参考'
                     )
                     ext_ref_view = gr.Image(
                         show_label=False,
@@ -486,7 +485,7 @@ def create_extractor_tab_content(lang: str) -> dict:
             with gr.Row():
                 with gr.Column():
                     components['md_ext_result'] = gr.Markdown(
-                        I18n.get('ext_result', lang)
+                        '#### 📊 结果 (点击修正)'
                     )
                     ext_lut_view = gr.Image(
                         show_label=False,
@@ -495,21 +494,21 @@ def create_extractor_tab_content(lang: str) -> dict:
 
                 with gr.Column():
                     components['md_ext_manual_fix'] = gr.Markdown(
-                        I18n.get('ext_manual_fix', lang)
+                        '#### 🛠️ 手动修正'
                     )
-                    ext_probe_html = gr.HTML(I18n.get('ext_click_cell', lang))
+                    ext_probe_html = gr.HTML('点击左侧色块查看...')
 
                     ext_picker = gr.ColorPicker(
-                        label=I18n.get('ext_override', lang),
+                        label='替换颜色',
                         value="#FF0000"
                     )
 
                     components['btn_ext_apply_btn'] = gr.Button(
-                        I18n.get('ext_apply_btn', lang)
+                        '🔧 应用'
                     )
 
                     components['file_ext_download_npy'] = gr.File(
-                        label=I18n.get('ext_download_npy', lang)
+                        label='下载 .npy'
                     )
 
     ext_img_in.upload(

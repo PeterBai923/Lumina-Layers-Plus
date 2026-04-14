@@ -171,16 +171,13 @@ def open_in_slicer(file_path, slicer_id):
 _INSTALLED_SLICERS = detect_installed_slicers()
 
 
-def _get_slicer_choices(lang="zh"):
+def _get_slicer_choices():
     """Build dropdown choices: installed slicers + download option."""
     choices = []
     for sid, name, exe in _INSTALLED_SLICERS:
-        label_zh = f"在 {name} 中打开"
-        label_en = f"Open in {name}"
-        choices.append((label_zh if lang == "zh" else label_en, sid))
+        choices.append((f"在 {name} 中打开", sid))
 
-    dl_label = "📥 下载 3MF" if lang == "zh" else "📥 Download 3MF"
-    choices.append((dl_label, "download"))
+    choices.append(("📥 下载 3MF", "download"))
     return choices
 
 

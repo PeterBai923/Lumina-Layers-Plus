@@ -165,7 +165,7 @@ def process_batch_generation(batch_files, is_batch, single_image, lut_path, targ
     return None, None, _preview_update(None), "[ERROR] Batch failed: no valid models.\n" + "\n".join(logs), None
 
 
-def _update_lut_grid(lut_path, lang, palette_mode="swatch"):
+def _update_lut_grid(lut_path, palette_mode="swatch"):
     """Wrapper that picks swatch or card grid based on palette_mode setting.
 
     For merged LUTs (.npz), always uses swatch mode since card mode
@@ -175,8 +175,8 @@ def _update_lut_grid(lut_path, lang, palette_mode="swatch"):
     if lut_path and lut_path.endswith('.npz'):
         palette_mode = "swatch"
     if palette_mode == "card":
-        return generate_lut_card_grid_html(lut_path, lang)
-    return generate_lut_grid_html(lut_path, lang)
+        return generate_lut_card_grid_html(lut_path)
+    return generate_lut_grid_html(lut_path)
 
 
 def _detect_and_enforce_structure(lut_path):
@@ -184,13 +184,11 @@ def _detect_and_enforce_structure(lut_path):
 
     Returns (color_mode_update, structure_update, relief_update) for three component outputs.
     """
-    from core.i18n import I18n
-
     mode = detect_lut_color_mode(lut_path)
     if mode and "5-Color Extended" in mode:
         gr.Info("5-Color Extended 模式：自动切换为单面模式，2.5D 浮雕不可用")
         return mode, gr.update(
-            value=I18n.get('conv_structure_single', 'en'),
+            value='Single-sided (Relief)',
             interactive=False,
         ), gr.update(value=False, interactive=False)
     if mode:
