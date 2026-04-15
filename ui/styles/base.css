@@ -13,7 +13,7 @@
 
 /* Header Styling */
 .header-banner {
-    background: var(--lumina-gradient);
+    background: var(--lumina-primary);
     padding: 20px 30px;
     border-radius: 16px;
     margin-bottom: 20px;
@@ -60,7 +60,7 @@
 }
 
 .tab-nav button.selected {
-    background: var(--lumina-gradient) !important;
+    background: var(--lumina-primary) !important;
     color: white !important;
 }
 

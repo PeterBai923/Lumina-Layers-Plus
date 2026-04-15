@@ -82,7 +82,7 @@
     background: var(--background-fill-tertiary, #e0e0e0);
 }
 .btn-chip.active {
-    background: var(--lumina-gradient);
+    background: var(--lumina-primary);
     color: white;
     border-color: transparent;
 }

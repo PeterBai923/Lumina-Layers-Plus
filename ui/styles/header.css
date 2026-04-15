@@ -4,7 +4,7 @@
 
 /* Full-width container (header context) */
 .header-row {
-    background: var(--lumina-gradient);
+    background: var(--lumina-primary);
     padding: 15px 20px;
     margin-left: 0 !important;
     margin-right: 0 !important;

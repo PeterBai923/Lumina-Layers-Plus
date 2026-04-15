@@ -4,12 +4,12 @@
 
 /* Primary Button */
 .primary-btn {
-    background: var(--lumina-gradient) !important;
+    background: var(--lumina-primary) !important;
     border: none !important;
     font-size: 1.1em !important;
     padding: 12px 24px !important;
     border-radius: 10px !important;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4) !important;
+    box-shadow: 0 4px 15px var(--lumina-shadow-strong) !important;
 }
 
 .primary-btn:hover {
@@ -29,7 +29,7 @@
 
 /* Language Button */
 #lang-btn {
-    background: var(--lumina-gradient) !important;
+    background: var(--lumina-primary) !important;
     color: white !important;
     border: none !important;
     padding: 8px 20px !important;
@@ -51,7 +51,7 @@
 }
 
 #theme-btn {
-    background: var(--lumina-theme-gradient) !important;
+    background: var(--lumina-theme-primary) !important;
     color: white !important;
     border: none !important;
     padding: 6px 18px !important;

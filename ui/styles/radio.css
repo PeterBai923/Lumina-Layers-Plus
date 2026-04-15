@@ -29,6 +29,6 @@
 }
 
 .vertical-radio input[type="radio"]:checked + label {
-    background: var(--lumina-gradient) !important;
+    background: var(--lumina-primary) !important;
     color: white !important;
 }

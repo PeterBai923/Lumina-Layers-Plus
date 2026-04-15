@@ -104,7 +104,7 @@
 }
 
 .crop-ratio-btn.active {
-    background: var(--lumina-gradient) !important;
+    background: var(--lumina-primary) !important;
     color: white !important;
     border-color: transparent !important;
 }
@@ -170,7 +170,7 @@
 }
 
 #crop-modal button.crop-btn-primary {
-    background: var(--lumina-gradient) !important;
+    background: var(--lumina-primary) !important;
     color: white !important;
 }
 

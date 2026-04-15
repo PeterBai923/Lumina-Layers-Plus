@@ -58,8 +58,7 @@ def _color_mode_html(mode: str) -> str:
                  "box-shadow:inset 0 0 0 1px rgba(128,128,128,0.4)")
     if key == "Merged":
         dots_html = (
-            f'<span style="{dot_style};background:conic-gradient('
-            '#E53935,#FDD835,#43A047,#1E88E5,#9C27B0,#E91E63,#E53935)"></span>'
+            f'<span style="{dot_style};background:#9C27B0"></span>'
         )
         label = "Merged"
     else:
