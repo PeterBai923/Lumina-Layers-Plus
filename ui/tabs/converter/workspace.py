@@ -8,6 +8,7 @@ import gradio as gr
 
 from config import BedManager
 from core.converter import render_preview, generate_empty_bed_glb
+from ...settings import _load_user_settings
 from ...slicer_integration import _get_slicer_choices, _get_default_slicer, _slicer_css_class
 
 
@@ -16,6 +17,8 @@ def build_right_workspace(components, states):
 
     Populates both ``components`` and ``states`` dicts with Gradio references.
     """
+    _user_prefs = _load_user_settings()
+
     with gr.Column(scale=4, elem_classes=["workspace-area"]):
         with gr.Row():
             with gr.Column(scale=3):
@@ -24,10 +27,11 @@ def build_right_workspace(components, states):
                 )
 
                 # Bed size dropdown overlaid on preview top-right
+                saved_bed_size = _user_prefs.get("last_bed_size", BedManager.DEFAULT_BED)
                 with gr.Row(elem_id="conv-bed-size-overlay"):
                     components['radio_conv_bed_size'] = gr.Dropdown(
                         choices=[b[0] for b in BedManager.BEDS],
-                        value=BedManager.DEFAULT_BED,
+                        value=saved_bed_size,
                         label=None,
                         show_label=False,
                         container=False,
@@ -369,10 +373,10 @@ def build_right_workspace(components, states):
                 with gr.Row():
                     components['checkbox_conv_outline_enable'] = gr.Checkbox(
                         label='启用外轮廓',
-                        value=False
+                        value=_user_prefs.get("last_outline_enable", False)
                     )
                 components['slider_conv_outline_width'] = gr.Slider(
-                    0.5, 10, 2, step=0.5,
+                    0.5, 10, _user_prefs.get("last_outline_width", 2.0), step=0.5,
                     label='轮廓宽度(mm)'
                 )
                 # ========== END Outline Settings ==========
@@ -384,14 +388,14 @@ def build_right_workspace(components, states):
                 with gr.Row():
                     components['checkbox_conv_cloisonne_enable'] = gr.Checkbox(
                         label='启用掐丝珐琅',
-                        value=False
+                        value=_user_prefs.get("last_cloisonne_enable", False)
                     )
                 components['slider_conv_wire_width'] = gr.Slider(
-                    0.2, 1.2, 0.4, step=0.1,
+                    0.2, 1.2, _user_prefs.get("last_wire_width", 0.4), step=0.1,
                     label='丝线宽度(mm)'
                 )
                 components['slider_conv_wire_height'] = gr.Slider(
-                    0.04, 1.0, 0.4, step=0.04,
+                    0.04, 1.0, _user_prefs.get("last_wire_height", 0.4), step=0.04,
                     label='丝线高度(mm)'
                 )
                 # ========== END Cloisonné Settings ==========
@@ -403,10 +407,10 @@ def build_right_workspace(components, states):
                 with gr.Row():
                     components['checkbox_conv_coating_enable'] = gr.Checkbox(
                         label='启用透明镀层',
-                        value=False
+                        value=_user_prefs.get("last_coating_enable", False)
                     )
                 components['slider_conv_coating_height'] = gr.Slider(
-                    0.08, 0.16, 0.08, step=0.08,
+                    0.08, 0.16, _user_prefs.get("last_coating_height", 0.08), step=0.08,
                     label='镀层厚度(mm)'
                 )
                 # ========== END Coating Settings ==========

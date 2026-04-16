@@ -551,6 +551,106 @@ def bind_image_events(components, states):
         outputs=None
     )
 
+    # ==================== Persist additional settings ====================
+    # Structure mode
+    components['radio_conv_structure'].change(
+        fn=lambda v: _save_user_setting("last_structure", v),
+        inputs=[components['radio_conv_structure']],
+        outputs=None
+    )
+
+    # Width / Height / Thickness
+    for _comp_key, _setting_key in [
+        ('slider_conv_width', 'last_width'),
+        ('slider_conv_height', 'last_height'),
+        ('slider_conv_thickness', 'last_thickness'),
+    ]:
+        components[_comp_key].change(
+            fn=lambda v, k=_setting_key: _save_user_setting(k, v),
+            inputs=[components[_comp_key]],
+            outputs=None
+        )
+
+    # Advanced settings
+    components['slider_conv_quantize_colors'].change(
+        fn=lambda v: _save_user_setting("last_quantize_colors", v),
+        inputs=[components['slider_conv_quantize_colors']],
+        outputs=None
+    )
+    components['slider_conv_tolerance'].change(
+        fn=lambda v: _save_user_setting("last_tolerance", v),
+        inputs=[components['slider_conv_tolerance']],
+        outputs=None
+    )
+    components['checkbox_conv_auto_bg'].change(
+        fn=lambda v: _save_user_setting("last_auto_bg", v),
+        inputs=[components['checkbox_conv_auto_bg']],
+        outputs=None
+    )
+    components['checkbox_conv_cleanup'].change(
+        fn=lambda v: _save_user_setting("last_cleanup", v),
+        inputs=[components['checkbox_conv_cleanup']],
+        outputs=None
+    )
+    components['checkbox_conv_separate_backing'].change(
+        fn=lambda v: _save_user_setting("last_separate_backing", v),
+        inputs=[components['checkbox_conv_separate_backing']],
+        outputs=None
+    )
+    components['slider_conv_hue_weight'].change(
+        fn=lambda v: _save_user_setting("last_hue_weight", v),
+        inputs=[components['slider_conv_hue_weight']],
+        outputs=None
+    )
+
+    # Bed size
+    components['radio_conv_bed_size'].change(
+        fn=lambda v: _save_user_setting("last_bed_size", v),
+        inputs=[components['radio_conv_bed_size']],
+        outputs=None
+    )
+
+    # Outline settings
+    components['checkbox_conv_outline_enable'].change(
+        fn=lambda v: _save_user_setting("last_outline_enable", v),
+        inputs=[components['checkbox_conv_outline_enable']],
+        outputs=None
+    )
+    components['slider_conv_outline_width'].change(
+        fn=lambda v: _save_user_setting("last_outline_width", v),
+        inputs=[components['slider_conv_outline_width']],
+        outputs=None
+    )
+
+    # Cloisonné settings
+    components['checkbox_conv_cloisonne_enable'].change(
+        fn=lambda v: _save_user_setting("last_cloisonne_enable", v),
+        inputs=[components['checkbox_conv_cloisonne_enable']],
+        outputs=None
+    )
+    components['slider_conv_wire_width'].change(
+        fn=lambda v: _save_user_setting("last_wire_width", v),
+        inputs=[components['slider_conv_wire_width']],
+        outputs=None
+    )
+    components['slider_conv_wire_height'].change(
+        fn=lambda v: _save_user_setting("last_wire_height", v),
+        inputs=[components['slider_conv_wire_height']],
+        outputs=None
+    )
+
+    # Coating settings
+    components['checkbox_conv_coating_enable'].change(
+        fn=lambda v: _save_user_setting("last_coating_enable", v),
+        inputs=[components['checkbox_conv_coating_enable']],
+        outputs=None
+    )
+    components['slider_conv_coating_height'].change(
+        fn=lambda v: _save_user_setting("last_coating_height", v),
+        inputs=[components['slider_conv_coating_height']],
+        outputs=None
+    )
+
     def _on_color_mode_update_structure(color_mode):
         """5-Color Extended requires single-sided face-up (max 4 materials per Z layer).
         Also disables 2.5D relief mode which is incompatible with 5-Color Extended.

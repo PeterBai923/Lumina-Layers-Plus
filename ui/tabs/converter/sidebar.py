@@ -35,6 +35,17 @@ def build_left_sidebar(components, states):
         except (ValueError, KeyError):
             saved_modeling_mode = ModelingMode.HIGH_FIDELITY
 
+        saved_width = _user_prefs.get("last_width", 60)
+        saved_height = _user_prefs.get("last_height", 60)
+        saved_thickness = _user_prefs.get("last_thickness", 1.2)
+        saved_structure = _user_prefs.get("last_structure", "double")
+        saved_quantize = _user_prefs.get("last_quantize_colors", 48)
+        saved_tolerance = _user_prefs.get("last_tolerance", 40)
+        saved_auto_bg = _user_prefs.get("last_auto_bg", False)
+        saved_cleanup = _user_prefs.get("last_cleanup", True)
+        saved_separate_backing = _user_prefs.get("last_separate_backing", False)
+        saved_hue_weight = _user_prefs.get("last_hue_weight", 0.0)
+
         with gr.Row():
             components['dropdown_conv_lut_dropdown'] = gr.Dropdown(
                 choices=current_choices,
@@ -137,17 +148,17 @@ def build_left_sidebar(components, states):
 
         with gr.Row(elem_classes=["compact-row"]):
             components['slider_conv_width'] = gr.Slider(
-                minimum=10, maximum=400, value=60, step=1,
+                minimum=10, maximum=400, value=saved_width, step=1,
                 label='宽度 (mm)',
                 interactive=True
             )
             components['slider_conv_height'] = gr.Slider(
-                minimum=10, maximum=400, value=60, step=1,
+                minimum=10, maximum=400, value=saved_height, step=1,
                 label='高度 (mm)',
                 interactive=True
             )
             components['slider_conv_thickness'] = gr.Slider(
-                0.2, 3.5, 1.2, step=0.08,
+                0.2, 3.5, saved_thickness, step=0.08,
                 label='背板 (mm)'
             )
 
@@ -255,7 +266,7 @@ def build_left_sidebar(components, states):
                     ('双面 (钥匙扣)', 'double'),
                     ('单面 (浮雕)', 'single')
                 ],
-                value='double',
+                value=saved_structure,
                 label='结构'
             )
 
@@ -277,7 +288,7 @@ def build_left_sidebar(components, states):
             components['accordion_conv_advanced'] = conv_advanced_acc
             with gr.Row():
                 components['slider_conv_quantize_colors'] = gr.Slider(
-                    minimum=8, maximum=256, step=8, value=48,
+                    minimum=8, maximum=256, step=8, value=saved_quantize,
                     label='🎨 色彩细节',
                     info='颜色数量越多细节越丰富，但生成越慢'
                 )
@@ -289,31 +300,31 @@ def build_left_sidebar(components, states):
                 )
             with gr.Row():
                 components['slider_conv_tolerance'] = gr.Slider(
-                    0, 150, 40,
+                    0, 150, saved_tolerance,
                     label='容差',
                     info='背景容差值 (0-150)，值越大移除越多'
                 )
             with gr.Row():
                 components['checkbox_conv_auto_bg'] = gr.Checkbox(
                     label='🗑️ 移除背景',
-                    value=False,
+                    value=saved_auto_bg,
                     info='自动移除图像背景色'
                 )
             with gr.Row():
                 components['checkbox_conv_cleanup'] = gr.Checkbox(
                     label="孤立像素清理 | Isolated Pixel Cleanup",
-                    value=True,
+                    value=saved_cleanup,
                     info="清理 LUT 匹配后的孤立像素，提升打印成功率"
                 )
             with gr.Row():
                 components['checkbox_conv_separate_backing'] = gr.Checkbox(
                     label="底板单独一个对象 | Separate Backing",
-                    value=False,
+                    value=saved_separate_backing,
                     info="勾选后，底板将作为独立对象导出到3MF文件"
                 )
             with gr.Row():
                 components['slider_conv_hue_weight'] = gr.Slider(
-                    minimum=0.0, maximum=1.0, step=0.1, value=0.0,
+                    minimum=0.0, maximum=1.0, step=0.1, value=saved_hue_weight,
                     label="🎨 色相保护 | Hue Protection",
                     info="0=纯色差匹配(默认), 0.3=明显保护, 0.5=强保护(推荐), 1.0=最强。避免浅色匹配到错误色系"
                 )
