@@ -227,7 +227,8 @@ def bind_generate_events(components, states, theme_state):
                 try:
                     preview_img, cache, status, glb = generate_preview_cached_with_fit(
                         single_image, lut_path, target_width_mm, auto_bg, bg_tol,
-                        color_mode, modeling_mode, quantize_colors, enable_cleanup, theme_is_dark
+                        color_mode, modeling_mode, quantize_colors, enable_cleanup, theme_is_dark,
+                        structure_mode=structure_mode
                     )
                     preview_cache = cache
                     print(f"[AUTO-SLICER] Preview generated: {status}")

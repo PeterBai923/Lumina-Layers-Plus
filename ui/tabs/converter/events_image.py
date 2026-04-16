@@ -584,6 +584,7 @@ def bind_image_events(components, states):
                 states['theme_state'],
                 states['preprocess_processed_path'],
                 components['slider_conv_hue_weight'],
+                components['radio_conv_structure'],
             ],
             outputs=[states['conv_preview'], states['conv_preview_cache'], components['textbox_conv_status'], states['conv_3d_preview']]
     ).then(

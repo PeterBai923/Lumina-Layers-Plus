@@ -1344,7 +1344,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
             traceback.print_exc()
     
     # ========== Step 8: Export 3MF ==========
-    is_single_sided = "单面" in structure_mode or "Single" in structure_mode
+    is_single_sided = "单面" in structure_mode or "single" in structure_mode.lower()
     is_5color = "5-Color Extended" in color_mode
 
     # 5-Color 高保真：体素 Z 与 BambuStudio 显示约定相反，需 Z 翻转使顶面（观看面）朝上
@@ -1460,7 +1460,18 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
 
     if preview_mesh:
         preview_mesh.apply_transform(transform)
-        
+
+        # 单面模式：X 轴镜像修正（与 3MF 导出保持一致）
+        if is_single_sided:
+            model_width_mm = target_w * pixel_scale
+            mirror_transform = np.array([
+                [-1, 0, 0, model_width_mm],
+                [0, 1, 0, 0],
+                [0, 0, 1, 0],
+                [0, 0, 0, 1]
+            ])
+            preview_mesh.apply_transform(mirror_transform)
+
         if loop_added and loop_info:
             try:
                 preview_loop = create_keychain_loop(
@@ -2092,7 +2103,7 @@ def _build_cloisonne_voxel_matrix(material_matrix, mask_solid, mask_wireframe,
 def _build_voxel_matrix(material_matrix, mask_solid, spacer_thick, structure_mode, backing_color_id=0):
     """
     Build complete voxel matrix with backing layer marked using special material_id.
-    
+
     Args:
         material_matrix: (H, W, N) material matrix (N optical layers)
         mask_solid: (H, W) solid pixel mask
@@ -2116,7 +2127,7 @@ def _build_voxel_matrix(material_matrix, mask_solid, spacer_thick, structure_mod
     
     spacer_layers = max(1, int(round(spacer_thick / PrinterConfig.LAYER_HEIGHT)))
     
-    if "双面" in structure_mode or "Double" in structure_mode:
+    if "双面" in structure_mode or "double" in structure_mode.lower():
         top_voxels = np.transpose(material_matrix[..., ::-1], (2, 0, 1))
         total_layers = optical_layers + spacer_layers + optical_layers
         full_matrix = np.full((total_layers, target_h, target_w), -1, dtype=int)
@@ -2799,6 +2810,7 @@ def generate_realtime_glb(cache):
     target_h = cache.get('target_h')
     target_width_mm = cache.get('target_width_mm')
     color_conf = cache.get('color_conf')
+    structure_mode = cache.get('structure_mode', 'single')
     
     if matched_rgb is None or mask_solid is None:
         return None
@@ -2828,7 +2840,19 @@ def generate_realtime_glb(cache):
         transform[1, 1] = pixel_scale
         transform[2, 2] = PrinterConfig.LAYER_HEIGHT
         preview_mesh.apply_transform(transform)
-        
+
+        # 单面模式：X 轴镜像修正（与 3MF 导出保持一致）
+        is_single_sided = "单面" in structure_mode or "single" in structure_mode.lower()
+        if is_single_sided:
+            model_width_mm = target_width_mm
+            mirror_transform = np.array([
+                [-1, 0, 0, model_width_mm],
+                [0, 1, 0, 0],
+                [0, 0, 1, 0],
+                [0, 0, 0, 1]
+            ])
+            preview_mesh.apply_transform(mirror_transform)
+
         # Export model-only GLB (bed platform is rendered by frontend)
         # Note: origin/main adds bed platform in Python for Gradio UI;
         # the FastAPI+React frontend renders bed in Three.js instead.
@@ -2851,7 +2875,8 @@ def generate_preview_cached(image_path, lut_path, target_width_mm,
                             backing_color_id: int = 0,
                             enable_cleanup: bool = True,
                             is_dark: bool = True,
-                            hue_weight: float = 0.0):
+                            hue_weight: float = 0.0,
+                            structure_mode: str = "single"):
     """
     Generate preview and cache data
     For 2D preview interface
@@ -2933,7 +2958,8 @@ def generate_preview_cached(image_path, lut_path, target_width_mm,
         'quantize_colors': quantize_colors,
         'backing_color_id': backing_color_id,
         'is_dark': is_dark,
-        'bed_label': BedManager.DEFAULT_BED
+        'bed_label': BedManager.DEFAULT_BED,
+        'structure_mode': structure_mode
     }
 
     # 统一缓存契约：保证 quantized_image 始终可用

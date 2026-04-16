@@ -200,7 +200,7 @@ def generate_preview_cached_with_fit(image_path, lut_path, target_width_mm,
                                      auto_bg, bg_tol, color_mode,
                                      modeling_mode, quantize_colors, enable_cleanup,
                                      is_dark_theme=False, processed_path=None,
-                                     hue_weight=0.0):
+                                     hue_weight=0.0, structure_mode="single"):
     """Preview generation with 3D GLB (promoted from closure to module function)."""
     # When SVG was uploaded, image_conv_image_label holds a PNG thumbnail while
     # preprocess_processed_path holds the original SVG. Use SVG for the converter.
@@ -212,7 +212,8 @@ def generate_preview_cached_with_fit(image_path, lut_path, target_width_mm,
         modeling_mode, quantize_colors,
         enable_cleanup=enable_cleanup,
         is_dark=is_dark_theme,
-        hue_weight=float(hue_weight) if hue_weight else 0.0
+        hue_weight=float(hue_weight) if hue_weight else 0.0,
+        structure_mode=structure_mode
     )
     # Generate realtime 3D preview GLB
     glb_path = generate_realtime_glb(cache) if cache is not None else None

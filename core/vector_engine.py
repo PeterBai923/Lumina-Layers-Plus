@@ -247,7 +247,7 @@ class VectorProcessor:
 
         # === Stage 7: Double-sided structure ===
         t0 = time.perf_counter()
-        is_double_sided = "双面" in structure_mode or "Double" in structure_mode
+        is_double_sided = "双面" in structure_mode or "double" in structure_mode.lower()
         if is_double_sided:
             print("[VECTOR] Adding mirrored color layers (double-sided mode)...")
             top_z_start = backing_z_start + backing_layer_count * layer_h
