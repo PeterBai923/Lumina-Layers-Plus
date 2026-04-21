@@ -143,7 +143,6 @@ def create_app():
                         0,
                         False,
                         color_conf,
-                        bed_label=cache.get("bed_label"),
                         target_width_mm=cache.get("target_width_mm"),
                         is_dark=new_is_dark,
                     )

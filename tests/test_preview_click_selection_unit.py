@@ -23,7 +23,7 @@ class _EvtNoneIndex:
 
 def test_invalid_click_returns_none_hex():
     """Invalid click events should not return dict-like hex values."""
-    cache = {"bed_label": "256x256 mm"}
+    cache = {}
     _img, _text, hex_val, msg = on_preview_click_select_color(cache, _EvtNoneIndex())
     assert hex_val is None
     assert "无效点击" in msg

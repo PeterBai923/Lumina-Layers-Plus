@@ -15,7 +15,7 @@ from PIL import Image, ImageDraw, ImageFont
 import gradio as gr
 from typing import List, Dict, Tuple, Optional
 
-from config import PrinterConfig, ColorSystem, ModelingMode, PREVIEW_SCALE, PREVIEW_MARGIN, OUTPUT_DIR, BedManager, EXTENDED_PRINT_SETTINGS
+from config import PrinterConfig, ColorSystem, ModelingMode, PREVIEW_SCALE, PREVIEW_MARGIN, OUTPUT_DIR, EXTENDED_PRINT_SETTINGS
 from utils import Stats
 from utils.bambu_3mf_writer import export_scene_with_bambu_metadata
 
@@ -25,6 +25,11 @@ from core.geometry_utils import create_keychain_loop, CUBE_FACES, CUBE_FACES_NP
 from core.heightmap_loader import HeightmapLoader
 from core.naming import generate_model_filename, generate_preview_filename
 from core.color_utils import rgb_to_hex, hex_to_rgb
+
+# Fixed bed size constants
+FIXED_BED_WIDTH_MM = 256
+FIXED_BED_HEIGHT_MM = 256
+FIXED_BED_LABEL = "256×256 mm"
 
 # Try to import SVG rendering libraries
 try:
@@ -2472,8 +2477,8 @@ def generate_empty_bed_glb(bed_w: int = None, bed_h: int = None, is_dark: bool =
     生成仅包含打印热床的 GLB 文件（无模型）。
 
     Args:
-        bed_w (int): Bed width in mm. Defaults to BedManager default. (热床宽度 mm)
-        bed_h (int): Bed height in mm. Defaults to BedManager default. (热床高度 mm)
+        bed_w (int): Bed width in mm. Defaults to fixed 256mm. (热床宽度 mm)
+        bed_h (int): Bed height in mm. Defaults to fixed 256mm. (热床高度 mm)
         is_dark (bool): Use dark PEI theme. (使用深色 PEI 主题)
 
     Returns:
@@ -2481,7 +2486,7 @@ def generate_empty_bed_glb(bed_w: int = None, bed_h: int = None, is_dark: bool =
     """
     try:
         if bed_w is None or bed_h is None:
-            bed_w, bed_h = BedManager.get_bed_size(BedManager.DEFAULT_BED)
+            bed_w, bed_h = FIXED_BED_WIDTH_MM, FIXED_BED_HEIGHT_MM
         bed_mesh = _create_bed_mesh(bed_w, bed_h, is_dark=is_dark)
         if bed_mesh is None:
             return None
@@ -2958,7 +2963,6 @@ def generate_preview_cached(image_path, lut_path, target_width_mm,
         'quantize_colors': quantize_colors,
         'backing_color_id': backing_color_id,
         'is_dark': is_dark,
-        'bed_label': BedManager.DEFAULT_BED,
         'structure_mode': structure_mode
     }
 
@@ -2980,27 +2984,24 @@ def generate_preview_cached(image_path, lut_path, target_width_mm,
     return display, cache, f"[OK] Preview ({target_w}×{target_h}px, {num_colors} colors) | Click image to place loop"
 
 
-def render_preview(preview_rgba, loop_pos, loop_width, loop_length, 
+def render_preview(preview_rgba, loop_pos, loop_width, loop_length,
                    loop_hole, loop_angle, loop_enabled, color_conf,
-                   bed_label=None, target_width_mm=None, is_dark=True):
+                   target_width_mm=None, is_dark=True):
     """Render preview with physical bed grid and optional keychain loop.
-    
+
     Args:
-        bed_label: BedManager label (e.g. "256×256 mm"). Falls back to default.
         target_width_mm: Physical width of the model in mm. If None, estimates from pixels.
         is_dark: True for dark PEI theme, False for light marble theme.
     """
-    if bed_label is None:
-        bed_label = BedManager.DEFAULT_BED
-    bed_w_mm, bed_h_mm = BedManager.get_bed_size(bed_label)
-    ppm = BedManager.compute_scale(bed_w_mm, bed_h_mm)
+    bed_w_mm, bed_h_mm = FIXED_BED_WIDTH_MM, FIXED_BED_HEIGHT_MM
+    ppm = 1200 / max(bed_w_mm, bed_h_mm)
 
     canvas_w = int(bed_w_mm * ppm)
     canvas_h = int(bed_h_mm * ppm)
-    margin = int(30 * ppm / 3)
+    margin = 0  # 删除边距，让打印床网格填满整个canvas
 
-    total_w = canvas_w + margin
-    total_h = canvas_h + margin
+    total_w = canvas_w
+    total_h = canvas_h
 
     # Theme colors
     if is_dark:
@@ -3024,9 +3025,9 @@ def render_preview(preview_rgba, loop_pos, loop_width, loop_length,
     draw = ImageDraw.Draw(canvas)
 
     # Rounded bed area
-    corner_r = 12
+    corner_r = 0  # 删除圆角，使用直角让打印床区域完全填满canvas
     draw.rounded_rectangle(
-        [margin, 0, total_w - 1, canvas_h - 1],
+        [0, 0, total_w - 1, total_h - 1],
         radius=corner_r, fill=bed_bg
     )
 
@@ -3034,25 +3035,25 @@ def render_preview(preview_rgba, loop_pos, loop_width, loop_length,
     step_10 = max(1, int(10 * ppm))
     step_50 = max(1, int(50 * ppm))
 
-    for x in range(margin, total_w, step_10):
-        draw.line([(x, 0), (x, canvas_h)], fill=grid_fine, width=1)
-    for y in range(0, canvas_h, step_10):
-        draw.line([(margin, y), (total_w, y)], fill=grid_fine, width=1)
+    for x in range(0, total_w, step_10):
+        draw.line([(x, 0), (x, total_h)], fill=grid_fine, width=1)
+    for y in range(0, total_h, step_10):
+        draw.line([(0, y), (total_w, y)], fill=grid_fine, width=1)
 
-    for x in range(margin, total_w, step_50):
-        draw.line([(x, 0), (x, canvas_h)], fill=grid_bold, width=2)
-    for y in range(0, canvas_h, step_50):
-        draw.line([(margin, y), (total_w, y)], fill=grid_bold, width=2)
+    for x in range(0, total_w, step_50):
+        draw.line([(x, 0), (x, total_h)], fill=grid_bold, width=2)
+    for y in range(0, total_h, step_50):
+        draw.line([(0, y), (total_w, y)], fill=grid_bold, width=2)
 
     # Rounded border on top of grid
     draw.rounded_rectangle(
-        [margin, 0, total_w - 1, canvas_h - 1],
+        [0, 0, total_w - 1, total_h - 1],
         radius=corner_r, outline=border_color, width=2
     )
 
     # axes
-    draw.line([(margin, 0), (margin, canvas_h)], fill=axis_color, width=2)
-    draw.line([(margin, canvas_h - 1), (total_w, canvas_h - 1)], fill=axis_color, width=2)
+    draw.line([(0, 0), (0, total_h)], fill=axis_color, width=2)
+    draw.line([(0, total_h - 1), (total_w, total_h - 1)], fill=axis_color, width=2)
 
     # labels (mm)
     try:
@@ -3061,26 +3062,31 @@ def render_preview(preview_rgba, loop_pos, loop_width, loop_length,
         font = None
 
     for mm in range(0, bed_w_mm + 1, 50):
-        px = margin + int(mm * ppm)
+        px = int(mm * ppm)
         if px < total_w and font:
-            draw.text((px - 5, canvas_h + 2), f"{mm}", fill=label_color, font=font)
+            draw.text((px - 5, total_h - 15), f"{mm}", fill=label_color, font=font)
 
     for mm in range(0, bed_h_mm + 1, 50):
-        px = canvas_h - int(mm * ppm)
+        px = total_h - int(mm * ppm)
         if px >= 0 and font:
-            draw.text((2, px - 5), f"{mm}", fill=label_color, font=font)
+            draw.text((5, px - 5), f"{mm}", fill=label_color, font=font)
 
     # --- paste model centred on bed ---
     if preview_rgba is not None:
         h, w = preview_rgba.shape[:2]
-        # Calculate physical model size
-        if target_width_mm is not None and target_width_mm > 0:
-            model_w_mm = target_width_mm
-            model_h_mm = target_width_mm * h / w
+
+        # 自动填满打印床：计算模型填满打印床所需的尺寸
+        # 保持宽高比，让模型的长边等于打印床的对应边
+        aspect_ratio = w / h if h > 0 and w > 0 else 1.0
+
+        if aspect_ratio >= 1.0:
+            # 宽图：宽度填满打印床宽度
+            model_w_mm = bed_w_mm
+            model_h_mm = bed_w_mm / aspect_ratio
         else:
-            # Fallback: estimate from pixel count and nozzle width
-            model_w_mm = w * PrinterConfig.NOZZLE_WIDTH
-            model_h_mm = h * PrinterConfig.NOZZLE_WIDTH
+            # 高图：高度填满打印床高度
+            model_h_mm = bed_h_mm
+            model_w_mm = bed_h_mm * aspect_ratio
 
         new_w = max(1, int(model_w_mm * ppm))
         new_h = max(1, int(model_h_mm * ppm))
@@ -3088,8 +3094,8 @@ def render_preview(preview_rgba, loop_pos, loop_width, loop_length,
         pil_img = Image.fromarray(preview_rgba, mode='RGBA')
         pil_img = pil_img.resize((new_w, new_h), Image.Resampling.NEAREST)
 
-        offset_x = margin + (canvas_w - new_w) // 2
-        offset_y = (canvas_h - new_h) // 2
+        offset_x = (total_w - new_w) // 2
+        offset_y = (total_h - new_h) // 2
         canvas.paste(pil_img, (offset_x, offset_y), pil_img)
 
         # --- loop overlay ---
@@ -3171,39 +3177,42 @@ def _draw_loop_on_canvas(pil_img, loop_pos, loop_width, loop_length,
     return pil_img
 
 
-def on_preview_click(cache, loop_pos, evt: gr.SelectData, bed_label=None):
+def on_preview_click(cache, loop_pos, evt: gr.SelectData):
     """Handle preview image click event."""
     if evt is None or cache is None:
         return loop_pos, False, "Invalid click - please generate preview first"
-    
-    if bed_label is None:
-        bed_label = BedManager.DEFAULT_BED
 
     click_x, click_y = evt.index
-    
+
     target_w = cache['target_w']
     target_h = cache['target_h']
     target_width_mm = cache.get('target_width_mm')
-    
-    bed_w_mm, bed_h_mm = BedManager.get_bed_size(bed_label)
-    ppm = BedManager.compute_scale(bed_w_mm, bed_h_mm)
-    margin = int(30 * ppm / 3)
 
-    canvas_w = int(bed_w_mm * ppm) + margin
-    canvas_h = int(bed_h_mm * ppm) + margin
+    bed_w_mm, bed_h_mm = FIXED_BED_WIDTH_MM, FIXED_BED_HEIGHT_MM
+    ppm = 1200 / max(bed_w_mm, bed_h_mm)
+    margin = 0
+
+    canvas_w = int(bed_w_mm * ppm)
+    canvas_h = int(bed_h_mm * ppm)
 
     # Use target_width_mm from cache for accurate physical size
-    if target_width_mm is not None and target_width_mm > 0:
-        model_w_mm = target_width_mm
-        model_h_mm = target_width_mm * target_h / target_w
+    # 但在预览图中，模型已经填满打印床，所以需要使用相同的逻辑
+    aspect_ratio = target_w / target_h if target_h > 0 and target_w > 0 else 1.0
+
+    if aspect_ratio >= 1.0:
+        # 宽图：宽度填满打印床宽度
+        model_w_mm = bed_w_mm
+        model_h_mm = bed_w_mm / aspect_ratio
     else:
-        model_w_mm = target_w * PrinterConfig.NOZZLE_WIDTH
-        model_h_mm = target_h * PrinterConfig.NOZZLE_WIDTH
+        # 高图：高度填满打印床高度
+        model_h_mm = bed_h_mm
+        model_w_mm = bed_h_mm * aspect_ratio
+
     new_w = max(1, int(model_w_mm * ppm))
     new_h = max(1, int(model_h_mm * ppm))
 
-    offset_x = margin + (int(bed_w_mm * ppm) - new_w) // 2
-    offset_y = (int(bed_h_mm * ppm) - new_h) // 2
+    offset_x = (canvas_w - new_w) // 2
+    offset_y = (canvas_h - new_h) // 2
 
     # Gradio may scale the displayed image
     gradio_display_height = 600
@@ -3244,7 +3253,6 @@ def update_preview_with_loop(cache, loop_pos, add_loop,
         loop_pos if add_loop else None,
         loop_width, loop_length, loop_hole, loop_angle,
         add_loop, color_conf,
-        bed_label=cache.get('bed_label'),
         target_width_mm=target_width_mm, is_dark=is_dark
     )
     return display
@@ -3547,7 +3555,6 @@ def update_preview_with_replacements(cache, replacement_regions=None,
         loop_pos if add_loop else None,
         loop_width, loop_length, loop_hole, loop_angle,
         add_loop, color_conf,
-        bed_label=cache.get('bed_label'),
         target_width_mm=cache.get('target_width_mm'),
         is_dark=cache.get('is_dark', True)
     )
@@ -3612,14 +3619,13 @@ def generate_highlight_preview(cache, highlight_color: str,
         preview_rgba = cache.get('preview_rgba')
         if preview_rgba is None:
             return None, "[ERROR] 缓存数据无效 | Invalid cache"
-        
+
         color_conf = cache['color_conf']
         display = render_preview(
             preview_rgba,
             loop_pos if add_loop else None,
             loop_width, loop_length, loop_hole, loop_angle,
             add_loop, color_conf,
-            bed_label=cache.get('bed_label'),
             target_width_mm=cache.get('target_width_mm'),
             is_dark=cache.get('is_dark', True)
         )
@@ -3705,18 +3711,17 @@ def generate_highlight_preview(cache, highlight_color: str,
             preview_rgba[border_mask, 3] = 200
     except Exception as e:
         print(f"[HIGHLIGHT] Border effect skipped: {e}")
-    
+
     # Render display
     display = render_preview(
         preview_rgba,
         loop_pos if add_loop else None,
         loop_width, loop_length, loop_hole, loop_angle,
         add_loop, color_conf,
-        bed_label=cache.get('bed_label'),
         target_width_mm=cache.get('target_width_mm'),
         is_dark=cache.get('is_dark', True)
     )
-    
+
     return display, f"🔍 高亮 {highlight_hex} ({highlight_percentage}%, {highlight_count:,} 像素)"
 
 
@@ -3757,18 +3762,17 @@ def clear_highlight_preview(cache, loop_pos=None, add_loop=False,
         loop_pos if add_loop else None,
         loop_width, loop_length, loop_hole, loop_angle,
         add_loop, color_conf,
-        bed_label=cache.get('bed_label'),
         target_width_mm=cache.get('target_width_mm'),
         is_dark=cache.get('is_dark', True)
     )
-    
+
     print(f"[CLEAR_HIGHLIGHT] display shape: {display.shape if display is not None else None}")
-    
+
     return display, "[OK] 预览已恢复 | Preview restored"
 
 
 # 预览图点击吸取颜色并高亮
-def on_preview_click_select_color(cache, evt: gr.SelectData, bed_label=None):
+def on_preview_click_select_color(cache, evt: gr.SelectData):
     """
     预览图点击事件处理：吸取颜色并高亮显示
     1. 识别点击位置的颜色
@@ -3781,9 +3785,6 @@ def on_preview_click_select_color(cache, evt: gr.SelectData, bed_label=None):
     if evt is None or evt.index is None:
         return gr.update(), "未选择", None, "[WARNING] 无效点击"
 
-    if bed_label is None:
-        bed_label = cache.get('bed_label', BedManager.DEFAULT_BED)
-
     display_click_x, display_click_y = evt.index
 
     target_w = cache.get('target_w')
@@ -3793,25 +3794,31 @@ def on_preview_click_select_color(cache, evt: gr.SelectData, bed_label=None):
     if target_w is None or target_h is None:
         return gr.update(), "未选择", None, "[ERROR] 缓存数据不完整"
 
-    bed_w_mm, bed_h_mm = BedManager.get_bed_size(bed_label)
-    ppm = BedManager.compute_scale(bed_w_mm, bed_h_mm)
-    margin = int(30 * ppm / 3)
+    bed_w_mm, bed_h_mm = FIXED_BED_WIDTH_MM, FIXED_BED_HEIGHT_MM
+    ppm = 1200 / max(bed_w_mm, bed_h_mm)
+    margin = 0
 
-    canvas_w = int(bed_w_mm * ppm) + margin
-    canvas_h = int(bed_h_mm * ppm) + margin
+    canvas_w = int(bed_w_mm * ppm)
+    canvas_h = int(bed_h_mm * ppm)
 
     # Use target_width_mm from cache for accurate physical size
-    if target_width_mm is not None and target_width_mm > 0:
-        model_w_mm = target_width_mm
-        model_h_mm = target_width_mm * target_h / target_w
+    # 但在预览图中，模型已经填满打印床，所以需要使用相同的逻辑
+    aspect_ratio = target_w / target_h if target_h > 0 and target_w > 0 else 1.0
+
+    if aspect_ratio >= 1.0:
+        # 宽图：宽度填满打印床宽度
+        model_w_mm = bed_w_mm
+        model_h_mm = bed_w_mm / aspect_ratio
     else:
-        model_w_mm = target_w * PrinterConfig.NOZZLE_WIDTH
-        model_h_mm = target_h * PrinterConfig.NOZZLE_WIDTH
+        # 高图：高度填满打印床高度
+        model_h_mm = bed_h_mm
+        model_w_mm = bed_h_mm * aspect_ratio
+
     new_w = max(1, int(model_w_mm * ppm))
     new_h = max(1, int(model_h_mm * ppm))
 
-    offset_x = margin + (int(bed_w_mm * ppm) - new_w) // 2
-    offset_y = (int(bed_h_mm * ppm) - new_h) // 2
+    offset_x = (canvas_w - new_w) // 2
+    offset_y = (canvas_h - new_h) // 2
 
     # _scale_preview_image fits canvas into 1200×750 box
     gradio_scale = min(1.0, 1200 / canvas_w, 750 / canvas_h)

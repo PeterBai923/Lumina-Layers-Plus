@@ -6,7 +6,6 @@ UI construction for the right workspace (original lines 559-1037).
 
 import gradio as gr
 
-from config import BedManager
 from core.converter import render_preview, generate_empty_bed_glb
 from ...settings import _load_user_settings
 from ...slicer_integration import _get_slicer_choices, _get_default_slicer, _slicer_css_class
@@ -25,19 +24,6 @@ def build_right_workspace(components, states):
                 components['md_conv_preview_section'] = gr.HTML(
                     '<div class="section-heading">🎨 2D预览</div>'
                 )
-
-                # Bed size dropdown overlaid on preview top-right
-                saved_bed_size = _user_prefs.get("last_bed_size", BedManager.DEFAULT_BED)
-                with gr.Row(elem_id="conv-bed-size-overlay"):
-                    components['radio_conv_bed_size'] = gr.Dropdown(
-                        choices=[b[0] for b in BedManager.BEDS],
-                        value=saved_bed_size,
-                        label=None,
-                        show_label=False,
-                        container=False,
-                        min_width=140,
-                        elem_id="conv-bed-size-dropdown"
-                    )
 
                 conv_preview = gr.Image(
                     label="",

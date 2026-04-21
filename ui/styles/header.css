@@ -142,37 +142,3 @@
     color: #1f2937 !important;
 }
 
-/* Bed size dropdown overlay on preview */
-#conv-bed-size-overlay {
-    display: flex !important;
-    justify-content: flex-end !important;
-    align-items: center !important;
-    margin-bottom: -8px !important;
-    padding: 0 4px !important;
-    z-index: 10 !important;
-    position: relative !important;
-    gap: 0 !important;
-}
-#conv-bed-size-overlay > .column:first-child {
-    display: none !important;
-}
-#conv-bed-size-dropdown {
-    max-width: 160px !important;
-    min-width: 130px !important;
-}
-#conv-bed-size-dropdown input {
-    font-size: 12px !important;
-    padding: 4px 8px !important;
-    height: 28px !important;
-    border-radius: 6px !important;
-    background: var(--background-fill-secondary, rgba(240,240,245,0.9)) !important;
-    border: 1px solid var(--border-color-primary, #ddd) !important;
-    cursor: pointer !important;
-}
-#conv-bed-size-dropdown .wrap {
-    min-height: unset !important;
-    padding: 0 !important;
-}
-#conv-bed-size-dropdown ul {
-    font-size: 12px !important;
-}

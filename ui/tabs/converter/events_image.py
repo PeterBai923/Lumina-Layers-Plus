@@ -603,13 +603,6 @@ def bind_image_events(components, states):
         outputs=None
     )
 
-    # Bed size
-    components['radio_conv_bed_size'].change(
-        fn=lambda v: _save_user_setting("last_bed_size", v),
-        inputs=[components['radio_conv_bed_size']],
-        outputs=None
-    )
-
     # Outline settings
     components['checkbox_conv_outline_enable'].change(
         fn=lambda v: _save_user_setting("last_outline_enable", v),

@@ -7,7 +7,6 @@ fullscreen 3D toggle, and bed-size change events.
 
 import gradio as gr
 
-from config import BedManager
 from ...settings import resolve_height_mode
 from ...slicer_integration import _get_slicer_choices, open_in_slicer
 from core.converter import render_preview
@@ -373,39 +372,3 @@ def bind_generate_events(components, states, theme_state):
     # ------------------------------------------------------------------
     # Bed Size Change -> Re-render Preview
     # ------------------------------------------------------------------
-    def on_bed_size_change(cache, bed_label, loop_pos, add_loop,
-                           loop_width, loop_length, loop_hole, loop_angle):
-        if cache is None:
-            return gr.update(), cache
-        preview_rgba = cache.get('preview_rgba')
-        if preview_rgba is None:
-            return gr.update(), cache
-        # Store bed_label in cache so click handler can use it
-        cache['bed_label'] = bed_label
-        color_conf = cache['color_conf']
-        is_dark = cache.get('is_dark', True)
-        display = render_preview(
-            preview_rgba,
-            loop_pos if add_loop else None,
-            loop_width, loop_length, loop_hole, loop_angle,
-            add_loop, color_conf,
-            bed_label=bed_label,
-            target_width_mm=cache.get('target_width_mm'),
-            is_dark=is_dark
-        )
-        return _preview_update(display), cache
-
-    components['radio_conv_bed_size'].change(
-        fn=on_bed_size_change,
-        inputs=[
-            conv_preview_cache,
-            components['radio_conv_bed_size'],
-            conv_loop_pos,
-            components['checkbox_conv_loop_enable'],
-            components['slider_conv_loop_width'],
-            components['slider_conv_loop_length'],
-            components['slider_conv_loop_hole'],
-            components['slider_conv_loop_angle']
-        ],
-        outputs=[conv_preview, conv_preview_cache]
-    )
