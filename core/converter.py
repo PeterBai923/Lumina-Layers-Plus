@@ -6,6 +6,7 @@ Coordinates modules to complete image-to-3D model conversion.
 
 import os
 import time
+import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from collections import deque
 import numpy as np
@@ -30,6 +31,21 @@ from core.color_utils import rgb_to_hex, hex_to_rgb
 FIXED_BED_WIDTH_MM = 256
 FIXED_BED_HEIGHT_MM = 256
 FIXED_BED_LABEL = "256×256 mm"
+
+# Grid template cache for performance optimization
+#
+# Cache Strategy:
+# - Key: (theme, bed_width_mm, bed_height_mm)
+# - Value: PIL Image with grid lines
+# - Invalidation: Never (assumes fixed bed size in current version)
+#
+# Thread Safety: Uses double-checked locking pattern
+#
+# Performance Impact:
+# - Avoids ~66 draw.line() calls per preview
+# - Critical for high-frequency preview updates (slider dragging)
+_GRID_TEMPLATE_CACHE = {}
+_CACHE_LOCK = threading.Lock()
 
 # Try to import SVG rendering libraries
 try:
@@ -335,12 +351,12 @@ def _resolve_click_selection_hexes(cache, default_hex):
 def extract_color_palette(preview_cache: dict) -> List[dict]:
     """
     Extract unique colors from preview cache.
-    
+
     Args:
         preview_cache: Cache data from generate_preview_cached containing:
             - matched_rgb: (H, W, 3) uint8 array of matched colors
             - mask_solid: (H, W) bool array indicating solid pixels
-    
+
     Returns:
         List of dicts sorted by pixel count (descending), each containing:
         - 'color': (R, G, B) tuple
@@ -350,39 +366,74 @@ def extract_color_palette(preview_cache: dict) -> List[dict]:
     """
     if preview_cache is None:
         return []
-    
+
     matched_rgb = preview_cache.get('matched_rgb')
     mask_solid = preview_cache.get('mask_solid')
-    
+
     if matched_rgb is None or mask_solid is None:
         return []
-    
+
+    # Ensure uint8 type for correct encoding
+    if matched_rgb.dtype != np.uint8:
+        matched_rgb = matched_rgb.astype(np.uint8)
+
     # Get only solid pixels
     solid_pixels = matched_rgb[mask_solid]
-    
+
     if len(solid_pixels) == 0:
         return []
-    
+
     total_solid = len(solid_pixels)
-    
-    # Find unique colors and their counts
-    # Reshape to (N, 3) and find unique rows
-    unique_colors, counts = np.unique(solid_pixels, axis=0, return_counts=True)
-    
+
+    # Optimized: Use counting sort instead of np.unique (O(n) vs O(n log n))
+    #
+    # Performance trade-off:
+    # - Time complexity: O(n) vs O(n log n)
+    # - Memory overhead: Fixed ~16.8MB for bincount array
+    # - Best for: Large images with many pixels
+    # - Limitation: May be slower for small images due to memory allocation
+    #
+    # RGB encoding: R*65536 + G*256 + B ensures unique mapping
+
+    # Encode RGB as single integer
+    codes = (solid_pixels[:, 0].astype(np.int32) * 65536 +
+             solid_pixels[:, 1].astype(np.int32) * 256 +
+             solid_pixels[:, 2].astype(np.int32))
+
+    # Count occurrences (O(n) complexity)
+    counts = np.bincount(codes)
+
+    # Extract non-zero colors
+    unique_codes = np.where(counts > 0)[0]
+    color_counts = counts[unique_codes]
+
+    # Decode back to RGB with validation
+    r_values = unique_codes // 65536
+    g_values = (unique_codes // 256) % 256
+    b_values = unique_codes % 256
+
+    # Validate RGB range (should never fail if encoding is correct)
+    assert r_values.max() <= 255, "R channel overflow detected"
+    assert g_values.max() <= 255, "G channel overflow detected"
+    assert b_values.max() <= 255, "B channel overflow detected"
+
+    r = r_values.astype(np.uint8)
+    g = g_values.astype(np.uint8)
+    b = b_values.astype(np.uint8)
+
     # Build palette entries
     palette = []
-    for color, count in zip(unique_colors, counts):
-        r, g, b = int(color[0]), int(color[1]), int(color[2])
+    for i in range(len(unique_codes)):
         palette.append({
-            'color': (r, g, b),
-            'hex': f'#{r:02x}{g:02x}{b:02x}',
-            'count': int(count),
-            'percentage': round(count / total_solid * 100, 2)
+            'color': (int(r[i]), int(g[i]), int(b[i])),
+            'hex': f'#{r[i]:02x}{g[i]:02x}{b[i]:02x}',
+            'count': int(color_counts[i]),
+            'percentage': round(color_counts[i] / total_solid * 100, 2)
         })
-    
+
     # Sort by count descending
     palette.sort(key=lambda x: x['count'], reverse=True)
-    
+
     return palette
 
 
@@ -2984,6 +3035,79 @@ def generate_preview_cached(image_path, lut_path, target_width_mm,
     return display, cache, f"[OK] Preview ({target_w}×{target_h}px, {num_colors} colors) | Click image to place loop"
 
 
+def _get_or_create_grid_template(is_dark: bool, bed_w_mm: int, bed_h_mm: int):
+    """
+    Get or create grid template for performance optimization.
+
+    Args:
+        is_dark: True for dark theme, False for light theme
+        bed_w_mm: Bed width in mm
+        bed_h_mm: Bed height in mm
+
+    Returns:
+        PIL Image with grid lines (transparent background)
+
+    Raises:
+        ValueError: If bed dimensions are not positive
+    """
+    # Parameter validation
+    if bed_w_mm <= 0 or bed_h_mm <= 0:
+        raise ValueError(f"Bed dimensions must be positive: {bed_w_mm}x{bed_h_mm}")
+
+    cache_key = ('dark' if is_dark else 'light', bed_w_mm, bed_h_mm)
+
+    # Double-checked locking pattern for thread safety
+    if cache_key in _GRID_TEMPLATE_CACHE:
+        return _GRID_TEMPLATE_CACHE[cache_key]
+
+    with _CACHE_LOCK:
+        # Check again to prevent duplicate creation
+        if cache_key in _GRID_TEMPLATE_CACHE:
+            return _GRID_TEMPLATE_CACHE[cache_key]
+
+        # Create grid template on first call
+        ppm = 1200 / max(bed_w_mm, bed_h_mm)
+        canvas_w = int(bed_w_mm * ppm)
+        canvas_h = int(bed_h_mm * ppm)
+
+        template = Image.new('RGBA', (canvas_w, canvas_h), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(template)
+
+        # Theme colors
+        if is_dark:
+            grid_fine = (52, 52, 58, 255)
+            grid_bold = (72, 72, 80, 255)
+            axis_color = (90, 90, 110, 255)
+        else:
+            grid_fine = (225, 225, 230, 255)
+            grid_bold = (180, 180, 190, 255)
+            axis_color = (100, 100, 120, 255)
+
+        # Draw grid lines
+        step_10 = max(1, int(10 * ppm))
+        step_50 = max(1, int(50 * ppm))
+
+        # Draw 10mm grid lines
+        for x in range(0, canvas_w, step_10):
+            draw.line([(x, 0), (x, canvas_h)], fill=grid_fine, width=1)
+        for y in range(0, canvas_h, step_10):
+            draw.line([(0, y), (canvas_w, y)], fill=grid_fine, width=1)
+
+        # Draw 50mm grid lines
+        for x in range(0, canvas_w, step_50):
+            draw.line([(x, 0), (x, canvas_h)], fill=grid_bold, width=2)
+        for y in range(0, canvas_h, step_50):
+            draw.line([(0, y), (canvas_w, y)], fill=grid_bold, width=2)
+
+        # Draw axes
+        draw.line([(0, canvas_h), (canvas_w, canvas_h)], fill=axis_color, width=2)
+        draw.line([(0, 0), (0, canvas_h)], fill=axis_color, width=2)
+
+        # Cache template
+        _GRID_TEMPLATE_CACHE[cache_key] = template
+        return template
+
+
 def render_preview(preview_rgba, loop_pos, loop_width, loop_length,
                    loop_hole, loop_angle, loop_enabled, color_conf,
                    target_width_mm=None, is_dark=True):
@@ -3007,18 +3131,12 @@ def render_preview(preview_rgba, loop_pos, loop_width, loop_length,
     if is_dark:
         canvas_bg = (38, 38, 44, 255)
         bed_bg = (58, 58, 66, 255)
-        grid_fine = (52, 52, 58, 255)
-        grid_bold = (72, 72, 80, 255)
         border_color = (45, 45, 52, 255)
-        axis_color = (90, 90, 110, 255)
         label_color = (140, 140, 170, 255)
     else:
         canvas_bg = (215, 215, 220, 255)
         bed_bg = (242, 242, 245, 255)
-        grid_fine = (225, 225, 230, 255)
-        grid_bold = (180, 180, 190, 255)
         border_color = (195, 195, 205, 255)
-        axis_color = (100, 100, 120, 255)
         label_color = (80, 80, 100, 255)
 
     canvas = Image.new('RGBA', (total_w, total_h), canvas_bg)
@@ -3031,29 +3149,15 @@ def render_preview(preview_rgba, loop_pos, loop_width, loop_length,
         radius=corner_r, fill=bed_bg
     )
 
-    # --- grid lines ---
-    step_10 = max(1, int(10 * ppm))
-    step_50 = max(1, int(50 * ppm))
-
-    for x in range(0, total_w, step_10):
-        draw.line([(x, 0), (x, total_h)], fill=grid_fine, width=1)
-    for y in range(0, total_h, step_10):
-        draw.line([(0, y), (total_w, y)], fill=grid_fine, width=1)
-
-    for x in range(0, total_w, step_50):
-        draw.line([(x, 0), (x, total_h)], fill=grid_bold, width=2)
-    for y in range(0, total_h, step_50):
-        draw.line([(0, y), (total_w, y)], fill=grid_bold, width=2)
+    # Optimized: Use cached grid template
+    grid_template = _get_or_create_grid_template(is_dark, bed_w_mm, bed_h_mm)
+    canvas.paste(grid_template, (0, 0), mask=grid_template)
 
     # Rounded border on top of grid
     draw.rounded_rectangle(
         [0, 0, total_w - 1, total_h - 1],
         radius=corner_r, outline=border_color, width=2
     )
-
-    # axes
-    draw.line([(0, 0), (0, total_h)], fill=axis_color, width=2)
-    draw.line([(0, total_h - 1), (total_w, total_h - 1)], fill=axis_color, width=2)
 
     # labels (mm)
     try:
