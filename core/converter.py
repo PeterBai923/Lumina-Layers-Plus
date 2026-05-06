@@ -908,17 +908,12 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
     _mesh_t0 = time.perf_counter() if _bench_enabled else None
     
     scene = trimesh.Scene()
-    
-    transform = np.eye(4)
-    transform[0, 0] = pixel_scale
-    transform[1, 1] = pixel_scale
-    transform[2, 2] = PrinterConfig.LAYER_HEIGHT
-    
-    print(f"[CONVERTER] Transform: XY={pixel_scale}mm/px, Z={PrinterConfig.LAYER_HEIGHT}mm/layer")
-    
+
+    print(f"[CONVERTER] Transform: XY={pixel_scale}mm/px, Z=variable (optical={PrinterConfig.LAYER_HEIGHT}mm, backing={PrinterConfig.BACKING_LAYER_HEIGHT}mm)")
+
     mesher = get_mesher(modeling_mode)
     print(f"[CONVERTER] Using mesher: {mesher.__class__.__name__}")
-    
+
     valid_slot_names = []
     num_materials = len(slot_names)
     print(f"[CONVERTER] Generating meshes for {num_materials} materials...")
@@ -954,13 +949,14 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
             continue
         mesh = mesh_results.get(mat_id)
         if mesh:
-            mesh.apply_transform(transform)
+            # Apply variable layer height transform
+            _apply_variable_layer_height_transform(mesh, backing_metadata, pixel_scale)
             mesh.visual.face_colors = preview_colors[mat_id]
             name = slot_names[mat_id]
             mesh.metadata['name'] = name
             scene.add_geometry(
-                mesh, 
-                node_name=name, 
+                mesh,
+                node_name=name,
                 geom_name=name
             )
             valid_slot_names.append(name)
@@ -982,12 +978,13 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                 print(f"[CONVERTER] Warning: Backing mesh is empty, skipping separate backing object")
                 print(f"[CONVERTER] Continuing with other material meshes...")
             else:
-                backing_mesh.apply_transform(transform)
-                
+                # Apply variable layer height transform
+                _apply_variable_layer_height_transform(backing_mesh, backing_metadata, pixel_scale)
+
                 # Apply white color (material_id=0)
                 backing_color = preview_colors[0]
                 backing_mesh.visual.face_colors = backing_color
-                
+
                 backing_name = "Backing"
                 backing_mesh.metadata['name'] = backing_name
                 scene.add_geometry(backing_mesh, node_name=backing_name, geom_name=backing_name)
@@ -1009,7 +1006,8 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
         try:
             wire_mesh = mesher.generate_mesh(full_matrix, mat_id=-3, height_px=target_h)
             if wire_mesh is not None and len(wire_mesh.vertices) > 0:
-                wire_mesh.apply_transform(transform)
+                # Apply variable layer height transform
+                _apply_variable_layer_height_transform(wire_mesh, backing_metadata, pixel_scale)
                 wire_mesh.visual.face_colors = [218, 165, 32, 255]  # Gold colour
                 wire_name = "Wire"
                 wire_mesh.metadata['name'] = wire_name
@@ -1053,7 +1051,8 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                     fc_matrix = np.where(fc_matrix >= 0, 0, -1)
                     fc_mesh = mesher.generate_mesh(fc_matrix, 0, target_h)
                     if fc_mesh and len(fc_mesh.vertices) > 0:
-                        fc_mesh.apply_transform(transform)
+                        # Apply variable layer height transform
+                        _apply_variable_layer_height_transform(fc_mesh, backing_metadata, pixel_scale)
                         fc_mesh.visual.face_colors = [r_fc, g_fc, b_fc, 255]
                         fc_name = f"Free_{hex_c[1:]}"
                         fc_mesh.metadata['name'] = fc_name
@@ -1148,7 +1147,16 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
     if enable_outline:
         try:
             # Outline thickness matches the full model height
-            outline_thickness_mm = total_layers * PrinterConfig.LAYER_HEIGHT
+            # Calculate actual model height with variable layer heights
+            backing_z_start, backing_z_end = backing_metadata['backing_z_range']
+            optical_layers_bottom = backing_z_start
+            backing_layers = backing_z_end - backing_z_start + 1
+            optical_layers_top = total_layers - backing_z_end - 1 if backing_z_end < total_layers - 1 else 0
+
+            optical_height = (optical_layers_bottom + optical_layers_top) * PrinterConfig.LAYER_HEIGHT
+            backing_height = backing_layers * PrinterConfig.BACKING_LAYER_HEIGHT
+            outline_thickness_mm = optical_height + backing_height
+
             # If coating is enabled, extend outline downward to cover coating layers
             outline_z_offset = 0.0
             if enable_coating:
@@ -1157,7 +1165,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                 outline_thickness_mm += coating_mm
                 outline_z_offset = -coating_mm
                 print(f"[CONVERTER] 🔲 Outline extended to cover coating: total_thickness={outline_thickness_mm}mm")
-            
+
             print(f"[CONVERTER] 🔲 Generating outline: width={outline_width}mm, thickness={outline_thickness_mm}mm (z_offset={outline_z_offset}mm)")
             
             outline_mesh = _generate_outline_mesh(
@@ -1310,7 +1318,12 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
     )
 
     if preview_mesh:
-        preview_mesh.apply_transform(transform)
+        # Preview mesh uses uniform scaling (simplified visualization)
+        preview_transform = np.eye(4)
+        preview_transform[0, 0] = pixel_scale
+        preview_transform[1, 1] = pixel_scale
+        preview_transform[2, 2] = PrinterConfig.LAYER_HEIGHT
+        preview_mesh.apply_transform(preview_transform)
 
         # 单面模式：X 轴镜像修正（与 3MF 导出保持一致）
         if is_single_sided:
@@ -1949,6 +1962,63 @@ def _build_cloisonne_voxel_matrix(material_matrix, mask_solid, mask_wireframe,
     print(f"[CLOISONNE] Voxel matrix: {full_matrix.shape} "
           f"(base={spacer_layers}, colour={OPTICAL}, wire={wire_layers})")
     return full_matrix, backing_metadata
+
+
+def _apply_variable_layer_height_transform(mesh, backing_metadata, pixel_scale):
+    """
+    Apply transform with variable layer heights for optical and backing layers.
+
+    For each vertex, determine which layer type it belongs to and apply the
+    appropriate Z scaling:
+    - Optical layers: LAYER_HEIGHT (0.08mm)
+    - Backing layers: BACKING_LAYER_HEIGHT (0.2mm)
+
+    Supports single-sided, double-sided, cloisonne, and relief modes.
+
+    Args:
+        mesh: trimesh.Trimesh object to transform
+        backing_metadata: dict with 'backing_z_range' (start_z, end_z)
+        pixel_scale: XY pixel scale factor (mm per voxel)
+
+    Returns:
+        Modified mesh with transformed vertices
+    """
+    if mesh is None or len(mesh.vertices) == 0:
+        return mesh
+
+    vertices = mesh.vertices.copy()
+    backing_z_start, backing_z_end = backing_metadata['backing_z_range']
+
+    # Extract Z coordinates (voxel layer indices)
+    z_voxel = vertices[:, 2]
+
+    # Calculate scaled Z coordinates
+    def scale_z(z):
+        """Non-linear Z scaling based on layer type"""
+        if z < backing_z_start:
+            # Optical layers (before backing)
+            return z * PrinterConfig.LAYER_HEIGHT
+        elif z <= backing_z_end:
+            # Backing layers
+            optical_height = backing_z_start * PrinterConfig.LAYER_HEIGHT
+            return optical_height + (z - backing_z_start) * PrinterConfig.BACKING_LAYER_HEIGHT
+        else:
+            # Optical layers (after backing, e.g., double-sided mode)
+            optical_height_bottom = backing_z_start * PrinterConfig.LAYER_HEIGHT
+            backing_height = (backing_z_end - backing_z_start + 1) * PrinterConfig.BACKING_LAYER_HEIGHT
+            optical_height_top = (z - backing_z_end - 1) * PrinterConfig.LAYER_HEIGHT
+            return optical_height_bottom + backing_height + optical_height_top
+
+    # Vectorize Z scaling
+    z_new = np.vectorize(scale_z)(z_voxel)
+
+    # Apply XY scaling
+    vertices[:, 0] *= pixel_scale
+    vertices[:, 1] *= pixel_scale
+    vertices[:, 2] = z_new
+
+    mesh.vertices = vertices
+    return mesh
 
 
 def _build_voxel_matrix(material_matrix, mask_solid, spacer_thick, structure_mode, backing_color_id=0):
