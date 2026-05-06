@@ -498,7 +498,7 @@ class LuminaImageProcessor:
                 - mode_info: Mode information dictionary
                 - debug_data: Debug data (high-fidelity mode only)
         """
-        print(f"[IMAGE_PROCESSOR] Mode: {modeling_mode.get_display_name()}")
+        print(f"[IMAGE_PROCESSOR] Mode: High-Fidelity")
         print(f"[IMAGE_PROCESSOR] Filter settings: blur_kernel={blur_kernel}, smooth_sigma={smooth_sigma}")
         
         # ========== Image Loading Logic Branch ==========
@@ -540,21 +540,14 @@ class LuminaImageProcessor:
                     original_img = original_img.convert('RGBA')
                 alpha_data = np.array(original_img)[:, :, 3]
             
-            # Calculate target resolution
-            if modeling_mode == ModelingMode.HIGH_FIDELITY:
-                # High-precision mode: 10 pixels/mm
-                PIXELS_PER_MM = 10
-                target_w = int(target_width_mm * PIXELS_PER_MM)
-                pixel_to_mm_scale = 1.0 / PIXELS_PER_MM  # 0.1 mm per pixel
-                print(f"[IMAGE_PROCESSOR] High-res mode: {PIXELS_PER_MM} px/mm")
-            else:
-                # Pixel mode: Based on nozzle width
-                target_w = int(target_width_mm / PrinterConfig.NOZZLE_WIDTH)
-                pixel_to_mm_scale = PrinterConfig.NOZZLE_WIDTH
-                print(f"[IMAGE_PROCESSOR] Pixel mode: {1.0/pixel_to_mm_scale:.2f} px/mm")
-            
-            target_h = int(target_w * img.height / img.width)
-            print(f"[IMAGE_PROCESSOR] Target: {target_w}×{target_h}px ({target_w*pixel_to_mm_scale:.1f}×{target_h*pixel_to_mm_scale:.1f}mm)")
+        # Calculate target resolution (always high-fidelity mode)
+        PIXELS_PER_MM = 10
+        target_w = int(target_width_mm * PIXELS_PER_MM)
+        pixel_to_mm_scale = 1.0 / PIXELS_PER_MM  # 0.1 mm per pixel
+        print(f"[IMAGE_PROCESSOR] High-res mode: {PIXELS_PER_MM} px/mm")
+
+        target_h = int(target_w * img.height / img.width)
+        print(f"[IMAGE_PROCESSOR] Target: {target_w}×{target_h}px ({target_w*pixel_to_mm_scale:.1f}×{target_h*pixel_to_mm_scale:.1f}mm)")
         
         # ========== End of Image Loading Logic Branch ==========
         
@@ -579,17 +572,12 @@ class LuminaImageProcessor:
         
         # Color processing and matching
         debug_data = None
-        if modeling_mode == ModelingMode.HIGH_FIDELITY:
-            matched_rgb, material_matrix, bg_reference, debug_data = self._process_high_fidelity_mode(
-                rgb_arr, target_h, target_w, quantize_colors, blur_kernel, smooth_sigma
-            )
-        else:
-            matched_rgb, material_matrix, bg_reference = self._process_pixel_mode(
-                rgb_arr, target_h, target_w
-            )
-        
+        matched_rgb, material_matrix, bg_reference, debug_data = self._process_high_fidelity_mode(
+            rgb_arr, target_h, target_w, quantize_colors, blur_kernel, smooth_sigma
+        )
+
         # >>> 孤立像素清理（可选后处理）<<<
-        if modeling_mode == ModelingMode.HIGH_FIDELITY and self.enable_cleanup:
+        if self.enable_cleanup:
             try:
                 from core.isolated_pixel_cleanup import cleanup_isolated_pixels
                 matched_rgb, material_matrix = cleanup_isolated_pixels(
@@ -616,16 +604,16 @@ class LuminaImageProcessor:
             'dimensions': (target_w, target_h),
             'pixel_scale': pixel_to_mm_scale,
             'mode_info': {
-                'mode': modeling_mode
+                'mode': ModelingMode.HIGH_FIDELITY
             },
             # 统一返回契约：全路径提供 quantized_image
             'quantized_image': debug_data['quantized_image'] if debug_data is not None else rgb_arr.copy()
         }
-        
-        # Add debug data (high-fidelity mode only)
+
+        # Add debug data
         if debug_data is not None:
             result['debug_data'] = debug_data
-        
+
         return result
 
     
@@ -846,32 +834,6 @@ class LuminaImageProcessor:
         }
         
         return matched_rgb, material_matrix, quantized_image, debug_data
-    
-    def _process_pixel_mode(self, rgb_arr, target_h, target_w):
-        """
-        Pixel art mode image processing
-        Direct pixel-level color matching, no smoothing
-        """
-        print(f"[IMAGE_PROCESSOR] Direct pixel-level matching (Pixel Art mode, CIELAB space)...")
-        
-        flat_rgb = rgb_arr.reshape(-1, 3)
-        
-        if self.hue_matcher is not None:
-            print(f"[IMAGE_PROCESSOR] 🎨 Hue-aware matching enabled (hue_weight={self.hue_weight})")
-            indices = self.hue_matcher.match_colors_batch(flat_rgb, k=32)
-        else:
-            flat_lab = self._rgb_to_lab(flat_rgb)
-            _, indices = self.kdtree.query(flat_lab)
-        
-        matched_rgb = self.lut_rgb[indices].reshape(target_h, target_w, 3)
-        material_matrix = self.ref_stacks[indices].reshape(
-            target_h, target_w, self.layer_count
-        )
-        
-        print(f"[IMAGE_PROCESSOR] Direct matching complete!")
-        
-        return matched_rgb, material_matrix, rgb_arr
-
     def _extract_wireframe_mask(self, rgb_arr, target_w, pixel_scale, wire_width_mm=0.6):
         """
         Extract cloisonné wireframe mask using edge detection + dilation.

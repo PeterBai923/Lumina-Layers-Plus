@@ -4,7 +4,6 @@ Mesh generation strategy module - Refactored version
 
 ARCHITECTURE:
 - High-Fidelity Mode: RLE-based solid extrusion with morphological dilation
-- Pixel Art Mode: Legacy voxel mesher (blocky aesthetic with gaps)
 
 PERFORMANCE: Optimized for 100k+ faces with instant generation.
 
@@ -84,91 +83,34 @@ else:
 
 class BaseMesher(ABC):
     """Mesh generator abstract base class"""
-    
+
     @abstractmethod
     def generate_mesh(self, voxel_matrix, mat_id, height_px):
         """
         Generate 3D mesh for specified material
-        
+
         Args:
             voxel_matrix: (Z, H, W) voxel matrix
             mat_id: Material ID (0-7 for regular materials, -2 for backing layer)
             height_px: Image height (pixels)
-        
+
         Returns:
             trimesh.Trimesh or None
         """
         pass
-    
+
     def generate_backing_mesh(self, voxel_matrix, height_px):
         """
         Generate backing mesh (convenience method)
-        
+
         Args:
             voxel_matrix: (Z, H, W) voxel matrix
             height_px: Image height (pixels)
-        
+
         Returns:
             trimesh.Trimesh or None
         """
         return self.generate_mesh(voxel_matrix, mat_id=-2, height_px=height_px)
-
-
-class VoxelMesher(BaseMesher):
-    """
-    Pixel art mode mesh generator
-    Generates blocky voxel mesh (preserves gap aesthetic)
-    
-    LEGACY MODE: Preserves the "blocky with gaps" aesthetic for pixel art.
-    """
-    
-    def generate_mesh(self, voxel_matrix, mat_id, height_px):
-        """
-        Generate pixel mode mesh (Legacy Voxel Mode)
-        
-        Supports both regular materials (0-7) and backing layer (-2).
-        """
-        vertices, faces = [], []
-        shrink = 0.05  # Preserve gaps for blocky aesthetic
-        
-        for z in range(voxel_matrix.shape[0]):
-            z_bottom, z_top = z, z + 1
-            mask = (voxel_matrix[z] == mat_id)
-            if not np.any(mask):
-                continue
-            
-            for y in range(height_px):
-                world_y = (height_px - 1 - y)
-                row = mask[y]
-                padded = np.pad(row, (1, 1), mode='constant')
-                diff = np.diff(padded.astype(int))
-                starts, ends = np.where(diff == 1)[0], np.where(diff == -1)[0]
-                
-                for start, end in zip(starts, ends):
-                    x0, x1 = start + shrink, end - shrink
-                    y0, y1 = world_y + shrink, world_y + 1 - shrink
-                    
-                    base_idx = len(vertices)
-                    vertices.extend([
-                        [x0, y0, z_bottom], [x1, y0, z_bottom], 
-                        [x1, y1, z_bottom], [x0, y1, z_bottom],
-                        [x0, y0, z_top], [x1, y0, z_top], 
-                        [x1, y1, z_top], [x0, y1, z_top]
-                    ])
-                    cube_faces = CUBE_FACES
-                    faces.extend([[v + base_idx for v in f] for f in cube_faces])
-        
-        if not vertices:
-            return None
-        
-        mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
-        mesh.merge_vertices()
-        mesh.update_faces(mesh.unique_faces())
-        
-        mesh_type = "Backing" if mat_id == -2 else f"Mat ID {mat_id}"
-        print(f"[VOXEL_MESHER] {mesh_type}: Generated {len(mesh.vertices):,} verts, {len(mesh.faces):,} faces")
-        
-        return mesh
 
 
 class HighFidelityMesher(BaseMesher):
@@ -424,31 +366,12 @@ class HighFidelityMesher(BaseMesher):
 def get_mesher(mode_name: ModelingMode):
     """
     Return corresponding Mesher instance based on mode name
-    
+
     Args:
-        mode_name: ModelingMode enum value
-            - ModelingMode.HIGH_FIDELITY → HighFidelityMesher
-            - ModelingMode.PIXEL → VoxelMesher
-            - ModelingMode.VECTOR → HighFidelityMesher (vector uses same algorithm)
-    
+        mode_name: ModelingMode enum value (always HIGH_FIDELITY)
+
     Returns:
-        BaseMesher instance
+        BaseMesher instance (always HighFidelityMesher)
     """
-    # High-Fidelity mode (replaces Vector and Woodblock)
-    if mode_name == ModelingMode.HIGH_FIDELITY:
-        print("[MESHER_FACTORY] Selected: HighFidelityMesher (RLE-based with Dilation)")
-        return HighFidelityMesher()
-    
-    # Vector mode uses same algorithm as High-Fidelity
-    if mode_name == ModelingMode.VECTOR:
-        print("[MESHER_FACTORY] Selected: HighFidelityMesher (Vector mode)")
-        return HighFidelityMesher()
-    
-    # Pixel Art mode (legacy voxel)
-    if mode_name == ModelingMode.PIXEL:
-        print("[MESHER_FACTORY] Selected: VoxelMesher (Blocky)")
-        return VoxelMesher()
-    
-    # Default fallback to High-Fidelity
-    print(f"[MESHER_FACTORY] Unknown mode '{mode_name}', defaulting to HighFidelityMesher")
+    print("[MESHER_FACTORY] Selected: HighFidelityMesher (RLE-based with Dilation)")
     return HighFidelityMesher()

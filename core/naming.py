@@ -14,8 +14,6 @@ from config import ModelingMode
 # 建模模式 → 文件名标识映射
 MODELING_MODE_TAGS: Dict[ModelingMode, str] = {
     ModelingMode.HIGH_FIDELITY: "HiFi",
-    ModelingMode.PIXEL: "Pixel",
-    ModelingMode.VECTOR: "Vector",
 }
 
 # 颜色模式 → 文件名标识映射
@@ -125,12 +123,12 @@ def generate_batch_filename(
 _TS_PATTERN = r"\d{8}_\d{6}"
 
 # Valid mode and color tags for matching
-_VALID_MODE_TAGS = {"HiFi", "Pixel", "Vector"}
+_VALID_MODE_TAGS = {"HiFi"}
 _VALID_COLOR_TAGS = {"4C", "5C", "6C", "8C", "BW", "Merged"}
 
 # Regex patterns for each file type
 _MODEL_RE = re.compile(
-    rf"^(.+)_Lumina_(HiFi|Pixel|Vector)_(4C|5C|6C|8C|BW|Merged)_({_TS_PATTERN})(\.[\w]+)$"
+    rf"^(.+)_Lumina_(HiFi)_(4C|5C|6C|8C|BW|Merged)_({_TS_PATTERN})(\.[\w]+)$"
 )
 _PREVIEW_RE = re.compile(
     rf"^(.+)_Preview_({_TS_PATTERN})(\.[\w]+)$"

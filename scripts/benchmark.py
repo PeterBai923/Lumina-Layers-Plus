@@ -144,7 +144,7 @@ def run_svg_benchmark(run_preview: bool = True):
             auto_bg=False,
             bg_tol=20,
             color_mode=COLOR_MODE,
-            modeling_mode=ModelingMode.VECTOR,
+            modeling_mode=ModelingMode.HIGH_FIDELITY,
             quantize_colors=QUANTIZE,
             backing_color_id=0,
             enable_cleanup=True,
@@ -169,7 +169,7 @@ def run_svg_benchmark(run_preview: bool = True):
         loop_length=12.0,
         loop_hole=4.0,
         loop_pos=50.0,
-        modeling_mode=ModelingMode.VECTOR,
+        modeling_mode=ModelingMode.HIGH_FIDELITY,
         quantize_colors=QUANTIZE,
         backing_color_name="White",
     )

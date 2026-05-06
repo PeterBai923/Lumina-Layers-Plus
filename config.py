@@ -83,15 +83,11 @@ class SmartConfig:
 class ModelingMode(str, Enum):
     """建模模式枚举"""
     HIGH_FIDELITY = "high-fidelity"  # 高保真模式
-    PIXEL = "pixel"  # 像素模式
-    VECTOR = "vector"
-    
+
     def get_display_name(self) -> str:
         """获取模式的显示名称"""
         display_names = {
             ModelingMode.HIGH_FIDELITY: "High-Fidelity",
-            ModelingMode.PIXEL: "Pixel Art",
-            ModelingMode.VECTOR: "Vector"
         }
         return display_names.get(self, self.value)
 

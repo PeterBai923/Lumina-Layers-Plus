@@ -35,12 +35,6 @@ class TestModelingModeTags:
     def test_high_fidelity_maps_to_hifi(self):
         assert MODELING_MODE_TAGS[ModelingMode.HIGH_FIDELITY] == "HiFi"
 
-    def test_pixel_maps_to_pixel(self):
-        assert MODELING_MODE_TAGS[ModelingMode.PIXEL] == "Pixel"
-
-    def test_vector_maps_to_vector(self):
-        assert MODELING_MODE_TAGS[ModelingMode.VECTOR] == "Vector"
-
     def test_all_enum_members_have_mapping(self):
         for mode in ModelingMode:
             assert mode in MODELING_MODE_TAGS, f"{mode} missing from MODELING_MODE_TAGS"
@@ -77,11 +71,11 @@ class TestEdgeCases:
     """Edge cases: empty strings, special characters, unicode, unknown modes."""
 
     def test_empty_base_name_uses_untitled(self):
-        filename = generate_model_filename("", ModelingMode.PIXEL, "4-Color")
+        filename = generate_model_filename("", ModelingMode.HIGH_FIDELITY, "4-Color")
         assert filename.startswith("untitled_Lumina_")
 
     def test_whitespace_only_base_name_uses_untitled(self):
-        filename = generate_model_filename("   ", ModelingMode.PIXEL, "BW")
+        filename = generate_model_filename("   ", ModelingMode.HIGH_FIDELITY, "BW")
         assert filename.startswith("untitled_Lumina_")
 
     def test_special_characters_sanitized(self):
@@ -96,19 +90,19 @@ class TestEdgeCases:
     def test_all_forbidden_chars_sanitized(self):
         forbidden = '<>:"/\\|?*'
         filename = generate_model_filename(
-            f"test{forbidden}name", ModelingMode.PIXEL, "BW"
+            f"test{forbidden}name", ModelingMode.HIGH_FIDELITY, "BW"
         )
         for ch in forbidden:
             assert ch not in filename
 
     def test_unicode_base_name(self):
-        filename = generate_model_filename("日本語テスト", ModelingMode.VECTOR, "4-Color")
+        filename = generate_model_filename("日本語テスト", ModelingMode.HIGH_FIDELITY, "4-Color")
         assert "日本語テスト" in filename
-        assert "_Lumina_Vector_4C_" in filename
+        assert "_Lumina_HiFi_4C_" in filename
 
     def test_unicode_emoji_base_name(self):
-        filename = generate_model_filename("🎨art", ModelingMode.PIXEL, "BW")
-        assert "_Lumina_Pixel_BW_" in filename
+        filename = generate_model_filename("🎨art", ModelingMode.HIGH_FIDELITY, "BW")
+        assert "_Lumina_HiFi_BW_" in filename
 
     def test_unknown_modeling_mode_uses_unknown(self):
         # Simulate an unknown mode by passing a value not in the mapping
@@ -117,7 +111,7 @@ class TestEdgeCases:
         assert "_Unknown_" in filename
 
     def test_unknown_color_mode_uses_unknown(self):
-        filename = generate_model_filename("test", ModelingMode.PIXEL, "NonExistent")
+        filename = generate_model_filename("test", ModelingMode.HIGH_FIDELITY, "NonExistent")
         assert "_Unknown_" in filename
 
     def test_sanitize_preserves_normal_chars(self):
@@ -146,21 +140,21 @@ class TestGeneratedFilenameFormat:
         assert result == f"photo_Lumina_HiFi_4C_{FIXED_TS}.3mf"
 
     @patch("core.naming._get_timestamp", return_value=FIXED_TS)
-    def test_model_filename_pixel_6c(self, _mock_ts):
-        result = generate_model_filename("img", ModelingMode.PIXEL, "6-Color")
-        assert result == f"img_Lumina_Pixel_6C_{FIXED_TS}.3mf"
+    def test_model_filename_hifi_6c(self, _mock_ts):
+        result = generate_model_filename("img", ModelingMode.HIGH_FIDELITY, "6-Color")
+        assert result == f"img_Lumina_HiFi_6C_{FIXED_TS}.3mf"
 
     @patch("core.naming._get_timestamp", return_value=FIXED_TS)
-    def test_model_filename_vector_8c(self, _mock_ts):
+    def test_model_filename_hifi_8c(self, _mock_ts):
         result = generate_model_filename(
-            "design", ModelingMode.VECTOR, "8-Color Max"
+            "design", ModelingMode.HIGH_FIDELITY, "8-Color Max"
         )
-        assert result == f"design_Lumina_Vector_8C_{FIXED_TS}.3mf"
+        assert result == f"design_Lumina_HiFi_8C_{FIXED_TS}.3mf"
 
     @patch("core.naming._get_timestamp", return_value=FIXED_TS)
     def test_model_filename_bw(self, _mock_ts):
-        result = generate_model_filename("sketch", ModelingMode.PIXEL, "BW")
-        assert result == f"sketch_Lumina_Pixel_BW_{FIXED_TS}.3mf"
+        result = generate_model_filename("sketch", ModelingMode.HIGH_FIDELITY, "BW")
+        assert result == f"sketch_Lumina_HiFi_BW_{FIXED_TS}.3mf"
 
     @patch("core.naming._get_timestamp", return_value=FIXED_TS)
     def test_preview_filename_structure(self, _mock_ts):
@@ -180,13 +174,13 @@ class TestGeneratedFilenameFormat:
     @patch("core.naming._get_timestamp", return_value=FIXED_TS)
     def test_custom_extension(self, _mock_ts):
         result = generate_model_filename(
-            "test", ModelingMode.PIXEL, "BW", extension=".stl"
+            "test", ModelingMode.HIGH_FIDELITY, "BW", extension=".stl"
         )
         assert result.endswith(".stl")
 
     def test_model_filename_matches_regex(self):
         pattern = re.compile(
-            rf"^.+_Lumina_(HiFi|Pixel|Vector)_(4C|6C|8C|BW)_{TS_RE}\.3mf$"
+            rf"^.+_Lumina_(HiFi)_(4C|6C|8C|BW|Merged)_{TS_RE}\.3mf$"
         )
         for mode in ModelingMode:
             for color in ["4-Color", "6-Color", "8-Color Max", "BW"]:

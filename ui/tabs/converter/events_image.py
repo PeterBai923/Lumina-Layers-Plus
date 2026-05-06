@@ -455,67 +455,31 @@ def bind_image_events(components, states):
 
     # ==================== Modeling mode change ====================
     def on_modeling_mode_change_controls(mode):
-        is_pixel = mode == ModelingMode.PIXEL
-        is_vector = mode == ModelingMode.VECTOR
+        cleanup_update = gr.update(
+            interactive=True,
+            info="清理 LUT 匹配后的孤立像素，提升打印成功率",
+        )
 
-        # Cleanup: Pixel 模式禁用，其它模式可用
-        if is_pixel:
-            cleanup_update = gr.update(
-                interactive=False,
-                value=False,
-                info="像素模式下不支持孤立像素清理 | Not available in Pixel Art mode",
-            )
-        else:
-            cleanup_update = gr.update(
-                interactive=True,
-                info="清理 LUT 匹配后的孤立像素，提升打印成功率",
-            )
-
-        # Outline / Cloisonné: 当前仅在 Raster 路径生效，Vector 模式禁用并提示
-        if is_vector:
-            outline_checkbox_update = gr.update(
-                interactive=False,
-                value=False,
-                info="Vector(SVG) 模式暂不支持描边；该选项仅在 Raster 路径生效",
-            )
-            outline_width_update = gr.update(
-                interactive=False,
-                info="Vector(SVG) 模式下已禁用",
-            )
-            cloisonne_checkbox_update = gr.update(
-                interactive=False,
-                value=False,
-                info="Vector(SVG) 模式暂不支持掐丝珐琅；该选项仅在 Raster 路径生效",
-            )
-            wire_width_update = gr.update(
-                interactive=False,
-                info="Vector(SVG) 模式下已禁用",
-            )
-            wire_height_update = gr.update(
-                interactive=False,
-                info="Vector(SVG) 模式下已禁用",
-            )
-        else:
-            outline_checkbox_update = gr.update(
-                interactive=True,
-                info="描边仅在生成阶段生效",
-            )
-            outline_width_update = gr.update(
-                interactive=True,
-                info=None,
-            )
-            cloisonne_checkbox_update = gr.update(
-                interactive=True,
-                info="掐丝珐琅仅在生成阶段生效（与 2.5D 浮雕互斥）",
-            )
-            wire_width_update = gr.update(
-                interactive=True,
-                info=None,
-            )
-            wire_height_update = gr.update(
-                interactive=True,
-                info=None,
-            )
+        outline_checkbox_update = gr.update(
+            interactive=True,
+            info="描边仅在生成阶段生效",
+        )
+        outline_width_update = gr.update(
+            interactive=True,
+            info=None,
+        )
+        cloisonne_checkbox_update = gr.update(
+            interactive=True,
+            info="掐丝珐琅仅在生成阶段生效（与 2.5D 浮雕互斥）",
+        )
+        wire_width_update = gr.update(
+            interactive=True,
+            info=None,
+        )
+        wire_height_update = gr.update(
+            interactive=True,
+            info=None,
+        )
 
         return (
             cleanup_update,

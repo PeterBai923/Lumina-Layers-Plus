@@ -279,12 +279,10 @@ def build_left_sidebar(components, states):
             components['radio_conv_modeling_mode'] = gr.Radio(
                 choices=[
                     ('🎨 高保真', ModelingMode.HIGH_FIDELITY),
-                    ('🧱 像素艺术', ModelingMode.PIXEL),
-                    ('📐 SVG模式', ModelingMode.VECTOR)
                 ],
                 value=saved_modeling_mode,
                 label='🎨 建模模式',
-                info='高保真：RLE无缝拼接，水密模型 | 像素艺术：经典方块美学 | SVG模式：矢量直接转换',
+                info='高保真：RLE无缝拼接，水密模型',
                 elem_classes=["vertical-radio"],
                 scale=2
             )

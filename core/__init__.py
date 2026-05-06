@@ -37,13 +37,13 @@ from .converter import (
 
 # New refactored modules
 from .image_processing import LuminaImageProcessor
-from .mesh_generators import get_mesher, VoxelMesher, HighFidelityMesher
+from .mesh_generators import get_mesher, HighFidelityMesher
 from .geometry_utils import create_keychain_loop
 
 __all__ = [
     # Calibration
     'generate_calibration_board',
-    
+
     # Extractor
     'rotate_image',
     'draw_corner_points',
@@ -52,7 +52,7 @@ __all__ = [
     'run_extraction',
     'probe_lut_cell',
     'manual_fix_cell',
-    
+
     # Converter (public API)
     'convert_image_to_3d',
     'generate_preview_cached',
@@ -62,11 +62,10 @@ __all__ = [
     'on_remove_loop',
     'generate_final_model',
     'update_preview_with_backing_color',
-    
+
     # Refactored modules (for advanced usage)
     'LuminaImageProcessor',
     'get_mesher',
-    'VoxelMesher',
     'HighFidelityMesher',
     'create_keychain_loop',
 ]

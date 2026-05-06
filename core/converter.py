@@ -546,7 +546,7 @@ def _get_actual_lut_slot_colors(processor) -> dict:
 def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                          structure_mode, auto_bg, bg_tol, color_mode,
                          add_loop, loop_width, loop_length, loop_hole, loop_pos,
-                         modeling_mode=ModelingMode.VECTOR, quantize_colors=32,
+                         modeling_mode=ModelingMode.HIGH_FIDELITY, quantize_colors=32,
                          blur_kernel=0, smooth_sigma=10,
                          color_replacements=None, replacement_regions=None, backing_color_id=0, separate_backing=False,
                          enable_relief=False, color_height_map=None,
@@ -584,7 +584,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
         loop_length: Loop length in mm
         loop_hole: Loop hole diameter in mm
         loop_pos: Loop position (x, y) tuple
-        modeling_mode: Modeling mode ("vector"/"pixel")
+        modeling_mode: Modeling mode ("high-fidelity")
         quantize_colors: Number of colors for K-Means quantization
         blur_kernel: Median filter kernel size (0=disabled, recommended 0-5, default 0)
         smooth_sigma: Bilateral filter sigma value (recommended 5-20, default 10)
@@ -634,226 +634,8 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
     print(f"[CONVERTER] Filters: blur_kernel={blur_kernel}, smooth_sigma={smooth_sigma}")
     print(f"[CONVERTER] LUT: {actual_lut_path}")
     
-    # ========== [UPDATED] Native Vector Mode Detection ==========
-    # Check if user selected vector mode AND file is SVG
-    if modeling_mode == ModelingMode.VECTOR and image_path.lower().endswith('.svg'):
-        print("[CONVERTER] 🎨 Using Native Vector Engine (Shapely/Clipper)...")
-        vector_timing = {}
-        vector_total_t0 = time.perf_counter()
-
-        vector_replacements = _normalize_color_replacements_input(replacement_regions)
-        if not vector_replacements:
-            vector_replacements = _normalize_color_replacements_input(color_replacements)
-
-        try:
-            from core.vector_engine import VectorProcessor
-
-            # 1. Execute Conversion
-            vec_processor = VectorProcessor(actual_lut_path, color_mode)
-
-            # Convert SVG to 3D scene
-            _prog(0.05, "SVG 解析与几何处理中... | Parsing & extruding SVG...")
-            mesh_t0 = time.perf_counter()
-            scene = vec_processor.svg_to_mesh(
-                svg_path=image_path,
-                target_width_mm=target_width_mm,
-                thickness_mm=spacer_thick,
-                structure_mode=structure_mode,
-                color_replacements=vector_replacements,
-                separate_backing=separate_backing,
-            )
-            vector_timing["mesh_total_s"] = time.perf_counter() - mesh_t0
-            if isinstance(getattr(vec_processor, "last_stage_timings", None), dict):
-                vector_timing.update(vec_processor.last_stage_timings)
-
-            # Keep vector export behavior consistent with raster path:
-            # never export an empty scene.
-            if len(scene.geometry) == 0:
-                return None, None, None, "[ERROR] Vector mesh generation failed: no valid geometry generated", None
-            
-            # 2. Export 3MF (unified Bambu metadata path)
-            _prog(0.72, "导出 3MF 中... | Exporting 3MF...")
-            base_name = os.path.splitext(os.path.basename(image_path))[0]
-            out_path = os.path.join(OUTPUT_DIR, generate_model_filename(base_name, modeling_mode, color_mode))
-
-            is_six_color = len(vec_processor.img_processor.lut_rgb) == 1296
-            if is_six_color:
-                vec_color_conf = ColorSystem.SIX_COLOR
-                vec_color_mode = "6-Color"
-            else:
-                vec_color_conf = ColorSystem.get(color_mode)
-                vec_color_mode = color_mode
-
-            vec_slot_names = []
-            for geom_name, geom in scene.geometry.items():
-                vertices = getattr(geom, "vertices", None)
-                faces = getattr(geom, "faces", None)
-                v_count = len(vertices) if vertices is not None else 0
-                f_count = len(faces) if faces is not None else 0
-                if v_count == 0 or f_count == 0:
-                    print(f"[CONVERTER] Skipping empty vector geometry '{geom_name}' (v={v_count}, f={f_count})")
-                    continue
-                vec_slot_names.append(geom_name)
-
-            if not vec_slot_names:
-                return None, None, None, "[ERROR] Vector export aborted: all generated geometries are empty", None
-            vec_preview_colors = vec_color_conf['preview']
-
-            vec_print_settings = EXTENDED_PRINT_SETTINGS
-
-            export_t0 = time.perf_counter()
-            # Calculate backing layers for vector mode
-            vec_backing_layers = max(1, int(round(spacer_thick / PrinterConfig.BACKING_LAYER_HEIGHT)))
-            export_scene_with_bambu_metadata(
-                scene=scene,
-                output_path=out_path,
-                slot_names=vec_slot_names,
-                preview_colors=vec_preview_colors,
-                settings=vec_print_settings,
-                color_mode=vec_color_mode,
-                optical_layer_height=PrinterConfig.LAYER_HEIGHT,
-                backing_layer_height=PrinterConfig.BACKING_LAYER_HEIGHT,
-                optical_layers=PrinterConfig.COLOR_LAYERS,
-                backing_layers=vec_backing_layers
-            )
-            print(f"[CONVERTER] Vector 3MF exported with Bambu metadata: {out_path}")
-            vector_timing["export_3mf_s"] = time.perf_counter() - export_t0
-            
-            # 4. Generate GLB Preview
-            _prog(0.82, "生成 3D 预览中... | Generating 3D preview...")
-            glb_path = None
-            glb_t0 = time.perf_counter()
-            try:
-                glb_path = os.path.join(OUTPUT_DIR, generate_preview_filename(base_name))
-                scene.export(glb_path)
-                print(f"[CONVERTER] ✅ Preview GLB exported: {glb_path}")
-            except Exception as e:
-                print(f"[CONVERTER] Warning: Preview generation skipped: {e}")
-            vector_timing["export_glb_s"] = time.perf_counter() - glb_t0
-            
-            # 5. [FIX] Generate 2D Preview Image from SVG
-            _prog(0.90, "生成 2D 预览中... | Generating 2D preview...")
-            preview_img = None
-            preview_t0 = time.perf_counter()
-            skip_heavy_preview = os.getenv("LUMINA_VECTOR_SKIP_2D_PREVIEW", "0") == "1"
-            if skip_heavy_preview:
-                print("[CONVERTER] Skipping SVG 2D preview due to LUMINA_VECTOR_SKIP_2D_PREVIEW=1")
-            elif HAS_SVG_LIB:
-                try:
-                    # Use SVG-safe rasterization with bounds normalization
-                    preview_rgba = vec_processor.img_processor._load_svg(image_path, target_width_mm, pixels_per_mm=10.0)
-
-                    # Apply color replacements to preview if provided
-                    if vector_replacements:
-                        from core.color_replacement import ColorReplacementManager
-
-                        manager = ColorReplacementManager.from_dict(vector_replacements)
-                        replacements = manager.get_all_replacements()
-                        
-                        if replacements:
-                            print(f"[CONVERTER] Applying {len(replacements)} color replacements to SVG preview...")
-                            
-                            # Extract RGB channels
-                            h, w = preview_rgba.shape[:2]
-                            rgb_data = preview_rgba[:, :, :3]
-                            alpha_data = preview_rgba[:, :, 3]
-                            
-                            # Process only non-transparent pixels
-                            mask_solid = alpha_data > 10
-                            
-                            # For each replacement, find all pixels close to the original color
-                            # and replace them with the new color
-                            for orig_color, repl_color in replacements.items():
-                                orig_arr = np.array(orig_color, dtype=np.uint8)
-                                repl_arr = np.array(repl_color, dtype=np.uint8)
-                                
-                                # Calculate color distance for all solid pixels
-                                # Use a generous threshold to handle anti-aliasing and color variations
-                                diff = np.abs(rgb_data.astype(int) - orig_arr.astype(int))
-                                distance = np.sum(diff, axis=2)
-                                
-                                # Match pixels within threshold (generous for SVG rasterization artifacts)
-                                threshold = 50  # Increased threshold for better matching
-                                match_mask = (distance < threshold) & mask_solid
-                                
-                                if np.any(match_mask):
-                                    rgb_data[match_mask] = repl_arr
-                                    matched_count = np.sum(match_mask)
-                                    print(f"[CONVERTER]   {orig_color} -> {repl_color}: {matched_count} pixels")
-                            
-                            # Update preview with replaced colors
-                            preview_rgba[:, :, :3] = rgb_data
-                            print(f"[CONVERTER] ✅ Color replacements applied to SVG preview")
-
-                    # Downscale overly large previews for UI performance
-                    max_preview_px = 1600
-                    h, w = preview_rgba.shape[:2]
-                    if w > max_preview_px:
-                        scale = max_preview_px / w
-                        new_w = max_preview_px
-                        new_h = max(1, int(h * scale))
-                        preview_rgba = cv2.resize(preview_rgba, (new_w, new_h), interpolation=cv2.INTER_AREA)
-
-                    # Ensure transparent areas have white RGB
-                    # This prevents black borders when displaying in UI
-                    alpha_channel = preview_rgba[:, :, 3]
-                    transparent_mask = alpha_channel == 0
-                    if np.any(transparent_mask):
-                        preview_rgba[transparent_mask, :3] = 255  # Set RGB to white for transparent pixels
-                    
-                    preview_img = preview_rgba
-                    print("[CONVERTER] ✅ Generated 2D vector preview")
-                except Exception as e:
-                    print(f"[CONVERTER] Failed to render SVG preview: {e}")
-            else:
-                print("[CONVERTER] svglib not installed, skipping 2D preview")
-            vector_timing["preview_2d_s"] = time.perf_counter() - preview_t0
-            
-            # Update stats
-            Stats.increment("conversions")
-
-            vector_timing["vector_branch_total_s"] = time.perf_counter() - vector_total_t0
-            if vector_timing:
-                print(
-                    "[CONVERTER] Vector timings (s): "
-                    f"parse={vector_timing.get('parse_s', 0.0):.3f}, "
-                    f"clip={vector_timing.get('occlusion_s', 0.0):.3f}, "
-                    f"match={vector_timing.get('color_match_s', 0.0):.3f}, "
-                    f"extrude_bottom={vector_timing.get('extrude_bottom_s', 0.0):.3f}, "
-                    f"backing={vector_timing.get('backing_s', 0.0):.3f}, "
-                    f"extrude_top={vector_timing.get('extrude_top_s', 0.0):.3f}, "
-                    f"assemble={vector_timing.get('assemble_s', 0.0):.3f}, "
-                    f"mesh_total={vector_timing.get('mesh_total_s', 0.0):.3f}, "
-                    f"export_3mf={vector_timing.get('export_3mf_s', 0.0):.3f}, "
-                    f"export_glb={vector_timing.get('export_glb_s', 0.0):.3f}, "
-                    f"preview_2d={vector_timing.get('preview_2d_s', 0.0):.3f}, "
-                    f"total={vector_timing.get('vector_branch_total_s', 0.0):.3f}"
-                )
-            
-            # Return results (Vector mode doesn't generate color recipe)
-            msg = f"✅ Vector conversion complete! Objects merged by material."
-            return out_path, glb_path, preview_img, msg, None
-            
-        except Exception as e:
-            error_msg = f"❌ Vector processing failed: {e}\n\n"
-            error_msg += "Suggestions:\n"
-            error_msg += "• Ensure SVG has filled paths (not just strokes)\n"
-            error_msg += "• Try opening in Inkscape and re-saving as 'Plain SVG'\n"
-            error_msg += "• Convert text to paths (Path → Object to Path)\n"
-            error_msg += "• Or switch to 'High-Fidelity' mode for rasterization"
-            
-            print(f"[CONVERTER] {error_msg}")
-            return None, None, None, error_msg, None
-    
-    # If vector mode selected but file is not SVG, show warning
-    if modeling_mode == ModelingMode.VECTOR and not image_path.lower().endswith('.svg'):
-        return None, None, None, (
-            "⚠️ Vector Native mode requires SVG files!\n\n"
-            "Your file is not an SVG. Please either:\n"
-            "• Upload an SVG file, or\n"
-            "• Switch to 'High-Fidelity' or 'Pixel Art' mode"
-        ), None
-    
+    # ========== [REMOVED] Native Vector Mode Detection ==========
+    # Vector mode has been removed. All files are processed using raster-based approach.
     # ========== [EXISTING] Raster-based Processing ==========
     # NOTE: CMYW and RYBW share 100% of the processing pipeline.
     # Only difference is the LUT file and slot names from ColorSystem.get()
@@ -3383,7 +3165,7 @@ def on_remove_loop():
 def generate_final_model(image_path, lut_path, target_width_mm, spacer_thick,
                         structure_mode, auto_bg, bg_tol, color_mode,
                         add_loop, loop_width, loop_length, loop_hole, loop_pos,
-                        modeling_mode=ModelingMode.VECTOR, quantize_colors=64,
+                        modeling_mode=ModelingMode.HIGH_FIDELITY, quantize_colors=64,
                         color_replacements=None, replacement_regions=None, backing_color_name="White",
                         separate_backing=False, enable_relief=False, color_height_map=None,
                         height_mode: str = "color",
@@ -4287,22 +4069,11 @@ def detect_image_type(image_path):
         image_path (str): Image file path. (图像文件路径)
 
     Returns:
-        gr.update: Gradio update object with new mode, or no-op update. (Gradio 更新对象)
+        gr.update: Gradio update object (no-op, always returns current mode).
     """
     import gradio as gr
     if not image_path:
         return gr.update()
-    
-    try:
-        ext = os.path.splitext(image_path)[1].lower()
-        
-        if ext == '.svg':
-            print(f"[AUTO_DETECT] SVG file detected, recommending SVG Mode")
-            return gr.update(value=ModelingMode.VECTOR)
-        else:
-            print(f"[AUTO_DETECT] Raster image detected ({ext}), keeping current mode")
-            return gr.update()  # 不改变当前选择
-            
-    except Exception as e:
-        print(f"[AUTO_DETECT] Error detecting image type: {e}")
-        return None
+
+    # Always return no-op update (only high-fidelity mode is supported)
+    return gr.update()
