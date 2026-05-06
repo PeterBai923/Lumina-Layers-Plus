@@ -282,3 +282,5 @@ assets/temp_*.npy
 .trae/
 OPTIMIZATION_LOG.md
 run.bat
+
+.claude
