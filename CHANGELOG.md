@@ -6,6 +6,31 @@ All notable changes to Lumina Studio are documented in this file.
 
 ---
 
+## v1.6.8 (2026-05-06)
+
+### Features
+- **Backing Layer Height Setting** - Support independent layer height for backing plate (default 0.2mm), separate from color layers (0.08mm), reducing print time
+- **Settings Auto-Save** - Converter settings are now automatically saved and restored on next startup
+
+### Performance
+- **Grid Template Caching** - Optimized grid template caching mechanism, improving color palette extraction performance
+
+### Bug Fixes
+- Fixed structure mode case sensitivity issue
+- Fixed single-sided preview mirroring display issue
+
+### Refactoring
+- Migrated UI components from Markdown to HTML
+- Removed internationalization module, unified to Chinese
+- Refactored CSS into modular file structure
+- Split converter_tab into modular sub-packages
+- Split tabs (calibration, merge, color extractor) into independent modules
+- Removed dynamic bed size selection feature
+- Removed system tray code
+- Cleaned up debug output and redundant comments
+
+---
+
 ## v1.6.7 (2026-03-29)
 
 ### Bug Fixes
