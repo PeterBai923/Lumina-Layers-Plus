@@ -45,6 +45,7 @@ def build_left_sidebar(components, states):
         saved_cleanup = _user_prefs.get("last_cleanup", True)
         saved_separate_backing = _user_prefs.get("last_separate_backing", False)
         saved_hue_weight = _user_prefs.get("last_hue_weight", 0.0)
+        saved_backing_layer_height = _user_prefs.get("last_backing_layer_height", 0.2)
 
         with gr.Row():
             components['dropdown_conv_lut_dropdown'] = gr.Dropdown(
@@ -160,6 +161,10 @@ def build_left_sidebar(components, states):
             components['slider_conv_thickness'] = gr.Slider(
                 0.2, 3.5, saved_thickness, step=0.08,
                 label='背板 (mm)'
+            )
+            components['slider_conv_backing_layer_height'] = gr.Slider(
+                0.08, 0.4, saved_backing_layer_height, step=0.02,
+                label='背板层高 (mm)'
             )
 
         # Bed size selector removed from sidebar — now overlaid on preview

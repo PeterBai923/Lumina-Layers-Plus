@@ -56,6 +56,7 @@ def get_asset_path(relative_path: str) -> str:
 class PrinterConfig:
     """Physical printer parameters (layer height, nozzle, backing)."""
     LAYER_HEIGHT: float = 0.08
+    BACKING_LAYER_HEIGHT: float = 0.2  # 背板层高，默认0.2mm（比全局层高更大以减少打印时间）
     NOZZLE_WIDTH: float = 0.42
     COLOR_LAYERS: int = 5
     BACKING_MM: float = 1.6

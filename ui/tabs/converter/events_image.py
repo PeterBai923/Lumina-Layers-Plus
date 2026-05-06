@@ -603,6 +603,13 @@ def bind_image_events(components, states):
         outputs=None
     )
 
+    # Backing layer height setting
+    components['slider_conv_backing_layer_height'].change(
+        fn=lambda v: _save_user_setting("last_backing_layer_height", v),
+        inputs=[components['slider_conv_backing_layer_height']],
+        outputs=None
+    )
+
     # Outline settings
     components['checkbox_conv_outline_enable'].change(
         fn=lambda v: _save_user_setting("last_outline_enable", v),

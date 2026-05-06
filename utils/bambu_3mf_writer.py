@@ -43,21 +43,31 @@ class BambuStudio3MFWriter:
         'brim_type': 'auto_brim',
     }
     
-    def __init__(self, output_path: str, settings: Optional[Dict] = None, color_mode: str = '4-Color'):
+    def __init__(self, output_path: str, settings: Optional[Dict] = None, color_mode: str = '4-Color',
+                 optical_layer_height: float = 0.08, backing_layer_height: float = 0.2,
+                 optical_layers: int = 5, backing_layers: int = 8):
         """
         Initialize 3MF writer.
-        
+
         Args:
             output_path: Output .3mf file path
             settings: Optional custom print settings (overrides defaults)
             color_mode: Color mode ('4-Color', '6-Color', '8-Color', 'BW')
+            optical_layer_height: Layer height for optical layers (default 0.08mm)
+            backing_layer_height: Layer height for backing layers (default 0.2mm)
+            optical_layers: Number of optical layers (default 5)
+            backing_layers: Number of backing layers (calculated from backing thickness)
         """
         self.output_path = output_path
         self.settings = {**self.DEFAULT_SETTINGS, **(settings or {})}
         self.objects = []  # List of (mesh, name, color_rgb) tuples
         self.object_id_counter = 1
         self.color_mode = color_mode
-        
+        self.optical_layer_height = optical_layer_height
+        self.backing_layer_height = backing_layer_height
+        self.optical_layers = optical_layers
+        self.backing_layers = backing_layers
+
     def add_mesh(self, mesh: trimesh.Trimesh, name: str, color_rgb: tuple):
         """
         Add a mesh object to the scene.
@@ -247,6 +257,9 @@ class BambuStudio3MFWriter:
         
         # 5. cut_information.xml
         self._write_cut_information(tmpdir)
+
+        # 6. layer_config_ranges.xml (for variable layer height)
+        self._write_layer_config_ranges(tmpdir)
     
     def _write_model_settings(self, tmpdir: str):
         """Write model_settings.config with minimal metadata - let BambuStudio auto-center"""
@@ -478,7 +491,34 @@ class BambuStudio3MFWriter:
         with open(os.path.join(tmpdir, 'Metadata', 'cut_information.xml'), 'wb') as f:
             f.write(b'<?xml version="1.0" encoding="utf-8"?>\n')
             tree.write(f, encoding='utf-8', xml_declaration=False)
-    
+
+    def _write_layer_config_ranges(self, tmpdir: str):
+        """Write layer_config_ranges.xml for variable layer height.
+
+        Sets different layer heights for optical layers (0.08mm) and backing layers (0.2mm).
+        Optical layers: Z=0 to Z=optical_layers*0.08 (default 0.4mm)
+        Backing layers: Z=optical_layers*0.08 to total_height
+        """
+        optical_z = self.optical_layers * self.optical_layer_height
+        total_z = optical_z + (self.backing_layers * self.backing_layer_height)
+
+        content = f'''<?xml version="1.0" encoding="utf-8"?>
+<objects>
+ <object id="1">
+  <range min_z="0" max_z="{optical_z:.17f}">
+   <option opt_key="extruder">0</option>
+   <option opt_key="layer_height">{self.optical_layer_height}</option>
+  </range>
+  <range min_z="{optical_z:.17f}" max_z="{total_z:.17f}">
+   <option opt_key="extruder">0</option>
+   <option opt_key="layer_height">{self.backing_layer_height}</option>
+  </range>
+ </object>
+</objects>'''
+
+        with open(os.path.join(tmpdir, 'Metadata', 'layer_config_ranges.xml'), 'w', encoding='utf-8') as f:
+            f.write(content)
+
     def _write_object_file_to_zip(self, zf: zipfile.ZipFile):
         """Stream mesh data directly into ZIP with DEFLATE compression and ZIP64 support.
         将 mesh 数据以流式方式直接写入 ZIP，启用 DEFLATE 压缩和 ZIP64 大文件支持。
@@ -526,10 +566,14 @@ class BambuStudio3MFWriter:
 
 def export_scene_with_bambu_metadata(scene: trimesh.Scene, output_path: str,
                                      slot_names: List[str], preview_colors: Dict,
-                                     settings: Optional[Dict] = None, color_mode: str = '4-Color'):
+                                     settings: Optional[Dict] = None, color_mode: str = '4-Color',
+                                     optical_layer_height: float = 0.08,
+                                     backing_layer_height: float = 0.2,
+                                     optical_layers: int = 5,
+                                     backing_layers: int = 8):
     """
     Export a Trimesh scene to BambuStudio-compatible 3MF with metadata.
-    
+
     Args:
         scene: Trimesh Scene object containing all meshes
         output_path: Output .3mf file path
@@ -537,7 +581,11 @@ def export_scene_with_bambu_metadata(scene: trimesh.Scene, output_path: str,
         preview_colors: Dict mapping material IDs to RGBA colors (full color system)
         settings: Optional custom print settings
         color_mode: Color mode ('4-Color', '6-Color', '8-Color', 'BW')
-    
+        optical_layer_height: Layer height for optical layers (default 0.08mm)
+        backing_layer_height: Layer height for backing layers (default 0.2mm)
+        optical_layers: Number of optical layers (default 5)
+        backing_layers: Number of backing layers
+
     Returns:
         str: Path to the exported 3MF file
     """
@@ -561,8 +609,10 @@ def export_scene_with_bambu_metadata(scene: trimesh.Scene, output_path: str,
         actual_color_mode = '8-Color'
     
     print(f"[BAMBU_3MF] LUT color_mode: {color_mode}, Actual colors used: {num_used_colors} → 3MF mode: {actual_color_mode}")
-    
-    writer = BambuStudio3MFWriter(output_path, settings, actual_color_mode)
+
+    writer = BambuStudio3MFWriter(output_path, settings, actual_color_mode,
+                                   optical_layer_height, backing_layer_height,
+                                   optical_layers, backing_layers)
     
     # Build a mapping from slot_name to preview_color
     # We need to find the original material ID for each slot_name

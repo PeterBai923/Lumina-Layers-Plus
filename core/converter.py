@@ -702,6 +702,8 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
             vec_print_settings = EXTENDED_PRINT_SETTINGS
 
             export_t0 = time.perf_counter()
+            # Calculate backing layers for vector mode
+            vec_backing_layers = max(1, int(round(spacer_thick / PrinterConfig.BACKING_LAYER_HEIGHT)))
             export_scene_with_bambu_metadata(
                 scene=scene,
                 output_path=out_path,
@@ -709,6 +711,10 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                 preview_colors=vec_preview_colors,
                 settings=vec_print_settings,
                 color_mode=vec_color_mode,
+                optical_layer_height=PrinterConfig.LAYER_HEIGHT,
+                backing_layer_height=PrinterConfig.BACKING_LAYER_HEIGHT,
+                optical_layers=PrinterConfig.COLOR_LAYERS,
+                backing_layers=vec_backing_layers
             )
             print(f"[CONVERTER] Vector 3MF exported with Bambu metadata: {out_path}")
             vector_timing["export_3mf_s"] = time.perf_counter() - export_t0
@@ -1459,13 +1465,20 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
     
     try:
         print(f"[CONVERTER] Exporting with BambuStudio metadata...")
+        # Calculate backing layers from backing_metadata
+        backing_z_start, backing_z_end = backing_metadata['backing_z_range']
+        backing_layers_count = backing_z_end - backing_z_start + 1
         export_scene_with_bambu_metadata(
             scene=scene,
             output_path=out_path,
             slot_names=valid_slot_names,
             preview_colors=preview_colors,
             settings=print_settings,
-            color_mode=color_mode
+            color_mode=color_mode,
+            optical_layer_height=PrinterConfig.LAYER_HEIGHT,
+            backing_layer_height=PrinterConfig.BACKING_LAYER_HEIGHT,
+            optical_layers=PrinterConfig.COLOR_LAYERS,
+            backing_layers=backing_layers_count
         )
         _hifi_timings['export_3mf_s'] = time.perf_counter() - _export_t0
         print(f"[CONVERTER] 3MF exported with embedded settings: {out_path}")
@@ -2115,7 +2128,7 @@ def _build_cloisonne_voxel_matrix(material_matrix, mask_solid, mask_wireframe,
     target_h, target_w = material_matrix.shape[:2]
     OPTICAL = PrinterConfig.COLOR_LAYERS
 
-    spacer_layers = max(1, int(round(spacer_thick / PrinterConfig.LAYER_HEIGHT)))
+    spacer_layers = max(1, int(round(spacer_thick / PrinterConfig.BACKING_LAYER_HEIGHT)))
     wire_layers = max(1, int(round(wire_height_mm / PrinterConfig.LAYER_HEIGHT)))
 
     total_z = spacer_layers + OPTICAL + wire_layers
@@ -2181,7 +2194,7 @@ def _build_voxel_matrix(material_matrix, mask_solid, spacer_thick, structure_mod
     
     bottom_voxels = np.transpose(material_matrix, (2, 0, 1))
     
-    spacer_layers = max(1, int(round(spacer_thick / PrinterConfig.LAYER_HEIGHT)))
+    spacer_layers = max(1, int(round(spacer_thick / PrinterConfig.BACKING_LAYER_HEIGHT)))
     
     if "双面" in structure_mode or "double" in structure_mode.lower():
         top_voxels = np.transpose(material_matrix[..., ::-1], (2, 0, 1))
@@ -2242,7 +2255,7 @@ def _build_voxel_matrix_faceup(material_matrix, mask_solid, spacer_thick, backin
         -1 values stay as air in the voxel matrix.
     """
     target_h, target_w, optical_layers = material_matrix.shape
-    spacer_layers = max(1, int(round(spacer_thick / PrinterConfig.LAYER_HEIGHT)))
+    spacer_layers = max(1, int(round(spacer_thick / PrinterConfig.BACKING_LAYER_HEIGHT)))
     total_layers = spacer_layers + optical_layers
     full_matrix = np.full((total_layers, target_h, target_w), -1, dtype=int)
 

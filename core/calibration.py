@@ -111,7 +111,7 @@ def generate_calibration_board(color_mode: str, block_size_mm: float,
     voxel_w = total_w * (pixels_per_block + pixels_gap)
     voxel_h = total_h * (pixels_per_block + pixels_gap)
 
-    backing_layers = int(PrinterConfig.BACKING_MM / PrinterConfig.LAYER_HEIGHT)
+    backing_layers = int(PrinterConfig.BACKING_MM / PrinterConfig.BACKING_LAYER_HEIGHT)
     total_layers = PrinterConfig.COLOR_LAYERS + backing_layers
 
     full_matrix = np.full((total_layers, voxel_h, voxel_w), backing_id, dtype=int)
@@ -169,7 +169,11 @@ def generate_calibration_board(color_mode: str, block_size_mm: float,
         slot_names=slot_names,
         preview_colors=preview_colors,
         settings=DEFAULT_PRINT_SETTINGS,
-        color_mode=color_mode
+        color_mode=color_mode,
+        optical_layer_height=PrinterConfig.LAYER_HEIGHT,
+        backing_layer_height=PrinterConfig.BACKING_LAYER_HEIGHT,
+        optical_layers=PrinterConfig.COLOR_LAYERS,
+        backing_layers=backing_layers
     )
 
     # Generate preview
@@ -333,7 +337,7 @@ def generate_smart_board(block_size_mm=5.0, gap_mm=0.8):
     
     # Layer configuration
     color_layers = 5
-    backing_layers = int(PrinterConfig.BACKING_MM / PrinterConfig.LAYER_HEIGHT)
+    backing_layers = int(PrinterConfig.BACKING_MM / PrinterConfig.BACKING_LAYER_HEIGHT)
     total_layers = color_layers + backing_layers
     
     # Initialize voxel matrix (filled with White Slot 0)
@@ -403,7 +407,11 @@ def generate_smart_board(block_size_mm=5.0, gap_mm=0.8):
         slot_names=slot_names,
         preview_colors=preview_colors,
         settings=DEFAULT_PRINT_SETTINGS,
-        color_mode="6-Color"
+        color_mode="6-Color",
+        optical_layer_height=PrinterConfig.LAYER_HEIGHT,
+        backing_layer_height=PrinterConfig.BACKING_LAYER_HEIGHT,
+        optical_layers=5,
+        backing_layers=backing_layers
     )
     
     # Generate preview image
@@ -451,8 +459,9 @@ def generate_8color_board(page_index=0):
     px_blk = max(1, int(5.0 / PrinterConfig.NOZZLE_WIDTH))
     px_gap = max(1, int(0.8 / PrinterConfig.NOZZLE_WIDTH))
     v_w = total_dim * (px_blk + px_gap)
-    
-    full_matrix = np.full((5 + int(PrinterConfig.BACKING_MM/0.08), v_w, v_w), 0, dtype=int)
+
+    backing_layers = int(PrinterConfig.BACKING_MM / PrinterConfig.BACKING_LAYER_HEIGHT)
+    full_matrix = np.full((5 + backing_layers, v_w, v_w), 0, dtype=int)
 
     # 4. Fill Data
     for i, stack in enumerate(stacks):
@@ -498,7 +507,11 @@ def generate_8color_board(page_index=0):
         slot_names=conf['slots'],
         preview_colors=conf['preview'],
         settings=DEFAULT_PRINT_SETTINGS,
-        color_mode="8-Color"
+        color_mode="8-Color",
+        optical_layer_height=PrinterConfig.LAYER_HEIGHT,
+        backing_layer_height=PrinterConfig.BACKING_LAYER_HEIGHT,
+        optical_layers=5,
+        backing_layers=backing_layers
     )
     
     # Simple preview generation
@@ -575,7 +588,7 @@ def generate_bw_calibration_board(block_size_mm=5.0, gap_mm=0.8, backing_color="
     
     # Layer configuration
     color_layers = 5
-    backing_layers = int(PrinterConfig.BACKING_MM / PrinterConfig.LAYER_HEIGHT)
+    backing_layers = int(PrinterConfig.BACKING_MM / PrinterConfig.BACKING_LAYER_HEIGHT)
     total_layers = color_layers + backing_layers
     
     # Initialize voxel matrix (filled with White Slot 0)
@@ -645,7 +658,11 @@ def generate_bw_calibration_board(block_size_mm=5.0, gap_mm=0.8, backing_color="
         slot_names=slot_names,
         preview_colors=preview_colors,
         settings=DEFAULT_PRINT_SETTINGS,
-        color_mode="BW"
+        color_mode="BW",
+        optical_layer_height=PrinterConfig.LAYER_HEIGHT,
+        backing_layer_height=PrinterConfig.BACKING_LAYER_HEIGHT,
+        optical_layers=5,
+        backing_layers=backing_layers
     )
     
     # Generate preview image
@@ -833,7 +850,7 @@ def _generate_5color_base_page(block_size_mm, gap_mm, preview_colors, slot_names
     
     # 5 color layers + white backing (Face-Down mode, same as 4-color mode)
     color_layers = 5
-    backing_layers = int(PrinterConfig.BACKING_MM / PrinterConfig.LAYER_HEIGHT)
+    backing_layers = int(PrinterConfig.BACKING_MM / PrinterConfig.BACKING_LAYER_HEIGHT)
     total_layers = color_layers + backing_layers
     
     full_matrix = np.full((total_layers, voxel_h, voxel_w), 0, dtype=int)  # 0 = White backing
@@ -887,7 +904,11 @@ def _generate_5color_base_page(block_size_mm, gap_mm, preview_colors, slot_names
         slot_names=slot_names[:4],
         preview_colors=preview_colors,
         settings=DEFAULT_PRINT_SETTINGS,
-        color_mode="5-Color Extended"
+        color_mode="5-Color Extended",
+        optical_layer_height=PrinterConfig.LAYER_HEIGHT,
+        backing_layer_height=PrinterConfig.BACKING_LAYER_HEIGHT,
+        optical_layers=5,
+        backing_layers=backing_layers
     )
     
     # Preview
@@ -944,7 +965,7 @@ def _generate_5color_extended_page(block_size_mm, gap_mm, preview_colors, slot_n
     
     # 6 color layers + white backing (Face-Down mode, viewing surface at Z=0)
     color_layers = 6
-    backing_layers = int(PrinterConfig.BACKING_MM / PrinterConfig.LAYER_HEIGHT)
+    backing_layers = int(PrinterConfig.BACKING_MM / PrinterConfig.BACKING_LAYER_HEIGHT)
     total_layers = color_layers + backing_layers
     
     full_matrix = np.full((total_layers, voxel_h, voxel_w), 0, dtype=int)  # 0 = White backing
@@ -997,7 +1018,11 @@ def _generate_5color_extended_page(block_size_mm, gap_mm, preview_colors, slot_n
         slot_names=slot_names,
         preview_colors=preview_colors,
         settings=DEFAULT_PRINT_SETTINGS,
-        color_mode="5-Color Extended"
+        color_mode="5-Color Extended",
+        optical_layer_height=PrinterConfig.LAYER_HEIGHT,
+        backing_layer_height=PrinterConfig.BACKING_LAYER_HEIGHT,
+        optical_layers=6,
+        backing_layers=backing_layers
     )
     
     # Preview
