@@ -23,7 +23,7 @@
 </p>
 
 <p align="center">
-  <a href="README_CN.md">📖 中文文档 / Chinese Version</a>
+  <a href="README.md">📖 中文文档 / Chinese Version</a>
 </p>
 
 ---
@@ -76,9 +76,19 @@
 
 ## Project Status
 
-**Current Version**: v1.6.8  
-**License**: GNU GPL v3.0 (with Commercial Use & "Street Vendor" Support)  
+**Current Version**: v1.6.8
+**License**: GNU GPL v3.0 (with Commercial Use & "Street Vendor" Support)
 **Nature**: Non-profit independent implementation, open-source community project
+
+### v1.6.8 Latest Changes
+
+- **Backing Layer Height Setting** - Support independent layer height for backing plate (default 0.2mm), separate from color layers, reducing print time
+- **Settings Auto-Save** - Converter settings are now automatically saved and restored on next startup
+- **Grid Template Caching** - Optimized grid template caching mechanism, improving color palette extraction performance
+- Fixed structure mode case sensitivity issue
+- Fixed single-sided preview mirroring display issue
+
+[View Full Changelog →](CHANGELOG.md)
 
 ---
 Inspiration and Technical Statements
