@@ -60,7 +60,7 @@ class PrinterConfig:
     NOZZLE_WIDTH: float = 0.42
     COLOR_LAYERS: int = 5
     BACKING_MM: float = 1.6
-    SHRINK_OFFSET: float = 0.02
+    SHRINK_OFFSET: float = 0.01
 
 
 class SmartConfig:

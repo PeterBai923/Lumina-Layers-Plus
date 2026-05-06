@@ -398,9 +398,9 @@ class HighFidelityMesher(BaseMesher):
                 continue
             
             dilated_mask = cv2.dilate(
-                curr_mask.astype(np.uint8), 
-                kernel, 
-                iterations=1
+                curr_mask.astype(np.uint8),
+                kernel,
+                iterations=2
             ).astype(bool)
             
             if prev_mask is None:
