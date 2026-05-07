@@ -164,9 +164,6 @@ class TestSessionContainsPreviewCache:
         ), patch(
             "api.routers.converter.upload_to_tempfile",
             return_value="/tmp/uploaded.png",
-        ), patch(
-            "api.routers.converter.generate_segmented_glb",
-            return_value=None,
         ):
             response = client.post(
                 "/api/convert/preview",
@@ -211,9 +208,6 @@ class TestResponseContainsPaletteAndDimensions:
         ), patch(
             "api.routers.converter.upload_to_tempfile",
             return_value="/tmp/uploaded.png",
-        ), patch(
-            "api.routers.converter.generate_segmented_glb",
-            return_value=None,
         ):
             response = client.post(
                 "/api/convert/preview",
@@ -238,10 +232,6 @@ class TestResponseContainsPaletteAndDimensions:
             assert "matched_hex" in entry
             assert "pixel_count" in entry
             assert "percentage" in entry
-
-        # preview_glb_url — None when generate_segmented_glb returns None
-        assert "preview_glb_url" in body
-        assert body["preview_glb_url"] is None
 
         # dimensions
         assert "dimensions" in body

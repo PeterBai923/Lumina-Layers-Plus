@@ -31,8 +31,7 @@ from .converter import (
     on_preview_click,
     update_preview_with_loop,
     on_remove_loop,
-    generate_final_model,
-    update_preview_with_backing_color
+    generate_final_model
 )
 
 # New refactored modules
@@ -61,7 +60,6 @@ __all__ = [
     'update_preview_with_loop',
     'on_remove_loop',
     'generate_final_model',
-    'update_preview_with_backing_color',
 
     # Refactored modules (for advanced usage)
     'LuminaImageProcessor',
