@@ -367,41 +367,7 @@ def build_right_workspace(components, states):
                 )
                 # ========== END Outline Settings ==========
 
-                # ========== Cloisonné Settings ==========
-                components['md_conv_cloisonne_section'] = gr.HTML(
-                    '<div class="section-heading">掐丝珐琅特效</div>'
-                )
-                with gr.Row():
-                    components['checkbox_conv_cloisonne_enable'] = gr.Checkbox(
-                        label='启用掐丝珐琅',
-                        value=_user_prefs.get("last_cloisonne_enable", False)
-                    )
-                components['slider_conv_wire_width'] = gr.Slider(
-                    0.2, 1.2, _user_prefs.get("last_wire_width", 0.4), step=0.1,
-                    label='丝线宽度(mm)'
-                )
-                components['slider_conv_wire_height'] = gr.Slider(
-                    0.04, 1.0, _user_prefs.get("last_wire_height", 0.4), step=0.04,
-                    label='丝线高度(mm)'
-                )
-                # ========== END Cloisonné Settings ==========
-
-                # ========== Coating Settings ==========
-                components['md_conv_coating_section'] = gr.HTML(
-                    '<div class="section-heading">透明镀层</div>'
-                )
-                with gr.Row():
-                    components['checkbox_conv_coating_enable'] = gr.Checkbox(
-                        label='启用透明镀层',
-                        value=_user_prefs.get("last_coating_enable", False)
-                    )
-                components['slider_conv_coating_height'] = gr.Slider(
-                    0.08, 0.16, _user_prefs.get("last_coating_height", 0.08), step=0.08,
-                    label='镀层厚度(mm)'
-                )
-                # ========== END Coating Settings ==========
-
-                # Action buttons (preview + generate)
+# Action buttons (preview + generate)
                 with gr.Row(elem_classes=["action-buttons"]):
                     components['btn_conv_preview_btn'] = gr.Button(
                         '👁️ 生成预览',

@@ -554,10 +554,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                          heightmap_path=None, heightmap_max_height=None,
                          enable_cleanup=True,
                          enable_outline=False, outline_width=2.0,
-                         enable_cloisonne=False, wire_width_mm=0.4,
-                         wire_height_mm=0.4,
                          free_color_set=None,
-                         enable_coating=False, coating_height_mm=0.08,
                          hue_weight: float = 0.0,
                          progress=None):
     """
@@ -805,23 +802,6 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
             full_matrix, backing_metadata = _build_voxel_matrix_faceup(
                 material_matrix, mask_solid, spacer_thick, backing_color_id
             )
-        # ========== Cloisonné (掐丝珐琅) Mode ==========
-        elif enable_cloisonne:
-            print(f"[CONVERTER] 🎨 Cloisonné Mode ENABLED")
-            print(f"[CONVERTER] Wire: width={wire_width_mm}mm, height={wire_height_mm}mm")
-            
-            # Force single-sided (face-up)
-            structure_mode = "单面"
-            
-            # Extract wireframe mask from matched colours
-            mask_wireframe = processor._extract_wireframe_mask(
-                matched_rgb, target_w, pixel_scale, wire_width_mm
-            )
-            
-            full_matrix, backing_metadata = _build_cloisonne_voxel_matrix(
-                material_matrix, mask_solid, mask_wireframe,
-                spacer_thick, wire_height_mm, backing_color_id
-            )
         # ========== 2.5D Relief Mode Support ==========
         # 显式模式判断：height_mode 参数决定分支
         heightmap_height_matrix = None
@@ -1000,27 +980,6 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
     else:
         print(f"[CONVERTER] Backing merged with first layer (original behavior)")
     
-    # Cloisonné wire mesh (standalone object, mat_id=-3)
-    if enable_cloisonne and backing_metadata.get('is_cloisonne'):
-        print(f"[CONVERTER] Generating cloisonné wire mesh (mat_id=-3)...")
-        try:
-            wire_mesh = mesher.generate_mesh(full_matrix, mat_id=-3, height_px=target_h)
-            if wire_mesh is not None and len(wire_mesh.vertices) > 0:
-                # Apply variable layer height transform
-                _apply_variable_layer_height_transform(wire_mesh, backing_metadata, pixel_scale)
-                wire_mesh.visual.face_colors = [218, 165, 32, 255]  # Gold colour
-                wire_name = "Wire"
-                wire_mesh.metadata['name'] = wire_name
-                scene.add_geometry(wire_mesh, node_name=wire_name, geom_name=wire_name)
-                valid_slot_names.append(wire_name)
-                print(f"[CONVERTER] ✅ Added wire mesh as standalone object ({len(wire_mesh.vertices)} verts)")
-            else:
-                print(f"[CONVERTER] Warning: Wire mesh is empty, skipping")
-        except Exception as e:
-            print(f"[CONVERTER] Error generating wire mesh: {e}")
-            import traceback
-            traceback.print_exc()
-    
     # Free Color (自由色) mesh extraction
     if free_color_set:
         _free_set = {c.lower() for c in free_color_set if c}
@@ -1095,53 +1054,6 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
         except Exception as e:
             print(f"[CONVERTER] Loop creation failed: {e}")
     
-    # ========== Step 7.4: Generate Coating Mesh (透明镀层) ==========
-    if enable_coating:
-        try:
-            coating_layers = max(1, int(round(coating_height_mm / PrinterConfig.LAYER_HEIGHT)))
-            print(f"[CONVERTER] 🪟 Generating coating: height={coating_height_mm}mm ({coating_layers} layers), bottom side")
-
-            # Determine coating coverage area
-            coating_mask = mask_solid.copy()
-            
-            # If outline is enabled, extend coating to cover outline area as well
-            if enable_outline:
-                print(f"[CONVERTER] 🔲 Extending coating to cover outline area (width={outline_width}mm)")
-                # Dilate mask to include outline area
-                outline_width_px = max(1, int(round(outline_width / pixel_scale)))
-                kernel = np.ones((3, 3), np.uint8)
-                mask_uint8 = mask_solid.astype(np.uint8) * 255
-                dilated_mask = cv2.dilate(mask_uint8, kernel, iterations=outline_width_px)
-                coating_mask = (dilated_mask > 0)
-
-            # Build a small voxel matrix for the coating: coating_layers × H × W
-            coating_matrix = np.full((coating_layers, target_h, target_w), -1, dtype=int)
-            coating_slice = np.where(coating_mask, 0, -1).astype(int)
-            coating_matrix[:] = coating_slice[np.newaxis, :, :]
-
-            coating_mesh = mesher.generate_mesh(coating_matrix, 0, target_h)
-            if coating_mesh and len(coating_mesh.vertices) > 0:
-                # Transform XY same as model, Z same layer height
-                coat_transform = np.eye(4)
-                coat_transform[0, 0] = pixel_scale
-                coat_transform[1, 1] = pixel_scale
-                coat_transform[2, 2] = PrinterConfig.LAYER_HEIGHT
-                # Shift down so coating sits below the model (Z < 0)
-                coat_transform[2, 3] = -coating_layers * PrinterConfig.LAYER_HEIGHT
-                coating_mesh.apply_transform(coat_transform)
-                coating_mesh.visual.face_colors = [200, 200, 200, 80]
-                coating_name = "Coating"
-                coating_mesh.metadata['name'] = coating_name
-                scene.add_geometry(coating_mesh, node_name=coating_name, geom_name=coating_name)
-                valid_slot_names.append(coating_name)
-                print(f"[CONVERTER] ✅ Coating added as standalone '{coating_name}' ({coating_layers} layers)")
-            else:
-                print(f"[CONVERTER] Warning: Coating mesh empty, skipping")
-        except Exception as e:
-            print(f"[CONVERTER] Coating generation failed: {e}")
-            import traceback
-            traceback.print_exc()
-
     # ========== Step 7.5: Generate Outline Mesh ==========
     outline_added = False
     if enable_outline:
@@ -1157,17 +1069,8 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
             backing_height = backing_layers * PrinterConfig.BACKING_LAYER_HEIGHT
             outline_thickness_mm = optical_height + backing_height
 
-            # If coating is enabled, extend outline downward to cover coating layers
-            outline_z_offset = 0.0
-            if enable_coating:
-                coating_layers = max(1, int(round(coating_height_mm / PrinterConfig.LAYER_HEIGHT)))
-                coating_mm = coating_layers * PrinterConfig.LAYER_HEIGHT
-                outline_thickness_mm += coating_mm
-                outline_z_offset = -coating_mm
-                print(f"[CONVERTER] 🔲 Outline extended to cover coating: total_thickness={outline_thickness_mm}mm")
+            print(f"[CONVERTER] 🔲 Generating outline: width={outline_width}mm, thickness={outline_thickness_mm}mm")
 
-            print(f"[CONVERTER] 🔲 Generating outline: width={outline_width}mm, thickness={outline_thickness_mm}mm (z_offset={outline_z_offset}mm)")
-            
             outline_mesh = _generate_outline_mesh(
                 mask_solid=mask_solid,
                 pixel_scale=pixel_scale,
@@ -1175,11 +1078,8 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                 outline_thickness_mm=outline_thickness_mm,
                 target_h=target_h
             )
-            
+
             if outline_mesh is not None:
-                # Shift outline down if coating is enabled
-                if outline_z_offset != 0.0:
-                    outline_mesh.vertices[:, 2] += outline_z_offset
                 # Outline is always white (material 0) as a standalone object
                 outline_mesh.visual.face_colors = preview_colors[0]
                 outline_name = "Outline"
@@ -1890,77 +1790,6 @@ def _build_relief_voxel_matrix(matched_rgb, material_matrix, mask_solid, color_h
     print(f"[RELIEF] Backing range: Z={backing_z_range[0]} to Z={backing_z_range[1]}")
     print(f"[RELIEF] Mode: Single-sided (viewing surface on top)")
     
-    return full_matrix, backing_metadata
-
-
-def _build_cloisonne_voxel_matrix(material_matrix, mask_solid, mask_wireframe,
-                                  spacer_thick, wire_height_mm,
-                                  backing_color_id=0):
-    """
-    Build voxel matrix for cloisonné (掐丝珐琅) mode.
-
-    Layer structure (bottom → top, Z ascending):
-        Z = 0 … spacer_layers-1   : Base / backing  (backing_color_id)
-        Z = spacer_layers … +4    : Colour layers   (material_matrix, flipped for face-up)
-        Z = spacer_layers+5 … +N  : Wire layers     (-3 marker, separate object)
-
-    Cloisonné is always single-sided (观赏面朝上 / face-up).
-    Wire uses special marker -3 and is generated as a standalone mesh object.
-
-    Args:
-        material_matrix:  (H, W, 5) int – per-pixel material IDs for 5 optical layers.
-        mask_solid:       (H, W) bool – True for non-transparent pixels.
-        mask_wireframe:   (H, W) bool – True for wire pixels.
-        spacer_thick:     float – backing thickness in mm.
-        wire_height_mm:   float – extra wire protrusion above colour surface in mm.
-        backing_color_id: int – material slot ID for the backing (default 0 = white).
-
-    Returns:
-        (full_matrix, backing_metadata)
-        full_matrix:      (Z, H, W) int – voxel matrix (-1 = air, -3 = wire).
-        backing_metadata:  dict with 'backing_color_id', 'backing_z_range', 'is_cloisonne'.
-    """
-    target_h, target_w = material_matrix.shape[:2]
-    OPTICAL = PrinterConfig.COLOR_LAYERS
-
-    spacer_layers = max(1, int(round(spacer_thick / PrinterConfig.BACKING_LAYER_HEIGHT)))
-    wire_layers = max(1, int(round(wire_height_mm / PrinterConfig.LAYER_HEIGHT)))
-
-    total_z = spacer_layers + OPTICAL + wire_layers
-    full_matrix = np.full((total_z, target_h, target_w), -1, dtype=int)
-
-    mask_t = ~mask_solid
-
-    # --- Base / backing ---
-    spacer_slice = np.where(mask_solid, backing_color_id, -1).astype(int)
-    full_matrix[:spacer_layers] = spacer_slice[np.newaxis, :, :]
-
-    # --- Colour layers (face-up: reverse material order) ---
-    # material_matrix is stored for face-down printing (layer 0 = bottom).
-    # For face-up we flip so layer 0 sits at the lowest colour Z.
-    colour_start = spacer_layers
-    for i in range(OPTICAL):
-        layer = material_matrix[:, :, OPTICAL - 1 - i]
-        z = colour_start + i
-        full_matrix[z] = np.where(mask_solid, layer, -1)
-
-    # --- Wire layers (only where mask_wireframe AND mask_solid) ---
-    # Use -3 as special marker for wire (will be generated as standalone object)
-    wire_mask_2d = mask_wireframe & mask_solid
-    wire_slice = np.where(wire_mask_2d, -3, -1).astype(int)
-    wire_start = colour_start + OPTICAL
-    full_matrix[wire_start:] = wire_slice[np.newaxis, :, :]
-
-    backing_z_range = (0, spacer_layers - 1)
-    backing_metadata = {
-        'backing_color_id': backing_color_id,
-        'backing_z_range': backing_z_range,
-        'is_cloisonne': True,
-        'wire_layers': wire_layers,
-    }
-
-    print(f"[CLOISONNE] Voxel matrix: {full_matrix.shape} "
-          f"(base={spacer_layers}, colour={OPTICAL}, wire={wire_layers})")
     return full_matrix, backing_metadata
 
 
@@ -3052,10 +2881,7 @@ def generate_final_model(image_path, lut_path, target_width_mm, spacer_thick,
                         heightmap_path=None, heightmap_max_height=None,
                         enable_cleanup=True,
                         enable_outline=False, outline_width=2.0,
-                        enable_cloisonne=False, wire_width_mm=0.4,
-                        wire_height_mm=0.4,
                         free_color_set=None,
-                        enable_coating=False, coating_height_mm=0.08,
                         hue_weight: float = 0.0,
                         progress=None):
     """
@@ -3112,12 +2938,7 @@ def generate_final_model(image_path, lut_path, target_width_mm, spacer_thick,
         enable_cleanup=enable_cleanup,
         enable_outline=enable_outline,
         outline_width=outline_width,
-        enable_cloisonne=enable_cloisonne,
-        wire_width_mm=wire_width_mm,
-        wire_height_mm=wire_height_mm,
         free_color_set=free_color_set,
-        enable_coating=enable_coating,
-        coating_height_mm=coating_height_mm,
         hue_weight=hue_weight,
         progress=progress,
     )

@@ -83,10 +83,10 @@ def bind_relief_events(components, states):
             outputs=[states['conv_preview']]
         )
 
-    # ========== Relief / Cloisonne Mutual Exclusion ==========
+    # ========== Relief Mode Toggle ==========
 
     def on_relief_mode_toggle(enable_relief, selected_color, height_map, base_thickness):
-        """Toggle relief mode visibility and reset state; auto-disable cloisonne.
+        """Toggle relief mode visibility and reset state.
 
         Returns updates for:
         - slider_conv_relief_height
@@ -97,7 +97,6 @@ def bind_relief_events(components, states):
         - conv_color_height_map
         - conv_relief_selected_color
         - radio_conv_auto_height_mode (reset to default)
-        - checkbox_conv_cloisonne_enable (auto-disable)
         - image_conv_heightmap (clear on disable)
         """
         if not enable_relief:
@@ -111,12 +110,10 @@ def bind_relief_events(components, states):
                 {},                         # conv_color_height_map
                 None,                       # conv_relief_selected_color
                 gr.update(value="深色凸起"), # radio_conv_auto_height_mode reset
-                gr.update(),                # checkbox_conv_cloisonne_enable (no change)
                 gr.update(value=None),      # image_conv_heightmap（清除）
             )
         else:
-            # 开启浮雕模式 - 默认「深色凸起」，隐藏高度图上传区，自动关闭掐丝珐琅
-            gr.Info("⚠️ 2.5D浮雕模式与掐丝珐琅模式互斥，已自动关闭掐丝珐琅")
+            # 开启浮雕模式 - 默认「深色凸起」，隐藏高度图上传区
             if selected_color:
                 current_height = height_map.get(selected_color, base_thickness)
                 return (
@@ -128,7 +125,6 @@ def bind_relief_events(components, states):
                     height_map,                 # conv_color_height_map
                     selected_color,             # conv_relief_selected_color
                     gr.update(value="深色凸起"), # radio_conv_auto_height_mode reset
-                    gr.update(value=False),     # checkbox_conv_cloisonne_enable (disable)
                     gr.update(),                # image_conv_heightmap（不变）
                 )
             else:
@@ -141,16 +137,8 @@ def bind_relief_events(components, states):
                     height_map,                 # conv_color_height_map
                     selected_color,             # conv_relief_selected_color
                     gr.update(value="深色凸起"), # radio_conv_auto_height_mode reset
-                    gr.update(value=False),     # checkbox_conv_cloisonne_enable (disable)
                     gr.update(),                # image_conv_heightmap（不变）
                 )
-
-    def on_cloisonne_mode_toggle(enable_cloisonne):
-        """When cloisonne is enabled, auto-disable relief mode"""
-        if enable_cloisonne:
-            gr.Info("⚠️ 掐丝珐琅模式与2.5D浮雕模式互斥，已自动关闭浮雕")
-            return gr.update(value=False), gr.update(visible=False), gr.update(visible=False)
-        return gr.update(), gr.update(), gr.update()
 
     components['checkbox_conv_relief_mode'].change(
         on_relief_mode_toggle,
@@ -169,18 +157,7 @@ def bind_relief_events(components, states):
             states['conv_color_height_map'],
             states['conv_relief_selected_color'],
             components['radio_conv_auto_height_mode'],
-            components['checkbox_conv_cloisonne_enable'],
             components['image_conv_heightmap'],
-        ]
-    )
-
-    components['checkbox_conv_cloisonne_enable'].change(
-        on_cloisonne_mode_toggle,
-        inputs=[components['checkbox_conv_cloisonne_enable']],
-        outputs=[
-            components['checkbox_conv_relief_mode'],
-            components['slider_conv_relief_height'],
-            components['accordion_conv_auto_height']
         ]
     )
 

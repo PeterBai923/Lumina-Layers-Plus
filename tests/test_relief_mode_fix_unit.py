@@ -56,7 +56,6 @@ def on_relief_mode_toggle(enable_relief, selected_color, height_map, base_thickn
             {},                         # conv_color_height_map
             None,                       # conv_relief_selected_color
             gr.update(value="深色凸起"), # radio_conv_auto_height_mode reset
-            gr.update(),                # checkbox_conv_cloisonne_enable
             gr.update(value=None),      # image_conv_heightmap（清除）
         )
     else:
@@ -71,8 +70,7 @@ def on_relief_mode_toggle(enable_relief, selected_color, height_map, base_thickn
                 height_map,
                 selected_color,
                 gr.update(value="深色凸起"),
-                gr.update(value=False),
-                gr.update(),
+                gr.update(),  # image_conv_heightmap（不变）
             )
         else:
             return (
@@ -84,8 +82,7 @@ def on_relief_mode_toggle(enable_relief, selected_color, height_map, base_thickn
                 height_map,
                 selected_color,
                 gr.update(value="深色凸起"),
-                gr.update(value=False),
-                gr.update(),
+                gr.update(),  # image_conv_heightmap（不变）
             )
 
 
@@ -126,25 +123,25 @@ class TestOnReliefModeToggle:
     """测试关闭浮雕模式时 heightmap 清除逻辑 (Requirement 1.3)"""
 
     def test_disable_relief_clears_heightmap(self) -> None:
-        """关闭浮雕模式时，image_conv_heightmap (index 9) 应被清除为 None"""
+        """关闭浮雕模式时，image_conv_heightmap (index 8) 应被清除为 None"""
         result = on_relief_mode_toggle(False, None, {}, 1.0)
-        heightmap_update = result[9]
+        heightmap_update = result[8]
         assert "value" in heightmap_update
         assert heightmap_update["value"] is None
 
     def test_enable_relief_preserves_heightmap(self) -> None:
-        """开启浮雕模式时，image_conv_heightmap (index 9) 不应被清除"""
+        """开启浮雕模式时，image_conv_heightmap (index 8) 不应被清除"""
         result = on_relief_mode_toggle(True, "#ff0000", {"#ff0000": 2.0}, 1.0)
-        heightmap_update = result[9]
+        heightmap_update = result[8]
         assert "value" not in heightmap_update
 
     def test_disable_relief_return_length(self) -> None:
-        """关闭浮雕模式返回值应为 10 元素元组"""
+        """关闭浮雕模式返回值应为 9 元素元组"""
         result = on_relief_mode_toggle(False, None, {}, 1.0)
-        assert len(result) == 10
+        assert len(result) == 9
 
     def test_enable_relief_no_selected_color_preserves_heightmap(self) -> None:
         """开启浮雕模式但无选中颜色时，heightmap 也不应被清除"""
         result = on_relief_mode_toggle(True, None, {}, 1.0)
-        heightmap_update = result[9]
+        heightmap_update = result[8]
         assert "value" not in heightmap_update

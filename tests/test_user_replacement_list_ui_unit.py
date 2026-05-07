@@ -166,12 +166,7 @@ def test_process_batch_generation_single_accepts_replacement_regions_list(monkey
         enable_cleanup=True,
         enable_outline=False,
         outline_width=2.0,
-        enable_cloisonne=False,
-        wire_width_mm=0.4,
-        wire_height_mm=0.4,
         free_color_set=None,
-        enable_coating=False,
-        coating_height_mm=0.08,
     )
 
     assert out_path == 'out.3mf'
@@ -216,12 +211,7 @@ def test_process_batch_generation_full_pipeline_replacement_regions_affect_previ
         enable_cleanup=True,
         enable_outline=False,
         outline_width=2.0,
-        enable_cloisonne=False,
-        wire_width_mm=0.4,
-        wire_height_mm=0.4,
         free_color_set=None,
-        enable_coating=False,
-        coating_height_mm=0.08,
     )
 
     base_out, base_glb, base_preview, base_status, _ = process_batch_generation(

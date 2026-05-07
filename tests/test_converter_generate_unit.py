@@ -169,11 +169,6 @@ class TestGenerateParameterCompleteness:
                 "heightmap_max_height": 8.0,
                 "enable_outline": True,
                 "outline_width": 3.0,
-                "enable_cloisonne": True,
-                "wire_width_mm": 0.6,
-                "wire_height_mm": 0.5,
-                "enable_coating": True,
-                "coating_height_mm": 0.1,
             },
         }
 
@@ -241,15 +236,6 @@ class TestGenerateParameterCompleteness:
         # Verify outline parameters
         assert submitted_params["enable_outline"] is True
         assert submitted_params["outline_width"] == 3.0
-
-        # Verify cloisonne parameters
-        assert submitted_params["enable_cloisonne"] is True
-        assert submitted_params["wire_width_mm"] == 0.6
-        assert submitted_params["wire_height_mm"] == 0.5
-
-        # Verify coating parameters
-        assert submitted_params["enable_coating"] is True
-        assert submitted_params["coating_height_mm"] == 0.1
 
         # Verify session-derived parameters (empty → None)
         assert submitted_params["replacement_regions"] is None

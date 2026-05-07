@@ -39,10 +39,7 @@ def process_batch_generation(batch_files, is_batch, single_image, lut_path, targ
                              heightmap_path=None, heightmap_max_height=None,
                              enable_cleanup=True,
                              enable_outline=False, outline_width=2.0,
-                             enable_cloisonne=False, wire_width_mm=0.4,
-                             wire_height_mm=0.4,
                              free_color_set=None,
-                             enable_coating=False, coating_height_mm=0.08,
                              hue_weight: float = 0.0,
                              progress=gr.Progress()):
     """Dispatch to single-image or batch generation; batch writes a ZIP of 3MFs.
@@ -80,9 +77,7 @@ def process_batch_generation(batch_files, is_batch, single_image, lut_path, targ
             heightmap_path, heightmap_max_height,
             enable_cleanup,
             enable_outline, outline_width,
-            enable_cloisonne, wire_width_mm, wire_height_mm,
-            free_color_set,
-            enable_coating, coating_height_mm)
+            free_color_set)
 
     if not is_batch:
         out_path, glb_path, preview_img, status, color_recipe_path = generate_final_model(
@@ -113,12 +108,7 @@ def process_batch_generation(batch_files, is_batch, single_image, lut_path, targ
             enable_cleanup=enable_cleanup,
             enable_outline=enable_outline,
             outline_width=outline_width,
-            enable_cloisonne=enable_cloisonne,
-            wire_width_mm=wire_width_mm,
-            wire_height_mm=wire_height_mm,
             free_color_set=free_color_set,
-            enable_coating=enable_coating,
-            coating_height_mm=coating_height_mm,
             hue_weight=float(hue_weight) if hue_weight else 0.0,
         )
         return out_path, glb_path, _preview_update(preview_img), status, color_recipe_path

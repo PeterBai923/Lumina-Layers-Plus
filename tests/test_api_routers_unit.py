@@ -226,11 +226,6 @@ def st_convert_generate_request(draw: st.DrawFn) -> Dict[str, Any]:
         heightmap_max_height=draw(st.floats(min_value=0.08, max_value=15.0, allow_nan=False)),
         enable_outline=draw(st.booleans()),
         outline_width=draw(st.floats(min_value=0.5, max_value=10.0, allow_nan=False)),
-        enable_cloisonne=draw(st.booleans()),
-        wire_width_mm=draw(st.floats(min_value=0.2, max_value=1.2, allow_nan=False)),
-        wire_height_mm=draw(st.floats(min_value=0.04, max_value=1.0, allow_nan=False)),
-        enable_coating=draw(st.booleans()),
-        coating_height_mm=draw(st.floats(min_value=0.04, max_value=0.12, allow_nan=False)),
     ).model_dump(mode="json")
 
 

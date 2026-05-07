@@ -468,26 +468,11 @@ def bind_image_events(components, states):
             interactive=True,
             info=None,
         )
-        cloisonne_checkbox_update = gr.update(
-            interactive=True,
-            info="掐丝珐琅仅在生成阶段生效（与 2.5D 浮雕互斥）",
-        )
-        wire_width_update = gr.update(
-            interactive=True,
-            info=None,
-        )
-        wire_height_update = gr.update(
-            interactive=True,
-            info=None,
-        )
 
         return (
             cleanup_update,
             outline_checkbox_update,
             outline_width_update,
-            cloisonne_checkbox_update,
-            wire_width_update,
-            wire_height_update,
         )
 
     components['radio_conv_modeling_mode'].change(
@@ -497,9 +482,6 @@ def bind_image_events(components, states):
             components['checkbox_conv_cleanup'],
             components['checkbox_conv_outline_enable'],
             components['slider_conv_outline_width'],
-            components['checkbox_conv_cloisonne_enable'],
-            components['slider_conv_wire_width'],
-            components['slider_conv_wire_height'],
         ]
     ).then(
         fn=save_modeling_mode,
@@ -583,35 +565,6 @@ def bind_image_events(components, states):
     components['slider_conv_outline_width'].change(
         fn=lambda v: _save_user_setting("last_outline_width", v),
         inputs=[components['slider_conv_outline_width']],
-        outputs=None
-    )
-
-    # Cloisonné settings
-    components['checkbox_conv_cloisonne_enable'].change(
-        fn=lambda v: _save_user_setting("last_cloisonne_enable", v),
-        inputs=[components['checkbox_conv_cloisonne_enable']],
-        outputs=None
-    )
-    components['slider_conv_wire_width'].change(
-        fn=lambda v: _save_user_setting("last_wire_width", v),
-        inputs=[components['slider_conv_wire_width']],
-        outputs=None
-    )
-    components['slider_conv_wire_height'].change(
-        fn=lambda v: _save_user_setting("last_wire_height", v),
-        inputs=[components['slider_conv_wire_height']],
-        outputs=None
-    )
-
-    # Coating settings
-    components['checkbox_conv_coating_enable'].change(
-        fn=lambda v: _save_user_setting("last_coating_enable", v),
-        inputs=[components['checkbox_conv_coating_enable']],
-        outputs=None
-    )
-    components['slider_conv_coating_height'].change(
-        fn=lambda v: _save_user_setting("last_coating_height", v),
-        inputs=[components['slider_conv_coating_height']],
         outputs=None
     )
 

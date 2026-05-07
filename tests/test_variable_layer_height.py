@@ -119,37 +119,6 @@ def test_double_sided_mode():
     assert np.max(top_optical) == pytest.approx(2.4, abs=0.01)
 
 
-def test_cloisonne_mode():
-    """测试景泰蓝模式: 背板在底部,光学层在顶部"""
-    mesh = trimesh.creation.box(extents=[10, 10, 13])
-    mesh.vertices[:, 2] = np.clip(mesh.vertices[:, 2], 0, 12)
-
-    backing_metadata = {
-        'backing_z_range': (0, 7),  # 背板Z=0-7 (8层)
-        'is_cloisonne': True
-    }
-
-    _apply_variable_layer_height_transform(mesh, backing_metadata, pixel_scale=1.0)
-
-    # 背板层: 8层 × 0.2 = 1.6mm
-    # 光学层: 5层 × 0.08 = 0.4mm
-    # 总高度: 2.0mm
-    expected_height = 1.6 + 0.4
-    assert np.max(mesh.vertices[:, 2]) == pytest.approx(expected_height, abs=0.01)
-
-    z_coords = mesh.vertices[:, 2]
-
-    # 背板层 (0-1.6mm)
-    backing = z_coords[z_coords < 1.6]
-    assert len(backing) > 0
-    assert np.max(backing) == pytest.approx(1.6, abs=0.01)
-
-    # 光学层 (1.6-2.0mm)
-    optical = z_coords[z_coords >= 1.6]
-    assert len(optical) > 0
-    assert np.max(optical) == pytest.approx(2.0, abs=0.01)
-
-
 def test_pixel_scale_xy():
     """测试XY像素缩放"""
     mesh = trimesh.creation.box(extents=[10, 10, 5])
