@@ -7,7 +7,7 @@ Supports CRUD operations on color mappings and batch application to images.
 
 from typing import Dict, Tuple, Optional, List
 import numpy as np
-from core.color_utils import rgb_to_hex, hex_to_rgb
+from core.color.formats import rgb_to_hex, hex_to_rgb
 
 
 class ColorReplacementManager:

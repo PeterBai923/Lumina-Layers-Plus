@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import os
 import tempfile
-from typing import Any
 from unittest.mock import patch
 
 import numpy as np
@@ -19,6 +18,7 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from api.app import app
+from conftest import make_join_redirector, _real_path_join
 
 client: TestClient = TestClient(app)
 
@@ -26,19 +26,6 @@ client: TestClient = TestClient(app)
 _mock_preview: Image.Image = Image.fromarray(
     np.zeros((10, 10, 3), dtype=np.uint8)
 )
-
-# Save real os.path.join to avoid recursion when patching
-_real_path_join = os.path.join
-
-
-def _make_join_redirector(assets_dir: str):
-    """Create an os.path.join side_effect that redirects temp_5c files to assets_dir."""
-    def _join(*args: Any) -> str:
-        last = args[-1] if args else ""
-        if isinstance(last, str) and "temp_5c" in last:
-            return _real_path_join(assets_dir, last)
-        return _real_path_join(*args)
-    return _join
 
 
 # =========================================================================
@@ -61,7 +48,7 @@ class TestMerge5ColorExtendedSuccess:
             merged_path = _real_path_join(tmpdir, "lumina_lut.npy")
 
             with (
-                patch("api.routers.extractor.os.path.join", side_effect=_make_join_redirector(tmpdir)),
+                patch("api.routers.extractor.os.path.join", side_effect=make_join_redirector(tmpdir)),
                 patch("config.LUT_FILE_PATH", merged_path),
             ):
                 response = client.post("/api/extractor/merge-5color-extended")
@@ -84,7 +71,7 @@ class TestMerge5ColorExtendedSuccess:
             merged_path = _real_path_join(tmpdir, "lumina_lut.npy")
 
             with (
-                patch("api.routers.extractor.os.path.join", side_effect=_make_join_redirector(tmpdir)),
+                patch("api.routers.extractor.os.path.join", side_effect=make_join_redirector(tmpdir)),
                 patch("config.LUT_FILE_PATH", merged_path),
             ):
                 response = client.post("/api/extractor/merge-5color-extended")

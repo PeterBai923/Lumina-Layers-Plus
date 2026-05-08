@@ -10,7 +10,7 @@ import numpy as np
 import cv2
 import pytest
 
-from core.heightmap_loader import HeightmapLoader
+from core.mesh.heightmap import HeightmapLoader
 from config import PrinterConfig
 
 

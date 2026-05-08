@@ -34,10 +34,47 @@ from .converter import (
     generate_final_model
 )
 
-# New refactored modules
-from .image_processing import LuminaImageProcessor
-from .mesh_generators import get_mesher, HighFidelityMesher
-from .geometry_utils import create_keychain_loop
+# Color subpackage
+from .color import (
+    ColorAnalyzer,
+    ColorAnalysisResult,
+    analyze_recommended_colors,
+    HueAwareColorMatcher,
+    ColorMerger,
+    ColorReplacementManager,
+    rgb_to_hex,
+    hex_to_rgb,
+    LUTMerger,
+)
+
+# Image subpackage
+from .image import (
+    LuminaImageProcessor,
+    ImagePreprocessor,
+    CropRegion,
+    ImageInfo,
+    cleanup_isolated_pixels,
+)
+
+# Mesh subpackage
+from .mesh import (
+    HighFidelityMesher,
+    get_mesher,
+    CUBE_FACES,
+    CUBE_FACES_NP,
+    create_keychain_loop,
+    HeightmapLoader,
+)
+
+# LUT subpackage
+from .lut import (
+    ColorQueryResult,
+    ColorCountDetector,
+    StackFileManager,
+    StackLUTLoader,
+    ColorQueryEngine,
+    get_color_name_from_rgb,
+)
 
 __all__ = [
     # Calibration
@@ -61,9 +98,37 @@ __all__ = [
     'on_remove_loop',
     'generate_final_model',
 
-    # Refactored modules (for advanced usage)
+    # Color subpackage
+    'ColorAnalyzer',
+    'ColorAnalysisResult',
+    'analyze_recommended_colors',
+    'HueAwareColorMatcher',
+    'ColorMerger',
+    'ColorReplacementManager',
+    'rgb_to_hex',
+    'hex_to_rgb',
+    'LUTMerger',
+
+    # Image subpackage
     'LuminaImageProcessor',
-    'get_mesher',
+    'ImagePreprocessor',
+    'CropRegion',
+    'ImageInfo',
+    'cleanup_isolated_pixels',
+
+    # Mesh subpackage
     'HighFidelityMesher',
+    'get_mesher',
+    'CUBE_FACES',
+    'CUBE_FACES_NP',
     'create_keychain_loop',
+    'HeightmapLoader',
+
+    # LUT subpackage
+    'ColorQueryResult',
+    'ColorCountDetector',
+    'StackFileManager',
+    'StackLUTLoader',
+    'ColorQueryEngine',
+    'get_color_name_from_rgb',
 ]

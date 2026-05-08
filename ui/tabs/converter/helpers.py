@@ -16,10 +16,11 @@ from config import ModelingMode
 from utils import LUTManager
 from core.naming import generate_batch_filename
 from core.converter import (
-    generate_preview_cached, generate_realtime_glb,
+    generate_preview_cached,
     generate_lut_grid_html, generate_lut_card_grid_html,
     detect_lut_color_mode,
 )
+from core.preview.render import generate_realtime_glb
 
 from ...image_helpers import _preview_update
 

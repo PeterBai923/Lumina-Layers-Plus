@@ -20,14 +20,14 @@ from colormath.color_diff import delta_e_cie2000
 import itertools
 import os
 
-from config import ColorSystem
+from config import ColorSystem, PrinterConfig
 
 # ================= 配置区域 =================
 
-# 打印参数
-LAYER_HEIGHT = 0.08  # 层高
-LAYERS = 5           # 混色层数
-BACKING_COLOR = np.array([255, 255, 255]) # 底板颜色 (白色)
+# 打印参数 (统一使用 config.py 的配置)
+LAYER_HEIGHT = PrinterConfig.LAYER_HEIGHT  # 层高
+LAYERS = PrinterConfig.COLOR_LAYERS         # 混色层数
+BACKING_COLOR = np.array([255, 255, 255])   # 底板颜色 (白色)
 
 # 耗材定义 (统一使用 config.py 的 EIGHT_COLOR 注册表)
 FILAMENTS = ColorSystem.EIGHT_COLOR['filaments']

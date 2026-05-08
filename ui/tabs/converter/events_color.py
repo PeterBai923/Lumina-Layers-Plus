@@ -6,10 +6,9 @@ Binds all color replacement / merge / selection event handlers for the converter
 
 import gradio as gr
 
+from core.preview.interaction import on_preview_click_select_color, _resolve_click_selection_hexes
 from core.converter import (
-    on_preview_click_select_color,
     _build_dual_recommendations,
-    _resolve_click_selection_hexes,
     get_lut_color_choices,
 )
 from ...callbacks import (
@@ -247,7 +246,7 @@ def bind_color_events(components, states, theme_state):
             return gr.update(), gr.update()
         try:
             from core.converter import extract_lut_available_colors
-            from core.image_processing import LuminaImageProcessor
+            from core.image.processor import LuminaImageProcessor
             import numpy as np
             from scipy.spatial import KDTree
 

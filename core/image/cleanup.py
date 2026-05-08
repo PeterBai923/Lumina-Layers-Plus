@@ -13,27 +13,11 @@
 import numpy as np
 from collections import Counter
 
+from core.stack_encoding import encode_stacks_batch
 
-def _encode_stacks(material_matrix: np.ndarray, base: int) -> np.ndarray:
-    """
-    将 (H, W, N) 的材料矩阵编码为 (H, W) 的整数矩阵。
 
-    编码公式: layer0 * B^(N-1) + layer1 * B^(N-2) + ... + layer(N-1)
-    其中 B = base（材料 ID 的最大值 + 1）
-
-    Args:
-        material_matrix: (H, W, N) 材料堆叠矩阵
-        base: 编码基数，通常为 max(material_id) + 1
-
-    Returns:
-        (H, W) 整数矩阵，dtype 为 int64
-    """
-    if material_matrix.ndim != 3:
-        raise ValueError(f"material_matrix must be 3D (H, W, N), got shape={material_matrix.shape}")
-    layer_count = material_matrix.shape[2]
-    weights = np.array([base ** i for i in range(layer_count - 1, -1, -1)], dtype=np.int64)
-    encoded = np.sum(material_matrix.astype(np.int64) * weights, axis=2)
-    return encoded
+# Alias for backward compatibility
+_encode_stacks = encode_stacks_batch
 
 
 def _detect_isolated(encoded: np.ndarray) -> np.ndarray:

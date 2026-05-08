@@ -9,7 +9,8 @@
 import numpy as np
 from typing import Tuple, List, Optional
 from dataclasses import dataclass
-from core.color_utils import rgb_to_hex
+from core.color.formats import rgb_to_hex
+from core.utils.lut_detection import detect_color_count_by_size
 
 
 @dataclass
@@ -24,22 +25,14 @@ class ColorQueryResult:
 
 class ColorCountDetector:
     """颜色数量检测器"""
-    
-    # 已知的 LUT 格式映射
-    KNOWN_FORMATS = {
-        1024: 4,  # 4-color: (32, 32, 3) = 1024 combinations
-        2468: 5,  # 5-color: (77, 32, 3) = 2468 combinations
-        1296: 6,  # 6-color: (36, 36, 3) = 1296 combinations
-        2738: 8,  # 8-color: (74, 37, 3) = 2738 combinations
-    }
-    
+
     @staticmethod
     def detect_color_count(lut_data: np.ndarray) -> Tuple[int, int]:
         """检测 LUT 的颜色数量
-        
+
         Args:
             lut_data: LUT 数组数据
-            
+
         Returns:
             (颜色数量, 组合总数)
             例如: (8, 2738) 表示 8 色 LUT，共 2738 个组合
@@ -47,14 +40,10 @@ class ColorCountDetector:
         # 将数据 reshape 为 (N, 3) 格式
         reshaped = lut_data.reshape(-1, 3)
         combination_count = reshaped.shape[0]
-        
-        # 查找已知格式
-        if combination_count in ColorCountDetector.KNOWN_FORMATS:
-            color_count = ColorCountDetector.KNOWN_FORMATS[combination_count]
-            return (color_count, combination_count)
-        
-        # 未知格式，返回 0 表示无法识别
-        return (0, combination_count)
+
+        # 使用统一的检测函数
+        color_count = detect_color_count_by_size(combination_count)
+        return (color_count, combination_count)
 
 
 class StackFileManager:

@@ -21,7 +21,7 @@ try:
     HAS_HEIF = True
 except ImportError:
     HAS_HEIF = False
-    print("⚠️ [HEIC] pillow-heif not installed. HEIC/HEIF support disabled.")
+    # pillow-heif not installed. HEIC/HEIF support disabled.
 
 
 @dataclass
@@ -313,5 +313,5 @@ class ImagePreprocessor:
                 'complexity_score': 复杂度评分 (0-100)
             }
         """
-        from core.color_analyzer import analyze_recommended_colors as _analyze
+        from core.color.analyzer import analyze_recommended_colors as _analyze
         return _analyze(image_path, target_width_mm)

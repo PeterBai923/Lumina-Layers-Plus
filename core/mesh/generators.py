@@ -24,7 +24,7 @@ import numpy as np
 import cv2
 import trimesh
 from config import ModelingMode
-from core.geometry_utils import CUBE_FACES
+from core.mesh.geometry import CUBE_FACES
 
 try:
     import numba

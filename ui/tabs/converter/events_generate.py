@@ -9,7 +9,7 @@ import gradio as gr
 
 from ...settings import resolve_height_mode
 from ...slicer_integration import _get_slicer_choices, open_in_slicer
-from core.converter import render_preview
+from core.preview.render import render_preview
 from .helpers import process_batch_generation, generate_preview_cached_with_fit
 from ...image_helpers import _preview_update
 

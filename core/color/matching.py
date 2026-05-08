@@ -18,9 +18,14 @@ CIELAB 的 L*a*b* 用欧氏距离时，亮度差异容易压过色相差异，
 兼容项目现有的 OpenCV LAB 格式（L:0-255, a:0-255, b:0-255）。
 """
 
+from typing import Optional
 import numpy as np
 import cv2
 from scipy.spatial import KDTree
+import torch
+
+from core.utils.color_conversion import rgb_to_lab
+from core.utils.gpu_device import GPUDeviceManager
 
 
 class HueAwareColorMatcher:
@@ -31,19 +36,25 @@ class HueAwareColorMatcher:
     # w_H 越小 → 色相差异越敏感（更严格保持同色相）
     PRESETS = {
         # 纯 CIELAB 距离（等同于原始 KDTree 行为）
-        'classic': {'w_L': 1.0, 'w_C': 1.0, 'w_H': 1.0},
+        "classic": {"w_L": 1.0, "w_C": 1.0, "w_H": 1.0},
         # 轻度色相保护（≈hw=0.3）
-        'mild': {'w_L': 1.0, 'w_C': 1.0, 'w_H': 0.44},
+        "mild": {"w_L": 1.0, "w_C": 1.0, "w_H": 0.44},
         # 平衡模式（≈hw=0.5）：推荐默认值
-        'balanced': {'w_L': 1.0, 'w_C': 1.0, 'w_H': 0.26},
+        "balanced": {"w_L": 1.0, "w_C": 1.0, "w_H": 0.26},
         # 强色相保护（≈hw=1.0）
-        'strong': {'w_L': 1.0, 'w_C': 1.0, 'w_H': 0.15},
+        "strong": {"w_L": 1.0, "w_C": 1.0, "w_H": 0.15},
     }
 
-    def __init__(self, lut_rgb: np.ndarray, lut_lab: np.ndarray,
-                 hue_weight: float = 0.0,
-                 preset: str = None,
-                 w_L: float = None, w_C: float = None, w_H: float = None):
+    def __init__(
+        self,
+        lut_rgb: np.ndarray,
+        lut_lab: np.ndarray,
+        hue_weight: float = 0.0,
+        preset: Optional[str] = None,
+        w_L: Optional[float] = None,
+        w_C: Optional[float] = None,
+        w_H: Optional[float] = None,
+    ):
         """
         初始化匹配器。
 
@@ -68,8 +79,10 @@ class HueAwareColorMatcher:
         # 解析权重参数
         self._resolve_weights(hue_weight, preset, w_L, w_C, w_H)
 
-        print(f"[HueAwareMatcher] 初始化: {self.n_colors} 色, "
-              f"w_L={self.w_L:.2f}, w_C={self.w_C:.2f}, w_H={self.w_H:.2f}")
+        print(
+            f"[HueAwareMatcher] 初始化: {self.n_colors} 色, "
+            f"w_L={self.w_L:.2f}, w_C={self.w_C:.2f}, w_H={self.w_H:.2f}"
+        )
 
     def _resolve_weights(self, hue_weight, preset, w_L, w_C, w_H):
         """解析权重参数，优先级：手动 > 预设 > hue_weight 映射"""
@@ -79,9 +92,9 @@ class HueAwareColorMatcher:
             self.w_H = w_H
         elif preset and preset in self.PRESETS:
             p = self.PRESETS[preset]
-            self.w_L = p['w_L']
-            self.w_C = p['w_C']
-            self.w_H = p['w_H']
+            self.w_L = p["w_L"]
+            self.w_C = p["w_C"]
+            self.w_H = p["w_H"]
         else:
             # hue_weight 0.0-1.0 映射到权重
             # 核心策略：w_L 保持 1.0 不变，只通过降低 w_H 放大色相惩罚。
@@ -113,7 +126,7 @@ class HueAwareColorMatcher:
         L = lab[..., 0]
         a = lab[..., 1] - 128.0
         b = lab[..., 2] - 128.0
-        C = np.sqrt(a ** 2 + b ** 2)
+        C = np.sqrt(a**2 + b**2)
         H = np.degrees(np.arctan2(b, a)) % 360
         return np.stack([L, C, H], axis=-1)
 
@@ -146,12 +159,14 @@ class HueAwareColorMatcher:
         """
         dL = (candidate_lch[:, 0] - input_lch[0]) / self.w_L
         dC = (candidate_lch[:, 1] - input_lch[1]) / self.w_C
-        dH = self._delta_hue(
-            input_lch[2], candidate_lch[:, 2],
-            input_lch[1], candidate_lch[:, 1]
-        ) / self.w_H
+        dH = (
+            self._delta_hue(
+                input_lch[2], candidate_lch[:, 2], input_lch[1], candidate_lch[:, 1]
+            )
+            / self.w_H
+        )
 
-        return np.sqrt(dL ** 2 + dC ** 2 + dH ** 2)
+        return np.sqrt(dL**2 + dC**2 + dH**2)
 
     def match_colors_batch(self, input_rgb: np.ndarray, k: int = 16) -> np.ndarray:
         """
@@ -168,12 +183,14 @@ class HueAwareColorMatcher:
         n = len(input_rgb)
 
         # 如果权重全为 1（纯 CIELAB），直接用 KDTree
-        if (abs(self.w_L - 1.0) < 1e-6 and
-            abs(self.w_C - 1.0) < 1e-6 and
-            abs(self.w_H - 1.0) < 1e-6):
+        if (
+            abs(self.w_L - 1.0) < 1e-6
+            and abs(self.w_C - 1.0) < 1e-6
+            and abs(self.w_H - 1.0) < 1e-6
+        ):
             input_lab = self._rgb_to_lab(input_rgb)
             _, indices = self.kdtree.query(input_lab)
-            return indices
+            return np.atleast_1d(indices)
 
         # 转换到 LAB 和 LCH
         input_lab = self._rgb_to_lab(input_rgb)
@@ -182,7 +199,7 @@ class HueAwareColorMatcher:
         # KDTree 初筛
         k_actual = min(k, self.n_colors)
         _, candidate_indices = self.kdtree.query(input_lab, k=k_actual)
-
+        candidate_indices = np.asarray(candidate_indices)
         if candidate_indices.ndim == 1:
             candidate_indices = candidate_indices.reshape(-1, 1)
 
@@ -199,9 +216,9 @@ class HueAwareColorMatcher:
         return result
 
     @staticmethod
-    def _rgb_to_lab(rgb: np.ndarray) -> np.ndarray:
-        """RGB (N,3) uint8 → OpenCV LAB (N,3) float64"""
-        rgb_3d = rgb.reshape(1, -1, 3).astype(np.uint8)
-        bgr = cv2.cvtColor(rgb_3d, cv2.COLOR_RGB2BGR)
-        lab = cv2.cvtColor(bgr, cv2.COLOR_BGR2Lab).astype(np.float64)
-        return lab.reshape(-1, 3)
+    def _rgb_to_lab(rgb_array: np.ndarray) -> np.ndarray:
+        """Convert RGB to LAB using GPU."""
+        device = GPUDeviceManager().get_device()
+        tensor = torch.from_numpy(rgb_array.astype(np.float32)).to(device)
+        lab_tensor = rgb_to_lab(tensor)
+        return lab_tensor.cpu().numpy()

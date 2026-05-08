@@ -11,8 +11,8 @@ from hypothesis import strategies as st
 from pydantic import ValidationError
 
 from api.schemas.five_color import BaseColorEntry, FiveColorQueryRequest
-from core.five_color_combination import ColorQueryEngine
-from core.color_utils import rgb_to_hex
+from core.lut.query import ColorQueryEngine
+from core.color.formats import rgb_to_hex
 
 # ---------------------------------------------------------------------------
 # Strategies

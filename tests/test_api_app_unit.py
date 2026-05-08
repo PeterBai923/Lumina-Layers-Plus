@@ -19,6 +19,7 @@ from fastapi.testclient import TestClient
 
 from api.app import create_app
 
+
 # ---------------------------------------------------------------------------
 # All 8 endpoint paths that must appear in the OpenAPI spec
 # ---------------------------------------------------------------------------
@@ -35,12 +36,7 @@ EXPECTED_PATHS: List[str] = [
 ]
 
 
-@pytest.fixture()
-def client() -> TestClient:
-    """Create a fresh TestClient for each test.
-    为每个测试创建独立的 TestClient。
-    """
-    return TestClient(create_app())
+# client fixture is provided by tests/conftest.py
 
 
 # ===========================================================================

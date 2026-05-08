@@ -9,16 +9,18 @@ import os
 import gradio as gr
 import numpy as np
 
-from core.converter import (
+from core.preview.interaction import (
     update_preview_with_loop,
     on_remove_loop,
+    _resolve_click_selection_hexes,
+)
+from core.converter import (
     generate_auto_height_map,
     _build_dual_recommendations,
-    _resolve_click_selection_hexes,
     get_lut_color_choices,
 )
-from core.heightmap_loader import HeightmapLoader
-from core.image_preprocessor import ImagePreprocessor
+from core.mesh.heightmap import HeightmapLoader
+from core.image.preprocessor import ImagePreprocessor
 from ...callbacks import on_highlight_color_change, on_delete_selected_user_replacement
 from ...image_helpers import _preview_update
 

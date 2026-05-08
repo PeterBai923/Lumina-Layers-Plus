@@ -12,7 +12,7 @@ import xml.etree.ElementTree as ET
 import gradio as gr
 
 from config import ModelingMode
-from core.image_preprocessor import ImagePreprocessor
+from core.image.preprocessor import ImagePreprocessor
 from core.converter import detect_image_type
 from ...callbacks import on_lut_select, on_lut_upload_save, on_preview_generated_update_palette
 from ...settings import (

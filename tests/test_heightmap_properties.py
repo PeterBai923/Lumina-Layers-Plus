@@ -20,7 +20,7 @@ from hypothesis import strategies as st
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from config import PrinterConfig
-from core.heightmap_loader import HeightmapLoader
+from core.mesh.heightmap import HeightmapLoader
 
 # 常量
 OPTICAL_LAYERS = 5

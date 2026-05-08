@@ -14,23 +14,21 @@ from __future__ import annotations
 
 from typing import List, Tuple
 
-import cv2
 import numpy as np
 import hypothesis.strategies as st
 from hypothesis import given, settings
 
-from core.color_merger import ColorMerger
+from core.color.merger import ColorMerger
+from core.utils.color_conversion import rgb_to_lab_cpu
 
 
 # ---------------------------------------------------------------------------
-# Helper: RGB to LAB conversion using OpenCV
+# Helper: RGB to LAB conversion using unified function
 # ---------------------------------------------------------------------------
 
 def _rgb_to_lab(rgb_array: np.ndarray) -> np.ndarray:
     """Convert RGB uint8 array (N,3) to LAB float64 array (N,3)."""
-    rgb_2d = rgb_array.reshape(1, -1, 3).astype(np.uint8)
-    lab_2d = cv2.cvtColor(rgb_2d, cv2.COLOR_RGB2LAB)
-    return lab_2d.reshape(-1, 3).astype(np.float64)
+    return rgb_to_lab_cpu(rgb_array)
 
 
 # ---------------------------------------------------------------------------

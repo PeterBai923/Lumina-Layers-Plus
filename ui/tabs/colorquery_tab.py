@@ -80,7 +80,7 @@ def create_5color_tab_v2(lang="zh"):
             )
 
         try:
-            from core.five_color_combination import (
+            from core.lut.query import (
                 StackLUTLoader,
                 ColorQueryEngine,
                 ColorCountDetector,
@@ -238,7 +238,7 @@ def create_5color_tab_v2(lang="zh"):
             return _error_result(f"请选择 5 次颜色（当前: {len(selected)}/5）")
 
         try:
-            from core.five_color_combination import (
+            from core.lut.query import (
                 StackLUTLoader,
                 ColorQueryEngine,
                 ColorCountDetector,
@@ -378,7 +378,7 @@ def _generate_colors_html_v2(base_colors, color_count=None, color_names=None):
         color_count: 颜色数量（用于确定网格列数）
         color_names: 颜色名称列表（可选）
     """
-    from core.color_utils import rgb_to_hex
+    from core.color.formats import rgb_to_hex
 
     if color_count is None:
         color_count = len(base_colors)
@@ -419,7 +419,7 @@ def _error_result(msg):
 
 
 def _result_html(result):
-    from core.color_utils import rgb_to_hex
+    from core.color.formats import rgb_to_hex
 
     if not result.found:
         return _error_result(result.message)

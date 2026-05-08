@@ -7,7 +7,7 @@ import os
 import numpy as np
 import gradio as gr
 
-from core.color_utils import hex_to_rgb
+from core.color.formats import hex_to_rgb
 from utils import LUTManager
 
 
@@ -118,7 +118,7 @@ def on_apply_color_replacement(cache, selected_color, replacement_color,
         tuple: (preview_image, updated_cache, palette_html,
                 updated_replacement_regions, updated_history, status)
     """
-    from core.converter import update_preview_with_replacements
+    from core.preview.interaction import update_preview_with_replacements
 
     if cache is None:
         return None, None, "", replacement_regions, replacement_history, '❌ 请先生成预览'
@@ -168,7 +168,7 @@ def on_clear_color_replacements(cache, replacement_regions, replacement_history,
         tuple: (preview_image, updated_cache, palette_html,
                 empty_replacement_regions, updated_history, status)
     """
-    from core.converter import update_preview_with_replacements
+    from core.preview.interaction import update_preview_with_replacements
 
     if cache is None:
         return None, None, "", [], [], '❌ 请先生成预览'
@@ -291,11 +291,11 @@ def on_highlight_color_change(highlight_hex, cache, loop_pos, add_loop,
     Returns:
         tuple: (preview_image, status_message)
     """
-    from core.converter import generate_highlight_preview
-    
+    from core.preview.render import generate_highlight_preview
+
     if not highlight_hex or highlight_hex.strip() == "":
         # No highlight - return normal preview
-        from core.converter import clear_highlight_preview
+        from core.preview.render import clear_highlight_preview
         return clear_highlight_preview(
             cache, loop_pos, add_loop,
             loop_width, loop_length, loop_hole, loop_angle
@@ -325,7 +325,7 @@ def on_clear_highlight(cache, loop_pos, add_loop,
     Returns:
         tuple: (preview_image, status_message, cleared_highlight_state)
     """
-    from core.converter import clear_highlight_preview
+    from core.preview.render import clear_highlight_preview
 
     display, status = clear_highlight_preview(
         cache, loop_pos, add_loop,
@@ -347,7 +347,7 @@ def on_delete_selected_user_replacement(
     """按选中用户行删除并刷新预览（regions-only）。"""
     updater = globals().get('update_preview_with_replacements')
     if updater is None:
-        from core.converter import update_preview_with_replacements as updater
+        from core.preview.interaction import update_preview_with_replacements as updater
 
     if cache is None:
         return None, None, "", replacement_regions, replacement_history, '❌ 请先生成预览', selected_user_row_id
@@ -412,7 +412,7 @@ def on_undo_color_replacement(cache, replacement_regions, replacement_history,
     """
     Undo the last color replacement operation (regions-only).
     """
-    from core.converter import update_preview_with_replacements
+    from core.preview.interaction import update_preview_with_replacements
 
     if cache is None:
         return None, None, "", replacement_regions, replacement_history, '❌ 请先生成预览'
@@ -446,7 +446,7 @@ def on_merge_primary_select(display_name):
     Returns:
         tuple: (mode_markdown, updated_secondary_dropdown)
     """
-    from core.lut_merger import LUTMerger
+    from core.color.lut import LUTMerger
 
     if not display_name:
         return (
@@ -517,7 +517,7 @@ def on_merge_secondary_change(selected_names):
     Returns:
         str: Markdown showing detected modes for each selected LUT
     """
-    from core.lut_merger import LUTMerger
+    from core.color.lut import LUTMerger
 
     if not selected_names:
         return '<span class="status-text">未选择副色卡</span>'
@@ -545,7 +545,7 @@ def on_merge_execute(primary_name, secondary_names, dedup_threshold):
     Returns:
         tuple: (status_markdown, updated_primary_dropdown, updated_secondary_dropdown)
     """
-    from core.lut_merger import LUTMerger
+    from core.color.lut import LUTMerger
     import time
 
     # Validate primary
@@ -648,9 +648,9 @@ def on_merge_preview(cache, merge_enable, merge_threshold, merge_max_distance,
     Returns:
         tuple: (preview_image, updated_cache, palette_html, merge_map, merge_stats, status)
     """
-    from core.converter import update_preview_with_replacements, extract_color_palette
-    from core.color_merger import ColorMerger
-    from core.image_processing import LuminaImageProcessor
+    from core.preview.interaction import update_preview_with_replacements, extract_color_palette
+    from core.color.merger import ColorMerger
+    from core.image.processor import LuminaImageProcessor
     from ui.widgets.palette import generate_palette_html
     
     if cache is None:
@@ -751,9 +751,9 @@ def on_merge_apply(cache, merge_map, merge_stats, loop_pos, add_loop,
     Returns:
         tuple: (preview_image, updated_cache, palette_html, status)
     """
-    from core.converter import update_preview_with_replacements, extract_color_palette
-    from core.color_merger import ColorMerger
-    from core.image_processing import LuminaImageProcessor
+    from core.preview.interaction import update_preview_with_replacements, extract_color_palette
+    from core.color.merger import ColorMerger
+    from core.image.processor import LuminaImageProcessor
 
     if cache is None:
         return None, None, "", '<span class="status-text">❌ 请先生成预览</span>'
@@ -812,7 +812,7 @@ def on_merge_revert(cache, loop_pos, add_loop, loop_width, loop_length, loop_hol
     Returns:
         tuple: (preview_image, updated_cache, palette_html, empty_merge_map, empty_stats, status)
     """
-    from core.converter import update_preview_with_replacements, extract_color_palette
+    from core.preview.interaction import update_preview_with_replacements, extract_color_palette
     
     if cache is None:
         return None, None, "", {}, {}, '<span class="status-text">❌ 请先生成预览</span>'

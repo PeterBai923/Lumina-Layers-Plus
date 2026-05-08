@@ -8,7 +8,7 @@ high-usage colors using CIELAB color space.
 
 from typing import Dict, List, Optional, Set, Tuple, Callable
 import numpy as np
-from core.color_utils import hex_to_rgb
+from core.color.formats import hex_to_rgb
 
 
 class ColorMerger:

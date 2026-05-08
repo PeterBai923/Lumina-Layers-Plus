@@ -6,7 +6,7 @@ UI construction for the right workspace (original lines 559-1037).
 
 import gradio as gr
 
-from core.converter import render_preview, generate_empty_bed_glb
+from core.preview.render import render_preview, generate_empty_bed_glb
 from ...settings import _load_user_settings
 from ...slicer_integration import _get_slicer_choices, _get_default_slicer, _slicer_css_class
 

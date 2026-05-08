@@ -12,7 +12,7 @@ from hypothesis import given, settings, assume
 import hypothesis.strategies as st
 import pytest
 
-from core.lut_merger import LUTMerger, _SIZE_TO_MODE, _MODE_PRIORITY
+from core.color.lut import LUTMerger, _SIZE_TO_MODE, _MODE_PRIORITY
 
 
 # ═══════════════════════════════════════════════════════════════

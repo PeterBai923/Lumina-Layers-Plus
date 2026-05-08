@@ -13,7 +13,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from core.lut_merger import (
+from core.color.lut import (
     LUTMerger, _remap_stacks, _detect_4color_subtype, _detect_6color_subtype,
     _REMAP_TO_8COLOR
 )
@@ -333,7 +333,7 @@ def verify_image_conversion():
     errors = 0
 
     try:
-        from core.image_processing import LuminaImageProcessor
+        from core.image.processor import LuminaImageProcessor
         from config import ModelingMode
 
         processor = LuminaImageProcessor(npz_path, "Merged")

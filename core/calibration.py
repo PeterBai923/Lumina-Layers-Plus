@@ -20,7 +20,7 @@ from colormath.color_diff import delta_e_cie2000
 from config import PrinterConfig, ColorSystem, SmartConfig, OUTPUT_DIR, get_asset_path, DEFAULT_PRINT_SETTINGS
 from core.naming import generate_calibration_filename
 from core.stack_encoding import encode_to_base
-from core.geometry_utils import CUBE_FACES
+from core.mesh.geometry import CUBE_FACES
 from utils import Stats
 from utils.bambu_3mf_writer import export_scene_with_bambu_metadata
 

@@ -15,6 +15,7 @@ from colormath.color_objects import sRGBColor, LabColor
 from colormath.color_conversions import convert_color
 from colormath.color_diff import delta_e_cie2000
 from core.stack_encoding import encode_to_base
+from core.utils.lut_detection import detect_mode_by_size
 
 # Try to import color selection for 5-Color Extended mode reconstruction
 try:
@@ -35,7 +36,8 @@ except ImportError:
         ColorSystem = None
 
 
-# Color mode size mapping
+# Color mode size mapping (deprecated: use core.utils.lut_detection)
+# _SIZE_TO_MODE kept for backward compatibility with _detect_mode_by_size
 _SIZE_TO_MODE = {
     32: "BW",
     1024: "4-Color",
@@ -46,14 +48,8 @@ _SIZE_TO_MODE = {
 
 
 def _detect_mode_by_size(count):
-    """Detect color mode by LUT size, with tolerance for near-standard sizes."""
-    # Exact match first
-    if count in _SIZE_TO_MODE:
-        return _SIZE_TO_MODE[count]
-    # BW tolerance: 30-36 (some BW LUTs have slightly non-standard sizes)
-    if 30 <= count <= 36:
-        return "BW"
-    return None
+    """Detect color mode by LUT size. Delegates to unified lut_detection module."""
+    return detect_mode_by_size(count)
 
 # Color mode priority (higher = keep during dedup)
 # Merged gets lowest priority: its stacks may be unreliable (e.g. dummy zeros

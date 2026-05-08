@@ -47,13 +47,7 @@ STUB_RESPONSE: Dict[str, str] = {
     "message": "Phase 2 will integrate core logic",
 }
 
-
-@pytest.fixture()
-def client() -> TestClient:
-    """Create a fresh TestClient for each test.
-    为每个测试创建独立的 TestClient。
-    """
-    return TestClient(create_app())
+# client fixture is provided by tests/conftest.py
 
 
 # ===========================================================================

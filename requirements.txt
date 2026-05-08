@@ -21,3 +21,5 @@ fastapi
 uvicorn
 httpx
 numba
+# GPU acceleration
+torch>=2.0.0  # Optional: for CUDA-accelerated

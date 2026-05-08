@@ -21,7 +21,7 @@ from PIL import Image
 # Ensure project root is on sys.path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from core.image_preprocessor import CropRegion
+from core.image.preprocessor import CropRegion
 from api.app import app
 from api.dependencies import get_file_registry
 from api.file_registry import FileRegistry
