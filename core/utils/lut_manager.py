@@ -9,6 +9,9 @@ import sys
 import shutil
 import glob
 from pathlib import Path
+from core.utils.logger import get_logger
+
+logger = get_logger("LUT_MGR")
 
 
 class LUTManager:
@@ -48,7 +51,7 @@ class LUTManager:
         lut_files = {}
         
         if not os.path.exists(cls.LUT_PRESET_DIR):
-            print(f"[LUT_MANAGER] Warning: LUT preset directory not found: {cls.LUT_PRESET_DIR}")
+            logger.warning("LUT preset directory not found: %s", cls.LUT_PRESET_DIR)
             return lut_files
         
         # Recursively search for all .npy and .npz files
@@ -78,7 +81,7 @@ class LUTManager:
         # Sort by name
         lut_files = dict(sorted(lut_files.items()))
         
-        print(f"[LUT_MANAGER] Found {len(lut_files)} LUT presets")
+        logger.info("Found %d LUT presets", len(lut_files))
         return lut_files
     
     @classmethod
@@ -220,10 +223,10 @@ class LUTManager:
             # Build display name
             display_name = f"Custom - {Path(dest_path).stem}"
             
-            print(f"[LUT_MANAGER] Saved uploaded LUT: {dest_path}")
+            logger.info("Saved uploaded LUT: %s", dest_path)
             
             return True, f"[OK] LUT saved: {display_name}\nPlease select from dropdown to use", cls.get_lut_choices()
             
         except Exception as e:
-            print(f"[LUT_MANAGER] Error saving LUT: {e}")
+            logger.error("Error saving LUT: %s", e)
             return False, f"[ERROR] Save failed: {e}", cls.get_lut_choices()

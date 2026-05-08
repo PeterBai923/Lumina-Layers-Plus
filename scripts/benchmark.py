@@ -33,6 +33,9 @@ if _mp.current_process().name == 'MainProcess':
 
 # ── Now safe to import heavy project modules ──────────────────────────────────
 from config import ModelingMode
+from core.utils.logger import get_logger
+
+logger = get_logger("BENCHMARK")
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 def _pick_first_existing(candidates):
@@ -103,22 +106,23 @@ def _calc_target_width(image_path: str, long_edge_mm: float) -> float:
 
 
 def _bench_header(label: str):
-    print(f"\n{'='*60}")
-    print(f"[BENCH] >>> {label}")
-    print(f"{'='*60}")
+    logger.info("")
+    logger.info("=" * 60)
+    logger.info("[BENCH] >>> %s", label)
+    logger.info("=" * 60)
 
 
 def _bench_result(label: str, timings: dict, total: float):
     """Print a single-line [BENCH] summary that is easy to grep/compare."""
     parts = "  ".join(f"{k}={v:.2f}s" for k, v in timings.items())
-    print(f"[BENCH] RESULT  {label}  |  {parts}  |  TOTAL={total:.2f}s")
+    logger.info("[BENCH] RESULT  %s  |  %s  |  TOTAL=%.2fs", label, parts, total)
 
 
 def run_svg_benchmark(run_preview: bool = True):
     from core.converter import generate_preview_cached, generate_final_model
 
     target_w = _calc_target_width(SVG_PATH, LONG_EDGE)
-    print(f"[BENCH] SVG target_width_mm={target_w:.1f} (long edge={LONG_EDGE}mm)")
+    logger.info("[BENCH] SVG target_width_mm=%.1f (long edge=%smm)", target_w, LONG_EDGE)
 
     timings = {}
 
@@ -139,7 +143,7 @@ def run_svg_benchmark(run_preview: bool = True):
             is_dark=False,
         )
         timings['preview'] = time.perf_counter() - t0
-        print(f"[BENCH] SVG preview done: {status}")
+        logger.info("[BENCH] SVG preview done: %s", status)
 
     _bench_header("SVG Convert")
     t0 = time.perf_counter()
@@ -162,7 +166,7 @@ def run_svg_benchmark(run_preview: bool = True):
         backing_color_name="White",
     )
     timings['convert'] = time.perf_counter() - t0
-    print(f"[BENCH] SVG convert done: {result}")
+    logger.info("[BENCH] SVG convert done: %s", result)
 
     total = sum(timings.values())
     _bench_result("SVG", timings, total)
@@ -173,7 +177,7 @@ def run_hifi_benchmark(run_preview: bool = True):
     from core.converter import generate_preview_cached, generate_final_model
 
     target_w = _calc_target_width(HIFI_PATH, LONG_EDGE)
-    print(f"[BENCH] HiFi target_width_mm={target_w:.1f} (long edge={LONG_EDGE}mm)")
+    logger.info("[BENCH] HiFi target_width_mm=%.1f (long edge=%smm)", target_w, LONG_EDGE)
 
     timings = {}
 
@@ -194,15 +198,15 @@ def run_hifi_benchmark(run_preview: bool = True):
             is_dark=False,
         )
         timings['preview'] = time.perf_counter() - t0
-        print(f"[BENCH] HiFi preview done: {status}")
+        logger.info("[BENCH] HiFi preview done: %s", status)
 
     _bench_header("HiFi Convert")
     t0 = time.perf_counter()
-    
+
     # Enable internal conversion timing (zero-overhead when not instrumenting)
     import os
     os.environ['LUMINA_BENCH_TIMING'] = '1'
-    
+
     result = generate_final_model(
         image_path=HIFI_PATH,
         lut_path=LUT_PATH,
@@ -222,7 +226,7 @@ def run_hifi_benchmark(run_preview: bool = True):
         backing_color_name="White",
     )
     timings['convert'] = time.perf_counter() - t0
-    print(f"[BENCH] HiFi convert done: {result}")
+    logger.info("[BENCH] HiFi convert done: %s", result)
 
     total = sum(timings.values())
     _bench_result("HiFi", timings, total)
@@ -244,7 +248,8 @@ def main():
     all_results = {}
     for i in range(args.runs):
         if args.runs > 1:
-            print(f"\n[BENCH] ====== RUN {i+1}/{args.runs} ======")
+            logger.info("")
+            logger.info("[BENCH] ====== RUN %s/%s ======", i + 1, args.runs)
         if run_svg:
             t, total = run_svg_benchmark(run_preview=run_preview)
             all_results.setdefault('svg', []).append(total)
@@ -253,15 +258,16 @@ def main():
             all_results.setdefault('hifi', []).append(total)
 
     # Final summary
-    print(f"\n[BENCH] ====== SUMMARY ======")
+    logger.info("")
+    logger.info("[BENCH] ====== SUMMARY ======")
     for mode, totals in all_results.items():
         avg = sum(totals) / len(totals)
         mn  = min(totals)
         mx  = max(totals)
         if len(totals) == 1:
-            print(f"[BENCH] {mode.upper():<6} total={totals[0]:.2f}s")
+            logger.info("[BENCH] %s total=%.2fs", mode.upper().ljust(6), totals[0])
         else:
-            print(f"[BENCH] {mode.upper():<6} avg={avg:.2f}s  min={mn:.2f}s  max={mx:.2f}s")
+            logger.info("[BENCH] %s avg=%.2fs  min=%.2fs  max=%.2fs", mode.upper().ljust(6), avg, mn, mx)
 
 
 if __name__ == '__main__':

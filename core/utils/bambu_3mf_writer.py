@@ -15,6 +15,9 @@ from typing import List, Dict, Optional
 import trimesh
 import numpy as np
 from config import DEFAULT_PRINT_SETTINGS
+from core.utils.logger import get_logger
+
+logger = get_logger("3MF")
 
 _CONFIG_TEMPLATE_CACHE = None
 
@@ -101,7 +104,7 @@ class BambuStudio3MFWriter:
         if len(self.objects) == 0:
             raise ValueError("[BAMBU_3MF] Refusing to export 3MF: no mesh objects were added")
 
-        print(f"[BAMBU_3MF] Exporting {len(self.objects)} objects to {self.output_path}")
+        logger.info("Exporting %d objects to %s", len(self.objects), self.output_path)
         
         # Create a temporary directory for 3MF contents
         import tempfile
@@ -132,7 +135,7 @@ class BambuStudio3MFWriter:
             # 7. Package everything into a ZIP file
             self._create_zip(tmpdir, include_object_model=True)
         
-        print(f"[BAMBU_3MF] [OK] Export complete: {self.output_path}")
+        logger.info("[OK] Export complete: %s", self.output_path)
         return self.output_path
     
     def _write_content_types(self, tmpdir: str):
@@ -325,7 +328,7 @@ class BambuStudio3MFWriter:
             return copy.deepcopy(_CONFIG_TEMPLATE_CACHE)
         else:
             # Fallback: return minimal config if template not found
-            print("[WARNING] bambu_config_template.json not found, using minimal config")
+            logger.warning("bambu_config_template.json not found, using minimal config")
             return self._get_minimal_config_template()
     
     def _get_minimal_config_template(self):
@@ -608,7 +611,7 @@ def export_scene_with_bambu_metadata(scene: trimesh.Scene, output_path: str,
     else:
         actual_color_mode = '8-Color'
     
-    print(f"[BAMBU_3MF] LUT color_mode: {color_mode}, Actual colors used: {num_used_colors} → 3MF mode: {actual_color_mode}")
+    logger.info("LUT color_mode: %s, Actual colors used: %d -> 3MF mode: %s", color_mode, num_used_colors, actual_color_mode)
 
     writer = BambuStudio3MFWriter(output_path, settings, actual_color_mode,
                                    optical_layer_height, backing_layer_height,
@@ -638,7 +641,7 @@ def export_scene_with_bambu_metadata(scene: trimesh.Scene, output_path: str,
             else:
                 name_to_color[slot_name] = (200, 200, 200)
     
-    print(f"[BAMBU_3MF] Color mapping: {list(name_to_color.keys())}")
+    logger.info("Color mapping: %s", list(name_to_color.keys()))
     
     # Add each mesh from the scene IN THE ORDER OF slot_names.
     # Use strict exact-name matching to avoid accidental substring collisions.
@@ -651,7 +654,7 @@ def export_scene_with_bambu_metadata(scene: trimesh.Scene, output_path: str,
 
         color_rgb = name_to_color.get(slot_name, (200, 200, 200))
         writer.add_mesh(mesh, slot_name, color_rgb)
-        print(f"[BAMBU_3MF] Added mesh '{slot_name}' with color {color_rgb}")
+        logger.info("Added mesh '%s' with color %s", slot_name, color_rgb)
 
     if unmatched:
         raise ValueError(

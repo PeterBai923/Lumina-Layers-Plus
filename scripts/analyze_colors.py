@@ -20,6 +20,9 @@ import itertools
 import os
 
 from config import ColorSystem, PrinterConfig
+from core.utils.logger import get_logger
+
+logger = get_logger("ANALYZE_COLORS")
 
 # ================= 配置区域 =================
 
@@ -62,67 +65,67 @@ def rgb_to_lab(rgb):
     return convert_color(rgb_obj, LabColor)
 
 def main():
-    COLOR_COUNT = 8 
+    COLOR_COUNT = 8
     TARGET_COUNT = 2738  # 37x37×2 = 2738
-    
-    print("=" * 60)
-    print(f"🎨 8色智能筛选算法 (仿6色优雅版)")
-    print("=" * 60)
-    print(f"🔄 开始模拟 {COLOR_COUNT}色 {LAYERS}层 全排列 ({COLOR_COUNT**LAYERS} 种组合)...")
-    print(f"📏 RGB距离阈值: {RGB_DISTANCE_THRESHOLD} (和6色算法一致)")
-    print(f"🎯 目标数量: {TARGET_COUNT} 个颜色")
-    print(f"🧱 黑色TD: {FILAMENTS[4]['td']}mm (和6色一致，自然筛选)")
-    print()
-    
+
+    logger.info("=" * 60)
+    logger.info("🎨 8色智能筛选算法 (仿6色优雅版)")
+    logger.info("=" * 60)
+    logger.info("🔄 开始模拟 %s色 %s层 全排列 (%s 种组合)...", COLOR_COUNT, LAYERS, COLOR_COUNT ** LAYERS)
+    logger.info("📏 RGB距离阈值: %s (和6色算法一致)", RGB_DISTANCE_THRESHOLD)
+    logger.info("🎯 目标数量: %s 个颜色", TARGET_COUNT)
+    logger.info("🧱 黑色TD: %smm (和6色一致，自然筛选)", FILAMENTS[4]["td"])
+    logger.info("")
+
     # ==================== 阶段1: 模拟所有组合 ====================
-    print("[阶段1] 模拟所有颜色组合...")
+    logger.info("[阶段1] 模拟所有颜色组合...")
     candidates = []
-    
+
     for stack in itertools.product(range(COLOR_COUNT), repeat=LAYERS):
         final_rgb = mix_colors(stack)
-        
+
         # 转换到Lab用于可选分析
         lab = rgb_to_lab(final_rgb)
-        
+
         candidates.append({
             "stack": stack,
             "rgb": final_rgb,
             "lab": lab
         })
-    
-    print(f"✅ 模拟完成: {len(candidates)} 个组合")
-    print()
-    
+
+    logger.info("✅ 模拟完成: %s 个组合", len(candidates))
+    logger.info("")
+
     # ==================== 阶段2: 智能筛选 (仿6色算法) ====================
-    print("[阶段2] 智能筛选 (贪心算法 + RGB距离)")
-    
+    logger.info("[阶段2] 智能筛选 (贪心算法 + RGB距离)")
+
     selected = []
-    
+
     # Step 1: 预选种子颜色 (8个纯色)
-    print("  → 预选种子颜色 (8个纯色)...")
+    logger.info("  → 预选种子颜色 (8个纯色)...")
     for i in range(COLOR_COUNT):
         stack = (i,) * LAYERS
         for c in candidates:
             if c['stack'] == stack:
                 selected.append(c)
-                print(f"     种子 {i}: {FILAMENTS[i]['name']} - RGB{tuple(c['rgb'])}")
+                logger.info("     种子 %s: %s - RGB%s", i, FILAMENTS[i]['name'], tuple(c['rgb']))
                 break
-    
-    print(f"  ✓ 种子颜色: {len(selected)} 个")
-    print()
-    
+
+    logger.info("  ✓ 种子颜色: %s 个", len(selected))
+    logger.info("")
+
     # Step 2: 高质量筛选 (RGB距离 > 8)
-    print(f"  → 高质量筛选 (RGB距离 > {RGB_DISTANCE_THRESHOLD})...")
+    logger.info("  → 高质量筛选 (RGB距离 > %s)...", RGB_DISTANCE_THRESHOLD)
     round1_start = len(selected)
-    
+
     for c in candidates:
         if len(selected) >= TARGET_COUNT:
             break
-        
+
         # 跳过已选中的
         if any(c['stack'] == s['stack'] for s in selected):
             continue
-        
+
         # 检查RGB距离
         is_distinct = True
         for s in selected:
@@ -130,93 +133,93 @@ def main():
             if rgb_dist < RGB_DISTANCE_THRESHOLD:
                 is_distinct = False
                 break
-        
+
         if is_distinct:
             selected.append(c)
-        
+
         # 进度显示
         if len(selected) % 500 == 0:
-            print(f"     进度: {len(selected)}/{TARGET_COUNT}")
-    
+            logger.info("     进度: %s/%s", len(selected), TARGET_COUNT)
+
     round1_count = len(selected) - round1_start
-    print(f"  ✓ 高质量筛选: 新增 {round1_count} 个颜色")
-    print()
-    
+    logger.info("  ✓ 高质量筛选: 新增 %s 个颜色", round1_count)
+    logger.info("")
+
     # Step 3: 填充剩余 (降低阈值)
     if len(selected) < TARGET_COUNT:
-        print(f"  → 填充剩余 {TARGET_COUNT - len(selected)} 个位置...")
+        logger.info("  → 填充剩余 %s 个位置...", TARGET_COUNT - len(selected))
         for c in candidates:
             if len(selected) >= TARGET_COUNT:
                 break
             if any(c['stack'] == s['stack'] for s in selected):
                 continue
             selected.append(c)
-        
-        print(f"  ✓ 填充完成: 总计 {len(selected)} 个颜色")
-    
-    print()
-    print("=" * 60)
-    print(f"🎉 筛选完成!")
-    print(f"   总组合数: {len(candidates)}")
-    print(f"   最终选择: {len(selected)}")
-    print(f"   筛选率: {len(selected)/len(candidates)*100:.2f}%")
-    print("=" * 60)
-    print()
-    
+
+        logger.info("  ✓ 填充完成: 总计 %s 个颜色", len(selected))
+
+    logger.info("")
+    logger.info("=" * 60)
+    logger.info("🎉 筛选完成!")
+    logger.info("   总组合数: %s", len(candidates))
+    logger.info("   最终选择: %s", len(selected))
+    logger.info("   筛选率: %.2f%%", len(selected) / len(candidates) * 100)
+    logger.info("=" * 60)
+    logger.info("")
+
     # ==================== 阶段3: 保存结果 ====================
     output_dir = os.path.join(_PROJECT_ROOT, "assets")
-    
-    print(f"💾 保存到 '{output_dir}/'...")
-    
+
+    logger.info("💾 保存到 '%s/'...", output_dir)
+
     # 确保数量正确
     final_selection = selected[:TARGET_COUNT]
-    
+
     # 如果不足，用白色填充
     if len(final_selection) < TARGET_COUNT:
-        print(f"⚠️  不足 {TARGET_COUNT} 个，用白色填充...")
+        logger.warning("⚠️  不足 %s 个，用白色填充...", TARGET_COUNT)
         dummy_stack = (0,) * LAYERS  # 白色
         while len(final_selection) < TARGET_COUNT:
             final_selection.append({"stack": dummy_stack})
-    
+
     stacks_data = [item["stack"] for item in final_selection]
     stacks_array = np.array(stacks_data, dtype=np.uint8)
-    
-    if not os.path.exists(output_dir): 
+
+    if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    
+
     save_path = os.path.join(output_dir, "smart_8color_stacks.npy")
     np.save(save_path, stacks_array)
-    
-    print(f"✅ 已保存到 '{save_path}'")
-    print(f"   数组形状: {stacks_array.shape}")
-    print(f"   数据类型: {stacks_array.dtype}")
-    print()
-    
+
+    logger.info("✅ 已保存到 '%s'", save_path)
+    logger.info("   数组形状: %s", stacks_array.shape)
+    logger.info("   数据类型: %s", stacks_array.dtype)
+    logger.info("")
+
     # ==================== 统计分析 ====================
-    print("=" * 60)
-    print("📊 统计分析")
-    print("=" * 60)
-    
+    logger.info("=" * 60)
+    logger.info("📊 统计分析")
+    logger.info("=" * 60)
+
     # 统计黑色使用情况 (修正：黑色现在的 ID 是 4)
     BLACK_ID = 4
     black_count = sum(1 for s in final_selection if BLACK_ID in s['stack'])
     black_surface = sum(1 for s in final_selection if s['stack'][4] == BLACK_ID)
-    
-    print(f"黑色使用统计 (ID={BLACK_ID}):")
-    print(f"  包含黑色的组合: {black_count}/{len(final_selection)} ({black_count/len(final_selection)*100:.1f}%)")
-    print(f"  表面层是黑色: {black_surface}/{len(final_selection)} ({black_surface/len(final_selection)*100:.1f}%)")
-    print()
-    
+
+    logger.info("黑色使用统计 (ID=%s):", BLACK_ID)
+    logger.info("  包含黑色的组合: %s/%s (%.1f%%)", black_count, len(final_selection), black_count / len(final_selection) * 100)
+    logger.info("  表面层是黑色: %s/%s (%.1f%%)", black_surface, len(final_selection), black_surface / len(final_selection) * 100)
+    logger.info("")
+
     # RGB分布统计
     all_rgb = np.array([s['rgb'] for s in final_selection])
-    print(f"RGB分布:")
-    print(f"  R: min={all_rgb[:,0].min()}, max={all_rgb[:,0].max()}, avg={all_rgb[:,0].mean():.1f}")
-    print(f"  G: min={all_rgb[:,1].min()}, max={all_rgb[:,1].max()}, avg={all_rgb[:,1].mean():.1f}")
-    print(f"  B: min={all_rgb[:,2].min()}, max={all_rgb[:,2].max()}, avg={all_rgb[:,2].mean():.1f}")
-    print()
-    
-    print("✅ 完成！")
-    print("=" * 60)
+    logger.info("RGB分布:")
+    logger.info("  R: min=%s, max=%s, avg=%.1f", all_rgb[:, 0].min(), all_rgb[:, 0].max(), all_rgb[:, 0].mean())
+    logger.info("  G: min=%s, max=%s, avg=%.1f", all_rgb[:, 1].min(), all_rgb[:, 1].max(), all_rgb[:, 1].mean())
+    logger.info("  B: min=%s, max=%s, avg=%.1f", all_rgb[:, 2].min(), all_rgb[:, 2].max(), all_rgb[:, 2].mean())
+    logger.info("")
+
+    logger.info("✅ 完成！")
+    logger.info("=" * 60)
 
 if __name__ == "__main__":
     main()

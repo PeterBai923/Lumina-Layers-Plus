@@ -12,6 +12,10 @@ from PIL import Image
 import tkinter as tk
 from tkinter import filedialog
 
+from core.utils.logger import get_logger
+
+logger = get_logger("SPLIT")
+
 
 # ============================================================
 # 配置参数
@@ -43,19 +47,19 @@ def split_image(image_path: str) -> None:
     if not src.is_file():
         raise FileNotFoundError(f"找不到原图: {src}")
 
-    print(f"[1/4] 正在读取原图: {src.name}")
+    logger.info("[1/4] 正在读取原图: %s", src.name)
     img = Image.open(src)
     w, h = img.size
-    print(f"       原图分辨率: {w} × {h}")
+    logger.info("      原图分辨率: %s × %s", w, h)
 
     # ----------------------------------------------------------
     # 2. 尺寸补齐 —— resize 到 3072×4096
     #    1像素的形变对浮雕完全不可见
     # ----------------------------------------------------------
     if w == TARGET_WIDTH and h == TARGET_HEIGHT:
-        print("[2/4] 尺寸已符合要求，无需补齐")
+        logger.info("[2/4] 尺寸已符合要求，无需补齐")
     else:
-        print(f"[2/4] 正在补齐尺寸: {w}×{h} → {TARGET_WIDTH}×{TARGET_HEIGHT}")
+        logger.info("[2/4] 正在补齐尺寸: %s×%s → %s×%s", w, h, TARGET_WIDTH, TARGET_HEIGHT)
         img = img.resize((TARGET_WIDTH, TARGET_HEIGHT), Image.LANCZOS)
 
     # ----------------------------------------------------------
@@ -63,12 +67,12 @@ def split_image(image_path: str) -> None:
     # ----------------------------------------------------------
     output_dir = src.parent / OUTPUT_DIR_NAME
     output_dir.mkdir(exist_ok=True)
-    print(f"[3/4] 输出目录: {output_dir}")
+    logger.info("[3/4] 输出目录: %s", output_dir)
 
     # ----------------------------------------------------------
     # 4. 精准切分为 3列 × 4行 = 12 块
     # ----------------------------------------------------------
-    print("[4/4] 开始切分...")
+    logger.info("[4/4] 开始切分...")
     total = ROWS * COLS
     count = 0
 
@@ -88,16 +92,17 @@ def split_image(image_path: str) -> None:
             tile_path = output_dir / filename
 
             tile.save(tile_path)
-            print(f"       正在处理: {filename} ({count}/{total})  "
-                  f"[区域: ({left},{upper})-({right},{lower})]  ✓")
+            logger.info("      正在处理: %s (%s/%s)  [区域: (%s,%s)-(%s,%s)]  ✓",
+                        filename, count, total, left, upper, right, lower)
 
             # 最终校验：确保每块都是 1024×1024
             assert tile.size == (TILE_SIZE, TILE_SIZE), (
                 f"子图尺寸异常: {tile.size}，期望 ({TILE_SIZE}, {TILE_SIZE})"
             )
 
-    print(f"\n全部完成! 共导出 {total} 张 {TILE_SIZE}×{TILE_SIZE} 子图")
-    print(f"保存位置: {output_dir.resolve()}")
+    logger.info("")
+    logger.info("全部完成! 共导出 %s 张 %s×%s 子图", total, TILE_SIZE, TILE_SIZE)
+    logger.info("保存位置: %s", output_dir.resolve())
 
 
 def select_image() -> str | None:
@@ -127,10 +132,10 @@ if __name__ == "__main__":
     if len(sys.argv) >= 2:
         path = sys.argv[1]
     else:
-        print("请在弹出的对话框中选择图片...")
+        logger.info("请在弹出的对话框中选择图片...")
         path = select_image()
         if not path:
-            print("未选择文件，已取消。")
+            logger.info("未选择文件，已取消。")
             sys.exit(0)
 
     split_image(path)

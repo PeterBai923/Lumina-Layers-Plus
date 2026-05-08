@@ -12,6 +12,10 @@ import zipfile
 
 import gradio as gr
 
+from core.utils.logger import get_logger
+
+logger = get_logger("HELPERS")
+
 from config import ModelingMode
 from core.utils import LUTManager
 from core.naming import generate_batch_filename
@@ -144,7 +148,7 @@ def process_batch_generation(batch_files, is_batch, single_image, lut_path, targ
                 generated_files.append(dest_path)
         except Exception as e:
             logs.append(f"❌ 失败 {filename}: {str(e)}")
-            print(f"Batch error on {filename}: {e}")
+            logger.error("Batch error on %s: %s", filename, e)
 
     if generated_files:
         zip_path = os.path.join("outputs", generate_batch_filename())

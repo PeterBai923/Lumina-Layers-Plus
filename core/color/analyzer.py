@@ -7,6 +7,7 @@ Lumina Studio - Color Analyzer
 
 import os
 import time
+import warnings
 from collections import Counter
 from dataclasses import dataclass
 from typing import Optional
@@ -14,6 +15,10 @@ from typing import Optional
 import cv2
 import numpy as np
 from PIL import Image as PILImage
+
+from core.utils.logger import get_logger
+
+logger = get_logger("ANALYZER")
 
 # HEIC/HEIF support (optional dependency)
 try:
@@ -82,7 +87,10 @@ class ColorAnalyzer:
             ColorAnalysisResult: 分析结果
         """
         total_start = time.time()
-        
+
+        if verbose:
+            warnings.warn("ColorAnalyzer.verbose is deprecated, use logging level instead")
+
         # 默认结果
         default_result = ColorAnalysisResult(
             recommended=64, max_safe=128, unique_colors=0, complexity_score=50
@@ -103,7 +111,7 @@ class ColorAnalyzer:
             pixel_count = w * h
             
             if verbose:
-                print(f"[ColorAnalysis] 分析尺寸: {w}x{h}, 像素数: {pixel_count:,}")
+                logger.debug("分析尺寸: %dx%d, 像素数: %d", w, h, pixel_count)
             
             # 3. 计算各项指标
             unique_colors = cls._calc_unique_colors(img_rgb, verbose)
@@ -120,9 +128,8 @@ class ColorAnalyzer:
             complexity_score = hue_score + concentration_score + color_score + edge_score
             
             if verbose:
-                print(f"[ColorAnalysis] 复杂度评分: {complexity_score} "
-                      f"(色系={hue_score}, 集中度={concentration_score}, "
-                      f"颜色={color_score}, 边缘={edge_score})")
+                logger.debug("复杂度评分: %d (色系=%d, 集中度=%d, 颜色=%d, 边缘=%d)",
+                             complexity_score, hue_score, concentration_score, color_score, edge_score)
             
             # 5. 根据复杂度推荐颜色数
             base_recommended, base_max_safe = cls._complexity_to_colors(complexity_score)
@@ -139,11 +146,11 @@ class ColorAnalyzer:
                 max_safe = recommended
             
             if verbose:
-                print(f"[ColorAnalysis] 宽度因子: {width_factor:.2f} (基于 {target_width_mm}mm)")
                 total_time = time.time() - total_start
-                print(f"[ColorAnalysis] ✅ 完成! 总耗时: {total_time:.2f}s")
-                print(f"[ColorAnalysis] 结果: 复杂度={complexity_score}, "
-                      f"推荐={recommended}, 最大安全={max_safe}")
+                logger.debug("宽度因子: %.2f (基于 %dmm)", width_factor, target_width_mm)
+                logger.debug("完成! 总耗时: %.2fs", total_time)
+                logger.debug("结果: 复杂度=%d, 推荐=%d, 最大安全=%d",
+                             complexity_score, recommended, max_safe)
             
             return ColorAnalysisResult(
                 recommended=recommended,
@@ -158,9 +165,7 @@ class ColorAnalyzer:
             )
             
         except Exception as e:
-            print(f"[ColorAnalysis] 分析失败: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.exception("分析失败: %s", e)
             return default_result
     
     # ==================== 私有方法 ====================
@@ -186,8 +191,8 @@ class ColorAnalyzer:
         h, w = img_rgb.shape[:2]
         
         if verbose:
-            print(f"[ColorAnalysis] 加载图片: {time.time() - t0:.2f}s, 原始尺寸: {w}x{h}")
-        
+            logger.debug("加载图片: %.2fs, 原始尺寸: %dx%d", time.time() - t0, w, h)
+
         return img_rgb, w, h
     
     @classmethod
@@ -205,9 +210,9 @@ class ColorAnalyzer:
             img_rgb = cv2.resize(img_rgb, (target_width_px, target_height_px), 
                                 interpolation=cv2.INTER_AREA)
             if verbose:
-                print(f"[ColorAnalysis] 缩放到分析尺寸: {time.time() - t0:.2f}s, "
-                      f"新尺寸: {target_width_px}x{target_height_px}")
-        
+                logger.debug("缩放到分析尺寸: %.2fs, 新尺寸: %dx%d",
+                             time.time() - t0, target_width_px, target_height_px)
+
         return img_rgb
     
     @classmethod
@@ -219,9 +224,9 @@ class ColorAnalyzer:
         unique_count = len(np.unique(pixels, axis=0))
         
         if verbose:
-            print(f"[ColorAnalysis] 独特颜色数（粗量化32级）: {unique_count}, "
-                  f"耗时: {time.time() - t0:.2f}s")
-        
+            logger.debug("独特颜色数（粗量化32级）: %d, 耗时: %.2fs",
+                         unique_count, time.time() - t0)
+
         return unique_count
     
     @classmethod
@@ -248,9 +253,9 @@ class ColorAnalyzer:
             colored_ratio = 0
         
         if verbose:
-            print(f"[ColorAnalysis] 色系数量: {significant_hues}/12, "
-                  f"有色像素占比: {colored_ratio:.2%}, 耗时: {time.time() - t0:.2f}s")
-        
+            logger.debug("色系数量: %d/12, 有色像素占比: %.2f%%, 耗时: %.2fs",
+                         significant_hues, colored_ratio * 100, time.time() - t0)
+
         return significant_hues, colored_ratio
     
     @classmethod
@@ -268,10 +273,9 @@ class ColorAnalyzer:
         top4_ratio = sum(c[1] for c in top_colors[:4]) / total
         
         if verbose:
-            print(f"[ColorAnalysis] 主色占比: top4={top4_ratio:.2%}, "
-                  f"top8={top8_ratio:.2%}, top16={top16_ratio:.2%}, "
-                  f"耗时: {time.time() - t0:.2f}s")
-        
+            logger.debug("主色占比: top4=%.2f%%, top8=%.2f%%, top16=%.2f%%, 耗时: %.2fs",
+                         top4_ratio * 100, top8_ratio * 100, top16_ratio * 100, time.time() - t0)
+
         return top4_ratio, top8_ratio, top16_ratio
     
     @classmethod
@@ -283,9 +287,9 @@ class ColorAnalyzer:
         edge_ratio = np.sum(edges > 0) / pixel_count
         
         if verbose:
-            print(f"[ColorAnalysis] 边缘占比: {edge_ratio:.2%}, "
-                  f"耗时: {time.time() - t0:.2f}s")
-        
+            logger.debug("边缘占比: %.2f%%, 耗时: %.2fs",
+                         edge_ratio * 100, time.time() - t0)
+
         return edge_ratio
     
     @staticmethod

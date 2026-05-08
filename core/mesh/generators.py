@@ -38,6 +38,8 @@ except ImportError:
     numba = None
     HAS_NUMBA = False
 
+from core.utils.logger import get_logger
+logger = get_logger("MESH")
 
 if HAS_NUMBA:
     @numba.njit(cache=True)
@@ -154,7 +156,7 @@ class HighFidelityMesher(BaseMesher):
             return None
         
         mesh_type = "Backing" if mat_id == -2 else f"Mat ID {mat_id}"
-        print(f"[HIGH_FIDELITY] {mesh_type}: Merged {voxel_matrix.shape[0]} layers → {len(layer_groups)} groups")
+        logger.info("%s: Merged %d layers -> %d groups", mesh_type, voxel_matrix.shape[0], len(layer_groups))
         
         layer_rectangles = []
         total_rects = 0
@@ -192,7 +194,7 @@ class HighFidelityMesher(BaseMesher):
         mesh.merge_vertices()
         mesh.update_faces(mesh.unique_faces())
         
-        print(f"[HIGH_FIDELITY] {mesh_type}: {total_rects} rects → {len(mesh.vertices):,} verts, {len(mesh.faces):,} faces")
+        logger.info("%s: %d rects -> %d verts, %d faces", mesh_type, total_rects, len(mesh.vertices), len(mesh.faces))
         
         return mesh
     
@@ -333,5 +335,5 @@ def get_mesher(mode_name: ModelingMode):
     Returns:
         BaseMesher instance (always HighFidelityMesher)
     """
-    print("[MESHER_FACTORY] Selected: HighFidelityMesher (RLE-based with Dilation)")
+    logger.info("Selected: HighFidelityMesher (RLE-based with Dilation)")
     return HighFidelityMesher()

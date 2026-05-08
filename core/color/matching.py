@@ -18,6 +18,10 @@ CIELAB 的 L*a*b* 用欧氏距离时，亮度差异容易压过色相差异，
 兼容项目现有的 OpenCV LAB 格式（L:0-255, a:0-255, b:0-255）。
 """
 
+from core.utils.logger import get_logger
+
+logger = get_logger("MATCHING")
+
 from typing import Optional
 import numpy as np
 import cv2
@@ -79,9 +83,9 @@ class HueAwareColorMatcher:
         # 解析权重参数
         self._resolve_weights(hue_weight, preset, w_L, w_C, w_H)
 
-        print(
-            f"[HueAwareMatcher] 初始化: {self.n_colors} 色, "
-            f"w_L={self.w_L:.2f}, w_C={self.w_C:.2f}, w_H={self.w_H:.2f}"
+        logger.info(
+            "初始化: %d 色, w_L=%.2f, w_C=%.2f, w_H=%.2f",
+            self.n_colors, self.w_L, self.w_C, self.w_H,
         )
 
     def _resolve_weights(self, hue_weight, preset, w_L, w_C, w_H):

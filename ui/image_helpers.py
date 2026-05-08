@@ -4,6 +4,9 @@
 import numpy as np
 import gradio as gr
 from PIL import Image as PILImage
+from core.utils.logger import get_logger
+
+logger = get_logger("UI")
 
 
 def _get_image_size(img):
@@ -26,10 +29,10 @@ def _get_image_size(img):
                     drawing = svg2rlg(img)
                     return (drawing.width, drawing.height)
                 except ImportError:
-                    print("⚠️ svglib not installed, cannot read SVG size")
+                    logger.warning("svglib not installed, cannot read SVG size")
                     return None
                 except Exception as e:
-                    print(f"⚠️ Error reading SVG size: {e}")
+                    logger.warning("Error reading SVG size: %s", e)
                     return None
 
             with PILImage.open(img) as i:
@@ -38,7 +41,7 @@ def _get_image_size(img):
         elif hasattr(img, 'shape'):
             return (img.shape[1], img.shape[0])
     except Exception as e:
-        print(f"Error getting image size: {e}")
+        logger.error("Error getting image size: %s", e)
         return None
 
     return None

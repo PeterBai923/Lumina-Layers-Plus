@@ -23,6 +23,9 @@ from core.stack_encoding import encode_to_base
 from core.mesh.geometry import CUBE_FACES
 from core.utils import Stats
 from core.utils.bambu_3mf_writer import export_scene_with_bambu_metadata
+from core.utils.logger import get_logger
+
+logger = get_logger("CALIBRATION")
 
 
 def _generate_voxel_mesh(voxel_matrix: np.ndarray, material_index: int,
@@ -203,7 +206,7 @@ def get_top_1296_colors():
     Returns:
         List of 1296 tuples, each representing a 5-layer color stack
     """
-    print("[SMART] Simulating 6^5 = 7776 combinations...")
+    logger.info("[SMART] Simulating 6^5 = 7776 combinations...")
     
     # Simulate all combinations in Lab color space
     candidates = []
@@ -238,7 +241,7 @@ def get_top_1296_colors():
             "rgb": final_rgb
         })
     
-    print(f"[SMART] Total candidates: {len(candidates)}. Filtering top 1296...")
+    logger.info("[SMART] Total candidates: %s. Filtering top 1296...", len(candidates))
     
     # Greedy selection algorithm
     selected = []
@@ -251,7 +254,7 @@ def get_top_1296_colors():
                 selected.append(c)
                 break
     
-    print(f"[SMART] Seed colors: {len(selected)}")
+    logger.info("[SMART] Seed colors: %s", len(selected))
     
     # Round 1: High quality selection (RGB distance > 8)
     target = 1296
@@ -270,11 +273,11 @@ def get_top_1296_colors():
         if is_distinct:
             selected.append(c)
     
-    print(f"[SMART] Round 1 (High Quality) selected: {len(selected)}")
+    logger.info("[SMART] Round 1 (High Quality) selected: %s", len(selected))
     
     # Round 2: Fill remaining slots with lower threshold
     if len(selected) < target:
-        print(f"[SMART] Filling remaining {target - len(selected)} spots...")
+        logger.info("[SMART] Filling remaining %s spots...", target - len(selected))
         for c in candidates:
             if len(selected) >= target:
                 break
@@ -282,7 +285,7 @@ def get_top_1296_colors():
                 continue
             selected.append(c)
     
-    print(f"[SMART] Final selection: {len(selected)} colors")
+    logger.info("[SMART] Final selection: %s colors", len(selected))
     
     return [s['stack'] for s in selected[:target]]
 
@@ -304,7 +307,7 @@ def generate_smart_board(block_size_mm=5.0, gap_mm=0.8):
     Returns:
         Tuple of (output_path, preview_image, status_message)
     """
-    print("[SMART] Generating Smart 1296 calibration board (38x38 Layout)...")
+    logger.info("[SMART] Generating Smart 1296 calibration board (38x38 Layout)...")
     
     # Get 1296 intelligently selected colors
     stacks = get_top_1296_colors()
@@ -321,7 +324,7 @@ def generate_smart_board(block_size_mm=5.0, gap_mm=0.8):
     board_w = margin * 2 + total_dim * block_w + (total_dim - 1) * gap
     board_h = board_w
     
-    print(f"[SMART] Board size: {board_w:.1f} x {board_h:.1f} mm (Grid: {total_dim}x{total_dim})")
+    logger.info("[SMART] Board size: %.1f x %.1f mm (Grid: %sx%s)", board_w, board_h, total_dim, total_dim)
     
     # Get color configuration
     color_conf = ColorSystem.SIX_COLOR
@@ -343,7 +346,7 @@ def generate_smart_board(block_size_mm=5.0, gap_mm=0.8):
     # Initialize voxel matrix (filled with White Slot 0)
     full_matrix = np.full((total_layers, voxel_h, voxel_w), 0, dtype=int)
     
-    print(f"[SMART] Voxel matrix: {total_layers} x {voxel_h} x {voxel_w}")
+    logger.info("[SMART] Voxel matrix: %s x %s x %s", total_layers, voxel_h, voxel_w)
     
     # 约定转换：get_top_1296_colors() 返回底到顶约定 (stack[0]=背面，stack[4]=观赏面)
     # 转换为顶到底约定 (stack[0]=观赏面，stack[4]=背面)，与 4 色模式统一
@@ -422,7 +425,7 @@ def generate_smart_board(block_size_mm=5.0, gap_mm=0.8):
     
     Stats.increment("calibrations")
     
-    print(f"[SMART] ✅ Smart 1296 board generated: {output_path}")
+    logger.info("[SMART] ✅ Smart 1296 board generated: %s", output_path)
     
     return (
         output_path,
@@ -436,14 +439,14 @@ def generate_8color_board(page_index=0):
     try:
         path = get_asset_path('smart_8color_stacks.npy')
         all_stacks = np.load(path)
-        print(f"[8COLOR] Loaded {len(all_stacks)} stacks from {path}")
+        logger.info("[8COLOR] Loaded %s stacks from %s", len(all_stacks), path)
         
         # 约定转换：smart_8color_stacks.npy 存储底到顶约定 (stack[0]=背面，stack[4]=观赏面)
         # 转换为顶到底约定 (stack[0]=观赏面，stack[4]=背面)，与 4 色模式统一
         all_stacks = np.array([s[::-1] for s in all_stacks])
         
     except Exception as e: 
-        print(f"[8COLOR] Error loading data: {e}")
+        logger.error("[8COLOR] Error loading data: %s", e)
         return None, None, "[ERROR] Data not found. Run analyze_colors.py first."
 
     # 2. Slice Data (1369 per page for 37x37)
@@ -555,7 +558,7 @@ def generate_bw_calibration_board(block_size_mm=5.0, gap_mm=0.8, backing_color="
     Returns:
         Tuple of (output_path, preview_image, status_message)
     """
-    print("[BW] Generating Black & White calibration board (8x8 Layout)...")
+    logger.info("[BW] Generating Black & White calibration board (8x8 Layout)...")
     
     # Get color configuration
     color_conf = ColorSystem.BW
@@ -577,7 +580,7 @@ def generate_bw_calibration_board(block_size_mm=5.0, gap_mm=0.8, backing_color="
     board_w = margin * 2 + total_dim * block_w + (total_dim - 1) * gap
     board_h = board_w
     
-    print(f"[BW] Board size: {board_w:.1f} x {board_h:.1f} mm (Grid: {total_dim}x{total_dim})")
+    logger.info("[BW] Board size: %.1f x %.1f mm (Grid: %sx%s)", board_w, board_h, total_dim, total_dim)
     
     # Calculate voxel grid dimensions
     pixels_per_block = max(1, int(block_w / PrinterConfig.NOZZLE_WIDTH))
@@ -594,10 +597,10 @@ def generate_bw_calibration_board(block_size_mm=5.0, gap_mm=0.8, backing_color="
     # Initialize voxel matrix (filled with White Slot 0)
     full_matrix = np.full((total_layers, voxel_h, voxel_w), 0, dtype=int)
     
-    print(f"[BW] Voxel matrix: {total_layers} x {voxel_h} x {voxel_w}")
+    logger.info("[BW] Voxel matrix: %s x %s x %s", total_layers, voxel_h, voxel_w)
     
     # Generate all 32 combinations (2^5 = 32)
-    print("[BW] Generating 32 combinations (2^5)...")
+    logger.info("[BW] Generating 32 combinations (2^5)...")
     stacks = []
     for i in range(32):
         stack = encode_to_base(i, 2)  # [顶...底] format
@@ -673,7 +676,7 @@ def generate_bw_calibration_board(block_size_mm=5.0, gap_mm=0.8, backing_color="
     
     Stats.increment("calibrations")
     
-    print(f"[BW] ✅ Black & White calibration board generated: {output_path}")
+    logger.info("[BW] ✅ Black & White calibration board generated: %s", output_path)
     
     return (
         output_path,
@@ -703,7 +706,7 @@ def select_extended_1444_colors(base_1024_stacks):
     Returns:
         List of 1444 tuples, each representing a 6-layer color stack
     """
-    print("[5C_EXT] Selecting 1444 extended colors from 3073 candidates...")
+    logger.info("[5C_EXT] Selecting 1444 extended colors from 3073 candidates...")
 
     LAYER_HEIGHT = PrinterConfig.LAYER_HEIGHT
     BACKING = np.array([255, 255, 255])
@@ -745,7 +748,7 @@ def select_extended_1444_colors(base_1024_stacks):
         "is_special": True
     })
 
-    print(f"[5C_EXT] Total candidates: {len(candidates)} (3072 + 1 KWWWWW)")
+    logger.info("[5C_EXT] Total candidates: %s (3072 + 1 KWWWWW)", len(candidates))
 
     selected = []
 
@@ -753,11 +756,11 @@ def select_extended_1444_colors(base_1024_stacks):
         "stack": kwwwww_stack,
         "rgb": kwwwww_rgb
     })
-    print(f"[5C_EXT] Pre-selected KWWWWW (special case)")
+    logger.info("[5C_EXT] Pre-selected KWWWWW (special case)")
 
     target = 1444
 
-    print(f"[5C_EXT] Round 1: Greedy selection (RGB distance > 8)...")
+    logger.info("[5C_EXT] Round 1: Greedy selection (RGB distance > 8)...")
     selected_rgbs = np.array([s['rgb'] for s in selected], dtype=int)
     
     for c in candidates:
@@ -780,10 +783,10 @@ def select_extended_1444_colors(base_1024_stacks):
             selected.append(c)
             selected_rgbs = np.vstack([selected_rgbs, c['rgb'].astype(int)])
 
-    print(f"[5C_EXT] Round 1 selected: {len(selected)}")
+    logger.info("[5C_EXT] Round 1 selected: %s", len(selected))
 
     if len(selected) < target:
-        print(f"[5C_EXT] Filling remaining {target - len(selected)} spots...")
+        logger.info("[5C_EXT] Filling remaining %s spots...", target - len(selected))
         for c in candidates:
             if len(selected) >= target:
                 break
@@ -791,7 +794,7 @@ def select_extended_1444_colors(base_1024_stacks):
                 continue
             selected.append(c)
 
-    print(f"[5C_EXT] Final selection: {len(selected)} colors")
+    logger.info("[5C_EXT] Final selection: %s colors", len(selected))
 
     return [s['stack'] for s in selected[:target]]
 
@@ -814,7 +817,7 @@ def generate_5color_extended_board(block_size_mm=5.0, gap_mm=0.8, page_index=0):
     Returns:
         Tuple of (output_path, preview_image, status_message)
     """
-    print(f"[5C_EXT] Generating 5-Color Extended calibration board - Page {page_index + 1}...")
+    logger.info("[5C_EXT] Generating 5-Color Extended calibration board - Page %s...", page_index + 1)
 
     # Color configuration (5 slots: W, R, Y, B, K)
     preview_colors = ColorSystem.FIVE_COLOR_EXTENDED['preview']
@@ -830,7 +833,7 @@ def generate_5color_extended_board(block_size_mm=5.0, gap_mm=0.8, page_index=0):
 
 def _generate_5color_base_page(block_size_mm, gap_mm, preview_colors, slot_names):
     """Generate Page 1: Base 1024 colors (5-layer RYBW combinations)."""
-    print("[5C_EXT] Generating Base Page (1024 colors, 5-layer)...")
+    logger.info("[5C_EXT] Generating Base Page (1024 colors, 5-layer)...")
     
     # 32x32 grid for 1024 colors
     data_dim = 32
@@ -936,7 +939,7 @@ def _generate_5color_extended_page(block_size_mm, gap_mm, preview_colors, slot_n
     - Face Down printing (viewing surface at Z=0, first printed layer)
     - Corner markers: TL=Blue, TR=Red(Page2 ID), BR=Black, BL=Yellow
     """
-    print("[5C_EXT] Generating Extended Page (1444 colors, 6-layer)...")
+    logger.info("[5C_EXT] Generating Extended Page (1444 colors, 6-layer)...")
     
     # Get base 1024 stacks for extended color selection
     base_stacks = []

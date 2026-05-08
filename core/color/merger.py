@@ -6,6 +6,10 @@ Identifies low-usage colors and merges them with perceptually similar
 high-usage colors using CIELAB color space.
 """
 
+from core.utils.logger import get_logger
+
+logger = get_logger("MERGER")
+
 from typing import Dict, List, Optional, Set, Tuple, Callable
 import numpy as np
 from core.color.formats import hex_to_rgb
@@ -233,26 +237,26 @@ class ColorMerger:
         
         # If all colors are low usage, don't merge (prevent color loss)
         if len(low_usage_colors) >= len(palette):
-            print("[COLOR_MERGER] Warning: All colors below threshold, merging disabled")
+            logger.warning("All colors below threshold, merging disabled")
             return {}
-        
+
         # If no low usage colors, nothing to merge
         if not low_usage_colors:
             return {}
-        
+
         # Build merge map
         merge_map = {}
         excluded_colors = set(low_usage_colors)
-        
+
         for source_hex in low_usage_colors:
             target_hex = self.find_merge_target(
                 source_hex, palette, max_distance, excluded_colors
             )
-            
+
             if target_hex is not None:
                 merge_map[source_hex] = target_hex
             else:
-                print(f"[COLOR_MERGER] No suitable target for {source_hex}, keeping original")
+                logger.info("No suitable target for %s, keeping original", source_hex)
         
         return merge_map
     

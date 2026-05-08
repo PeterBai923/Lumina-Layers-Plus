@@ -8,6 +8,9 @@ import os
 
 import gradio as gr
 import numpy as np
+from core.utils.logger import get_logger
+
+logger = get_logger("RELIEF")
 
 from core.preview.interaction import (
     update_preview_with_loop,
@@ -213,7 +216,7 @@ def bind_relief_events(components, states):
                     heightmap_path = converted
                     display_update = converted
                 except Exception as e:
-                    print(f"[HEIC] Heightmap conversion failed: {e}")
+                    logger.error("Heightmap conversion failed: %s", e)
 
         result = HeightmapLoader.load_and_validate(heightmap_path)
 
@@ -312,7 +315,7 @@ def bind_relief_events(components, states):
                 )
                 rec_html = generate_dual_recommendations_html(rec)
         except Exception as e:
-            print(f"[DUAL_RECOMMEND] Failed: {e}")
+            logger.error("Dual recommend failed: %s", e)
 
         display_hex, state_hex = _resolve_click_selection_hexes(new_cache, q_hex)
         selected_html = build_selected_dual_color_html(state_hex, display_hex)
@@ -358,7 +361,7 @@ def bind_relief_events(components, states):
         """Update height map when slider changes"""
         if selected_color:
             height_map[selected_color] = new_height
-            print(f"[Relief] Updated {selected_color} -> {new_height}mm")
+            logger.info("Updated %s -> %smm", selected_color, new_height)
         return height_map
 
     components['slider_conv_relief_height'].change(

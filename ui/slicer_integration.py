@@ -9,6 +9,9 @@ if platform.system() == "Windows":
     import winreg
 
 from .settings import _load_user_settings
+from core.utils.logger import get_logger
+
+logger = get_logger("SLICER")
 
 # Known slicer identifiers for registry matching
 _SLICER_KEYWORDS = {
@@ -127,7 +130,7 @@ def detect_installed_slicers():
     reg_slicers = _scan_registry_for_slicers()
     for sid, info in reg_slicers.items():
         found.append((sid, info["name"], info["exe"]))
-        print(f"[SLICER] Registry: {info['name']} → {info['exe']}")
+        logger.info("Registry: %s -> %s", info['name'], info['exe'])
 
     # 2. User-saved custom paths
     prefs = _load_user_settings()
@@ -136,10 +139,10 @@ def detect_installed_slicers():
         if os.path.isfile(exe) and sid not in [s[0] for s in found]:
             name = _SLICER_KEYWORDS.get(sid, {}).get("name", sid)
             found.append((sid, name, exe))
-            print(f"[SLICER] Custom: {name} → {exe}")
+            logger.info("Custom: %s -> %s", name, exe)
 
     if not found:
-        print("[SLICER] No slicers detected")
+        logger.info("No slicers detected")
     return found
 
 

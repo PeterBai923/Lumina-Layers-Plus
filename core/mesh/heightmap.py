@@ -16,6 +16,9 @@ try:
 except ImportError:
     pass
 
+from core.utils.logger import get_logger
+logger = get_logger("HEIGHTMAP")
+
 
 class HeightmapLoader:
     """高度图加载与处理器"""
@@ -68,7 +71,7 @@ class HeightmapLoader:
         """
         orig_h, orig_w = grayscale.shape[:2]
         resized = cv2.resize(grayscale, (target_w, target_h), interpolation=cv2.INTER_LINEAR)
-        print(f"[HEIGHTMAP] 缩放高度图: ({orig_w}x{orig_h}) → ({target_w}x{target_h})")
+        logger.info("缩放高度图: (%dx%d) -> (%dx%d)", orig_w, orig_h, target_w, target_h)
         return resized.astype(np.uint8)
 
     @staticmethod
@@ -185,7 +188,7 @@ class HeightmapLoader:
             }
 
         orig_h, orig_w = image.shape[:2]
-        print(f"[HEIGHTMAP] 加载高度图: {heightmap_path} ({orig_w}x{orig_h})")
+        logger.info("加载高度图: %s (%dx%d)", heightmap_path, orig_w, orig_h)
 
         # 转换为灰度
         grayscale = HeightmapLoader._to_grayscale(image)
@@ -288,8 +291,7 @@ class HeightmapLoader:
             'avg_mm': float(np.mean(height_matrix))
         }
 
-        print(f"[HEIGHTMAP] 高度映射完成: "
-              f"min={stats['min_mm']:.2f}mm, max={stats['max_mm']:.2f}mm, avg={stats['avg_mm']:.2f}mm")
+        logger.info("高度映射完成: min=%.2fmm, max=%.2fmm, avg=%.2fmm", stats['min_mm'], stats['max_mm'], stats['avg_mm'])
 
         return {
             'success': True,

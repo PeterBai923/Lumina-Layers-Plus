@@ -10,6 +10,10 @@ import gradio as gr
 from collections import deque
 from typing import Optional, List, Dict, Tuple
 
+from core.utils.logger import get_logger
+
+logger = get_logger("INTERACTION")
+
 from config import PrinterConfig
 from core.color.formats import rgb_to_hex, hex_to_rgb
 from core.preview.render import (
@@ -230,7 +234,7 @@ def on_preview_click_select_color(cache, evt: gr.SelectData):
     q_hex = cache['selected_quantized_hex']
     m_hex = cache['selected_matched_hex']
 
-    print(f"[CLICK] Coords: ({orig_x}, {orig_y}), Quantized: {q_hex}, Matched: {m_hex}")
+    logger.debug("Coords: (%s, %s), Quantized: %s, Matched: %s", orig_x, orig_y, q_hex, m_hex)
 
     display_img, status_msg = generate_highlight_preview(
         cache,

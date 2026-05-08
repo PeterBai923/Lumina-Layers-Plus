@@ -14,7 +14,9 @@ import numpy as np
 from collections import Counter
 
 from core.stack_encoding import encode_stacks_batch
+from core.utils.logger import get_logger
 
+logger = get_logger("CLEANUP")
 
 # Alias for backward compatibility
 _encode_stacks = encode_stacks_batch
@@ -150,7 +152,7 @@ def cleanup_isolated_pixels(
     isolated_count = int(np.sum(isolated_mask))
 
     if isolated_count == 0:
-        print(f"[ISOLATED_CLEANUP] 未检测到孤立像素，跳过清理")
+        logger.info("未检测到孤立像素，跳过清理")
         return cleaned_rgb, cleaned_mat
 
     # 步骤 3：找到邻域众数
@@ -180,12 +182,6 @@ def cleanup_isolated_pixels(
 
     # 输出统计信息
     percentage = (replaced_count / total_pixels * 100) if total_pixels > 0 else 0
-    print(
-        f"[ISOLATED_CLEANUP] ✅ 清理完成: "
-        f"检测到 {isolated_count} 个孤立像素, "
-        f"成功合并 {replaced_count} 个, "
-        f"占总像素 {percentage:.2f}% "
-        f"(总像素={total_pixels})"
-    )
+    logger.info("清理完成: 检测到 %d 个孤立像素, 成功合并 %d 个, 占总像素 %.2f%% (总像素=%d)", isolated_count, replaced_count, percentage, total_pixels)
 
     return cleaned_rgb, cleaned_mat

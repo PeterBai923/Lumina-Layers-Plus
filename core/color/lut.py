@@ -11,6 +11,10 @@ import sys
 import itertools
 import numpy as np
 
+from core.utils.logger import get_logger
+
+logger = get_logger("LUT")
+
 from colormath.color_objects import sRGBColor, LabColor
 from colormath.color_conversions import convert_color
 from colormath.color_diff import delta_e_cie2000
@@ -291,7 +295,7 @@ class LUTMerger:
             else:
                 # Emergency fallback: use the old (imperfect) linear logic
                 # WARNING: This may result in stack-index mismatch if greedy selection was used
-                print("⚠️ [LUT_MERGER] Warning: select_extended_1444_colors not found. Using linear fallback for 5C-EXT.")
+                logger.warning("select_extended_1444_colors not found. Using linear fallback for 5C-EXT.")
                 ext_stacks = []
                 for ext_idx in range(1444):
                     if ext_idx == 0:

@@ -16,21 +16,11 @@ import os
 import sys
 import signal
 import numpy as np
-import multiprocessing as mp
-from datetime import datetime
 
 setattr(np, "asscalar", lambda a: a.item())
 
-
-def init_runtime_log():
-    if mp.current_process().name != 'MainProcess':
-        return None
-    root = os.path.dirname(os.path.abspath(__file__))
-    log_dir = os.path.join(root, "logs")
-    os.makedirs(log_dir, exist_ok=True)
-    ts = datetime.now().strftime('%Y%m%d_%H%M%S')
-    log_path = os.path.join(log_dir, f'lumina_{ts}.log')
-    return log_path
+from core.utils.logger import get_logger, init_logging
+from config import LogConfig
 
 # Handle PyInstaller bundled resources
 if getattr(sys, 'frozen', False):
@@ -77,8 +67,9 @@ def _graceful_shutdown(signum, frame):
         signum (int): Signal number received. (接收到的信号编号)
         frame (frame): Current stack frame. (当前栈帧)
     """
+    logger = get_logger("main")
     sig_name = signal.Signals(signum).name
-    print(f"Received {sig_name}, shutting down...")
+    logger.info(f"Received {sig_name}, shutting down...")
     os._exit(0)
 
 
@@ -88,11 +79,12 @@ if __name__ == "__main__":
         signal.signal(signal.SIGTERM, _graceful_shutdown)
         signal.signal(signal.SIGINT, _graceful_shutdown)
 
-        init_runtime_log()
+        init_logging(LogConfig.get_log_path())
+        logger = get_logger("main")
         PORT = find_available_port(7860)
 
         threading.Thread(target=start_browser, args=(PORT,), daemon=True).start()
-        print(f"✨ Lumina Studio is running on http://127.0.0.1:{PORT}")
+        logger.info(f"Lumina Studio is running on http://127.0.0.1:{PORT}")
         app = create_app()
 
         try:
@@ -122,7 +114,7 @@ if __name__ == "__main__":
                 head=get_crop_head_js() + DEBOUNCE_JS + FIVECOLOR_CLICK_JS
             )
         except Exception as e:
-            print(f"❌ Failed to launch Gradio app: {e}")
+            logger.error(f"Failed to launch Gradio app: {e}")
             import traceback
             traceback.print_exc()
             raise
@@ -133,11 +125,11 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             pass
 
-        print("Stopping...")
+        logger.info("Stopping...")
         os._exit(0)
         
     except Exception as e:
-        print(f"❌ FATAL ERROR: {e}")
+        logger.error(f"FATAL ERROR: {e}")
         import traceback
         traceback.print_exc()
         input("Press Enter to exit...")

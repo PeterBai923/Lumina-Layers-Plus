@@ -5,6 +5,9 @@ Geometry utilities module - Pure functional geometry calculation tools
 
 import numpy as np
 import trimesh
+from core.utils.logger import get_logger
+
+logger = get_logger("MESH")
 
 # Standard cube face indices (12 triangles for 8 vertices)
 CUBE_FACES = [
@@ -110,8 +113,7 @@ def create_keychain_loop(width_mm, length_mm, hole_dia_mm, thickness_mm,
     Returns:
         trimesh.Trimesh: Loop mesh object
     """
-    print(f"[GEOMETRY] Creating keychain loop: w={width_mm}, l={length_mm}, "
-          f"hole={hole_dia_mm}, thick={thickness_mm}, pos=({attach_x_mm}, {attach_y_mm})")
+    logger.info("Creating keychain loop: w=%s, l=%s, hole=%s, thick=%s, pos=(%s, %s)", width_mm, length_mm, hole_dia_mm, thickness_mm, attach_x_mm, attach_y_mm)
     
     # Calculate geometric parameters
     half_w = width_mm / 2
@@ -221,7 +223,7 @@ def create_keychain_loop(width_mm, length_mm, hole_dia_mm, thickness_mm,
     mesh = trimesh.Trimesh(vertices=vertices_arr, faces=np.array(faces))
     mesh.fix_normals()
     
-    print(f"[GEOMETRY] Loop mesh created: {len(mesh.vertices)} vertices, {len(mesh.faces)} faces")
+    logger.info("Loop mesh created: %d vertices, %d faces", len(mesh.vertices), len(mesh.faces))
     
     return mesh
 

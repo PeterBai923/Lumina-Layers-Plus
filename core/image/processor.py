@@ -16,6 +16,9 @@ from core.stack_encoding import encode_to_base
 from core.utils.color_encoding import build_color_lut, lookup_colors
 from core.utils.color_conversion import rgb_to_lab
 from core.utils.gpu_device import GPUDeviceManager
+from core.utils.logger import get_logger
+
+logger = get_logger("PROCESSOR")
 
 # HEIC/HEIF support (optional dependency)
 try:
@@ -31,7 +34,7 @@ try:
     HAS_SVG = True
 except ImportError:
     HAS_SVG = False
-    print("⚠️ [SVG] svglib/reportlab not installed. SVG support disabled.")
+    logger.warning("[SVG] svglib/reportlab not installed. SVG support disabled.")
 
 # GPU modules (required)
 from core.gpu_kmeans import KMeansBackend
@@ -105,12 +108,12 @@ class LuminaImageProcessor:
             cache_key = (svg_abs, round(float(target_width_mm), 4), round(float(pixels_per_mm), 2), svg_mtime)
             cached = _SVG_RASTER_CACHE.get(cache_key)
             if cached is not None:
-                print(f"[SVG] Cache hit: {os.path.basename(svg_abs)} @ {pixels_per_mm}px/mm")
+                logger.info("[SVG] Cache hit: %s @ %s px/mm", os.path.basename(svg_abs), pixels_per_mm)
                 return cached.copy()
         except Exception:
             cache_key = None
         
-        print(f"[SVG] Rasterizing: {svg_path}")
+        logger.info("[SVG] Rasterizing: %s", svg_path)
         
         # 1. 读取 SVG
         drawing = svg2rlg(svg_path)
@@ -180,7 +183,7 @@ class LuminaImageProcessor:
             x_end   = min(w_arr, render_w + BORDER)
             y_end   = min(h_arr, render_h + BORDER)
             img_final = img_final[y_start:y_end, x_start:x_end]
-            print(f"[SVG] Geometry Crop: {img_final.shape[1]}x{img_final.shape[0]} (bounds-based, lossless)")
+            logger.info("[SVG] Geometry Crop: %sx%s (bounds-based, lossless)", img_final.shape[1], img_final.shape[0])
 
             # 若渲染时为保证质量而放大，缩回目标像素宽度
             if render_width_px > target_width_px and target_width_px > 0:
@@ -188,9 +191,9 @@ class LuminaImageProcessor:
                 out_w = max(1, round(img_final.shape[1] * scale_back))
                 out_h = max(1, round(img_final.shape[0] * scale_back))
                 img_final = cv2.resize(img_final, (out_w, out_h), interpolation=cv2.INTER_AREA)
-                print(f"[SVG] Scaled to target: {out_w}x{out_h} px")
+                logger.info("[SVG] Scaled to target: %sx%s px", out_w, out_h)
 
-            print(f"[SVG] Final resolution: {img_final.shape[1]}x{img_final.shape[0]} px")
+            logger.info("[SVG] Final resolution: %sx%s px", img_final.shape[1], img_final.shape[0])
             if cache_key is not None:
                 _SVG_RASTER_CACHE[cache_key] = img_final.copy()
                 while len(_SVG_RASTER_CACHE) > _SVG_RASTER_CACHE_MAX:
@@ -198,10 +201,8 @@ class LuminaImageProcessor:
             return img_final
             
         except Exception as e:
-            print(f"[SVG] Dual-Pass failed: {e}")
-            import traceback
-            traceback.print_exc()
-            
+            logger.exception("[SVG] Dual-Pass failed: %s", e)
+
             # 最后的保底：如果双重渲染失败，回退到普通渲染
             pil_img = renderPM.drawToPIL(drawing, bg=None, configPIL={'transparent': True})
             img_fallback = np.array(pil_img.convert('RGBA'))
@@ -233,7 +234,7 @@ class LuminaImageProcessor:
                     self.layer_count = int(self.ref_stacks.shape[1])
                 self.lut_lab = self._rgb_to_lab(self.lut_rgb)
                 self.kdtree = KDTree(self.lut_lab)
-                print(f"✅ Merged LUT loaded: {len(self.lut_rgb)} colors (.npz format, Lab KDTree)")
+                logger.info("Merged LUT loaded: %s colors (.npz format, Lab KDTree)", len(self.lut_rgb))
                 
                 # 初始化色相感知匹配器（仅当 hue_weight > 0 时）
                 if self.hue_weight > 0:
@@ -255,11 +256,11 @@ class LuminaImageProcessor:
         valid_rgb = []
         valid_stacks = []
         
-        print(f"[IMAGE_PROCESSOR] Loading LUT with {total_colors} points...")
+        logger.info("Loading LUT with %s points...", total_colors)
         
         # Branch 0: 2-Color BW (32)
         if self.color_mode == "BW (Black & White)" or self.color_mode == "BW" or total_colors == 32:
-            print("[IMAGE_PROCESSOR] Detected 2-Color BW mode")
+            logger.info("Detected 2-Color BW mode")
             
             # Generate all 32 combinations (2^5 = 32)
             for i in range(32):
@@ -277,11 +278,11 @@ class LuminaImageProcessor:
             if isinstance(self.ref_stacks, np.ndarray) and self.ref_stacks.ndim == 2:
                 self.layer_count = int(self.ref_stacks.shape[1])
             
-            print(f"✅ LUT loaded: {len(self.lut_rgb)} colors (2-Color BW mode)")
+            logger.info("LUT loaded: %s colors (2-Color BW mode)", len(self.lut_rgb))
         
         # Branch 1: 8-Color Max (2738)
         elif "8-Color" in self.color_mode or total_colors == 2738:
-            print("[IMAGE_PROCESSOR] Detected 8-Color Max mode")
+            logger.info("Detected 8-Color Max mode")
             
             # Load pre-generated 8-color stacks
             stacks_path = get_asset_path('smart_8color_stacks.npy')
@@ -291,10 +292,10 @@ class LuminaImageProcessor:
             # 约定转换：smart_8color_stacks.npy 存储底到顶约定（stack[0]=背面），
             # 转换为顶到底约定（stack[0]=观赏面, stack[4]=背面），与 4 色模式统一
             smart_stacks = [tuple(reversed(s)) for s in smart_stacks]
-            print("[IMAGE_PROCESSOR] Stacks converted from bottom-to-top to top-to-bottom convention (matching 4-color mode).")
-            
+            logger.info("Stacks converted from bottom-to-top to top-to-bottom convention (matching 4-color mode).")
+
             if len(smart_stacks) != total_colors:
-                print(f"⚠️ Warning: Stacks count ({len(smart_stacks)}) != LUT count ({total_colors})")
+                logger.warning("Warning: Stacks count (%s) != LUT count (%s)", len(smart_stacks), total_colors)
                 min_len = min(len(smart_stacks), total_colors)
                 smart_stacks = smart_stacks[:min_len]
                 measured_colors = measured_colors[:min_len]
@@ -304,11 +305,11 @@ class LuminaImageProcessor:
             if isinstance(self.ref_stacks, np.ndarray) and self.ref_stacks.ndim == 2:
                 self.layer_count = int(self.ref_stacks.shape[1])
             
-            print(f"✅ LUT loaded: {len(self.lut_rgb)} colors (8-Color mode)")
+            logger.info("LUT loaded: %s colors (8-Color mode)", len(self.lut_rgb))
         
         # Branch 2: 6-Color Smart 1296
         elif "6-Color" in self.color_mode or total_colors == 1296:
-            print("[IMAGE_PROCESSOR] Detected 6-Color Smart 1296 mode")
+            logger.info("Detected 6-Color Smart 1296 mode")
             
             from core.calibration import get_top_1296_colors
             
@@ -316,10 +317,10 @@ class LuminaImageProcessor:
             # 约定转换：get_top_1296_colors() 返回底到顶约定（stack[0]=背面），
             # 转换为顶到底约定（stack[0]=观赏面, stack[4]=背面），与 4 色模式统一
             smart_stacks = [tuple(reversed(s)) for s in smart_stacks]
-            print("[IMAGE_PROCESSOR] Stacks converted from bottom-to-top to top-to-bottom convention (matching 4-color mode).")
-            
+            logger.info("Stacks converted from bottom-to-top to top-to-bottom convention (matching 4-color mode).")
+
             if len(smart_stacks) != total_colors:
-                print(f"⚠️ Warning: Stacks count ({len(smart_stacks)}) != LUT count ({total_colors})")
+                logger.warning("Warning: Stacks count (%s) != LUT count (%s)", len(smart_stacks), total_colors)
                 min_len = min(len(smart_stacks), total_colors)
                 smart_stacks = smart_stacks[:min_len]
                 measured_colors = measured_colors[:min_len]
@@ -329,11 +330,11 @@ class LuminaImageProcessor:
             if isinstance(self.ref_stacks, np.ndarray) and self.ref_stacks.ndim == 2:
                 self.layer_count = int(self.ref_stacks.shape[1])
             
-            print(f"✅ LUT loaded: {len(self.lut_rgb)} colors (6-Color mode)")
+            logger.info("LUT loaded: %s colors (6-Color mode)", len(self.lut_rgb))
         
         # Branch 3: 5-Color Extended (2468)
         elif "5-Color Extended" in self.color_mode or total_colors == 2468:
-            print("[IMAGE_PROCESSOR] Detected 5-Color Extended (2468) mode")
+            logger.info("Detected 5-Color Extended (2468) mode")
             
             # For .npz files, load stacks directly
             if lut_path.endswith('.npz'):
@@ -345,7 +346,7 @@ class LuminaImageProcessor:
                         self.ref_stacks = np.array([tuple(reversed(s)) for s in stacks])
                         self.layer_count = int(self.ref_stacks.shape[1])
                         self.lut_rgb = measured_colors
-                        print(f"✅ LUT loaded: {len(self.lut_rgb)} colors (5-Color Extended, 6-layer stacks)")
+                        logger.info("LUT loaded: %s colors (5-Color Extended, 6-layer stacks)", len(self.lut_rgb))
                         
                         # Build KD-Tree and hue matcher for early-return path
                         self.lut_lab = self._rgb_to_lab(self.lut_rgb)
@@ -357,7 +358,7 @@ class LuminaImageProcessor:
                             )
                         return
                 except Exception as e:
-                    print(f"⚠️ Failed to load stacks from .npz: {e}")
+                    logger.warning("Failed to load stacks from .npz: %s", e)
             
             # Fallback: generate stacks from index
             # First 1024: base 5-layer (4^5 combinations), pad to 6 layers
@@ -386,11 +387,11 @@ class LuminaImageProcessor:
             if isinstance(self.ref_stacks, np.ndarray) and self.ref_stacks.ndim == 2:
                 self.layer_count = int(self.ref_stacks.shape[1])
             
-            print(f"✅ LUT loaded: {len(self.lut_rgb)} colors (5-Color Extended)")
+            logger.info("LUT loaded: %s colors (5-Color Extended)", len(self.lut_rgb))
         
         # Branch 4: Merged LUT (non-standard size or "Merged" mode)
         elif self.color_mode == "Merged" or total_colors not in (32, 1024, 1296, 2468, 2738):
-            print(f"[IMAGE_PROCESSOR] Detected non-standard LUT size ({total_colors}), trying companion .npz...")
+            logger.info("Detected non-standard LUT size (%s), trying companion .npz...", total_colors)
             
             # 尝试查找同名 .npz 文件
             npz_path = lut_path.rsplit('.', 1)[0] + '.npz'
@@ -403,7 +404,7 @@ class LuminaImageProcessor:
                         self.layer_count = int(self.ref_stacks.shape[1])
                     self.lut_lab = self._rgb_to_lab(self.lut_rgb)
                     self.kdtree = KDTree(self.lut_lab)
-                    print(f"✅ Merged LUT loaded from companion .npz: {len(self.lut_rgb)} colors (Lab KDTree)")
+                    logger.info("Merged LUT loaded from companion .npz: %s colors (Lab KDTree)", len(self.lut_rgb))
                     
                     # 初始化色相感知匹配器（仅当 hue_weight > 0 时）
                     if self.hue_weight > 0:
@@ -413,19 +414,19 @@ class LuminaImageProcessor:
                         )
                     return
                 except Exception as e:
-                    print(f"⚠️ Failed to load companion .npz: {e}")
+                    logger.warning("Failed to load companion .npz: %s", e)
             
             # 无 .npz 伴随文件，使用 RGB 数据但无堆叠信息
             # 生成占位堆叠（全0）
-            print(f"⚠️ No companion .npz found, using placeholder stacks")
+            logger.warning("No companion .npz found, using placeholder stacks")
             self.lut_rgb = measured_colors
             self.ref_stacks = np.zeros((total_colors, self.layer_count), dtype=np.int32)
             
-            print(f"✅ LUT loaded: {len(self.lut_rgb)} colors (Merged mode, placeholder stacks)")
+            logger.info("LUT loaded: %s colors (Merged mode, placeholder stacks)", len(self.lut_rgb))
         
         # Branch 5: 4-Color Standard (1024)
         else:
-            print("[IMAGE_PROCESSOR] Detected 4-Color Standard mode")
+            logger.info("Detected 4-Color Standard mode")
             
             # Keep original outlier filtering logic (Blue Check)
             base_blue = np.array([30, 100, 200])
@@ -454,7 +455,7 @@ class LuminaImageProcessor:
             if isinstance(self.ref_stacks, np.ndarray) and self.ref_stacks.ndim == 2:
                 self.layer_count = int(self.ref_stacks.shape[1])
             
-            print(f"✅ LUT loaded: {len(self.lut_rgb)} colors (filtered {dropped} outliers)")
+            logger.info("LUT loaded: %s colors (filtered %s outliers)", len(self.lut_rgb), dropped)
         
         # Build KD-Tree in CIELAB space for perceptually accurate color matching
         self.lut_lab = self._rgb_to_lab(self.lut_rgb)
@@ -493,14 +494,14 @@ class LuminaImageProcessor:
                 - mode_info: Mode information dictionary
                 - debug_data: Debug data (high-fidelity mode only)
         """
-        print(f"[IMAGE_PROCESSOR] Mode: High-Fidelity")
-        print(f"[IMAGE_PROCESSOR] Filter settings: blur_kernel={blur_kernel}, smooth_sigma={smooth_sigma}")
+        logger.info("Mode: High-Fidelity")
+        logger.info("Filter settings: blur_kernel=%s, smooth_sigma=%s", blur_kernel, smooth_sigma)
         
         # ========== Image Loading Logic Branch ==========
         is_svg = image_path.lower().endswith('.svg')
         
         if is_svg:
-            print("[IMAGE_PROCESSOR] SVG detected - Engaging Ultra-High-Fidelity Vector Mode")
+            logger.info("SVG detected - Engaging Ultra-High-Fidelity Vector Mode")
             img_arr = self._load_svg(image_path, target_width_mm, pixels_per_mm=10.0)
             # SVG reset to PIL object to reuse subsequent logic (e.g., get dimensions)
             img = Image.fromarray(img_arr)
@@ -514,8 +515,8 @@ class LuminaImageProcessor:
             # because it preserves sharp edges while making curves smooth.
             blur_kernel = 0
             smooth_sigma = 0
-            print("[IMAGE_PROCESSOR] SVG Mode: Filters disabled (Vector source is clean)")
-            print("[IMAGE_PROCESSOR] Super-sampling at 20 px/mm eliminates jagged edges naturally")
+            logger.info("SVG Mode: Filters disabled (Vector source is clean)")
+            logger.info("Super-sampling at 20 px/mm eliminates jagged edges naturally")
             
             # Recalculate target_w/h (based on rendered dimensions)
             target_w, target_h = img.size
@@ -539,10 +540,10 @@ class LuminaImageProcessor:
         PIXELS_PER_MM = 10
         target_w = int(target_width_mm * PIXELS_PER_MM)
         pixel_to_mm_scale = 1.0 / PIXELS_PER_MM  # 0.1 mm per pixel
-        print(f"[IMAGE_PROCESSOR] High-res mode: {PIXELS_PER_MM} px/mm")
+        logger.info("High-res mode: %s px/mm", PIXELS_PER_MM)
 
         target_h = int(target_w * img.height / img.width)
-        print(f"[IMAGE_PROCESSOR] Target: {target_w}×{target_h}px ({target_w*pixel_to_mm_scale:.1f}×{target_h*pixel_to_mm_scale:.1f}mm)")
+        logger.info("Target: %s×%spx (%.1f×%.1fmm)", target_w, target_h, target_w * pixel_to_mm_scale, target_h * pixel_to_mm_scale)
         
         # ========== End of Image Loading Logic Branch ==========
         
@@ -553,7 +554,7 @@ class LuminaImageProcessor:
         # 
         # SOLUTION: Use NEAREST to preserve hard edges and ensure dark pixels
         # map to solid dark stacks from Layer 1 upwards.
-        print(f"[IMAGE_PROCESSOR] Using NEAREST interpolation (no anti-aliasing)")
+        logger.info("Using NEAREST interpolation (no anti-aliasing)")
         img = img.resize((target_w, target_h), Image.Resampling.NEAREST)
         
         img_arr = np.array(img)
@@ -563,7 +564,7 @@ class LuminaImageProcessor:
         # CRITICAL FIX: Identify transparent pixels BEFORE color processing
         # This prevents transparent areas from being matched to LUT colors
         mask_transparent_initial = alpha_arr < 10
-        print(f"[IMAGE_PROCESSOR] Found {np.sum(mask_transparent_initial)} transparent pixels (alpha<10)")
+        logger.info("Found %s transparent pixels (alpha<10)", np.sum(mask_transparent_initial))
         
         # Color processing and matching
         debug_data = None
@@ -579,7 +580,7 @@ class LuminaImageProcessor:
                     material_matrix, matched_rgb, self.lut_rgb, self.ref_stacks
                 )
             except ImportError:
-                print("[IMAGE_PROCESSOR] ⚠️ isolated_pixel_cleanup module not found, skipping")
+                logger.warning("isolated_pixel_cleanup module not found, skipping")
         
         # Background removal - combine alpha transparency with optional auto-bg
         mask_transparent = mask_transparent_initial.copy()
@@ -637,13 +638,13 @@ class LuminaImageProcessor:
         import time
         total_start = time.time()
 
-        print(f"[IMAGE_PROCESSOR] Starting edge-preserving processing...")
+        logger.info("Starting edge-preserving processing...")
 
         import time
         total_start = time.time()
 
         # GPU Pipeline: Use full GPU acceleration
-        print(f"[IMAGE_PROCESSOR] 🚀 Using GPU pipeline for acceleration...")
+        logger.info("Using GPU pipeline for acceleration...")
         pipeline = GPUPipeline()
         matched_rgb, material_matrix, debug_data = pipeline.process_preview(
             rgb_arr, quantize_colors, self.lut_rgb, self.lut_lab,
@@ -660,6 +661,6 @@ class LuminaImageProcessor:
         # Build quantized image from debug data
         quantized_image = debug_data.get('quantized_image', matched_rgb)
 
-        print(f"[IMAGE_PROCESSOR] ✅ Total processing time: {time.time() - total_start:.2f}s")
+        logger.info("Total processing time: %.2fs", time.time() - total_start)
 
         return matched_rgb, material_matrix, quantized_image, debug_data

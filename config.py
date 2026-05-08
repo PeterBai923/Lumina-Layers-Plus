@@ -2,6 +2,7 @@
 
 import os
 import sys
+from datetime import datetime
 from enum import Enum
 
 # Handle PyInstaller bundled resources
@@ -14,6 +15,22 @@ else:
 
 OUTPUT_DIR = os.path.join(_BASE_DIR, "output")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+
+class LogConfig:
+    """Logging configuration for Lumina Studio."""
+
+    DEFAULT_LEVEL: str = "INFO"
+    MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10 MB
+    BACKUP_COUNT: int = 5
+
+    @staticmethod
+    def get_log_path() -> str:
+        """Return the path for the runtime log file."""
+        log_dir = os.path.join(_BASE_DIR, "logs")
+        os.makedirs(log_dir, exist_ok=True)
+        ts = datetime.now().strftime('%Y%m%d_%H%M%S')
+        return os.path.join(log_dir, f'lumina_{ts}.log')
 
 
 def get_asset_path(relative_path: str) -> str:

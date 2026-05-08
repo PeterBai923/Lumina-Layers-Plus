@@ -13,6 +13,9 @@ import os
 import numpy as np
 from datetime import datetime
 from typing import Dict, List, Tuple, Optional
+from core.utils.logger import get_logger
+
+logger = get_logger("RECIPE")
 
 
 class ColorRecipeLogger:
@@ -251,7 +254,7 @@ class ColorRecipeLogger:
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write('\n'.join(lines))
         
-        print(f"[COLOR_RECIPE] ✅ Color recipe saved: {output_path}")
+        logger.info("Color recipe saved: %s", output_path)
     
     @staticmethod
     def create_from_processor(processor, output_dir: str, model_filename: str,

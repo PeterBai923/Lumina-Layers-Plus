@@ -15,6 +15,10 @@ import trimesh
 from PIL import Image, ImageDraw, ImageFont
 from typing import Optional, List, Dict, Tuple
 
+from core.utils.logger import get_logger
+
+logger = get_logger("RENDER")
+
 from config import PrinterConfig, PREVIEW_SCALE, OUTPUT_DIR
 from core.mesh.geometry import (
     CUBE_FACES,
@@ -230,16 +234,13 @@ def _create_bed_mesh(bed_w_mm: int, bed_h_mm: int, is_dark: bool = True):
         mesh.visual = TextureVisuals(uv=uv, material=SimpleMaterial(image=img))
 
         theme_name = "dark" if is_dark else "light"
-        print(
-            f"[BED] Created {theme_name} {bed_w_mm}x{bed_h_mm}mm rounded bed ({n_pts} verts)"
+        logger.info(
+            "Created %s %dx%dmm rounded bed (%d verts)", theme_name, bed_w_mm, bed_h_mm, n_pts
         )
         return mesh
 
     except Exception as e:
-        print(f"[BED] Failed to create bed mesh: {e}")
-        import traceback
-
-        traceback.print_exc()
+        logger.exception("Failed to create bed mesh: %s", e)
         return None
 
 
@@ -273,8 +274,8 @@ def _create_preview_mesh(
     scale_factor = int(np.sqrt(total_pixels / TARGET_PIXELS))
     scale_factor = max(2, min(scale_factor, 16))
 
-    print(
-        f"[PREVIEW] Downsampling by {scale_factor}x ({total_pixels:,} -> ~{TARGET_PIXELS:,} pixels)"
+    logger.info(
+        "Downsampling by %dx (%d -> ~%d pixels)", scale_factor, total_pixels, TARGET_PIXELS
     )
 
     import torch
@@ -414,8 +415,8 @@ def _create_preview_mesh(
     mesh = trimesh.Trimesh(vertices=all_vertices, faces=all_faces)
     mesh.visual.face_colors = all_face_colors
 
-    print(
-        f"[PREVIEW] Generated: {len(mesh.vertices):,} vertices, {len(mesh.faces):,} faces"
+    logger.info(
+        "Generated: %d vertices, %d faces", len(mesh.vertices), len(mesh.faces)
     )
 
     return mesh
@@ -445,7 +446,7 @@ def generate_empty_bed_glb(bed_w: int = None, bed_h: int = None, is_dark: bool =
         glb_scene.export(glb_path)
         return glb_path
     except Exception as e:
-        print(f"[EMPTY_BED] Failed: {e}")
+        logger.error("Failed: %s", e)
         return None
 
 
@@ -489,7 +490,7 @@ def generate_realtime_glb(cache):
         )
 
         if preview_mesh is None:
-            print("[REALTIME_GLB] Preview mesh is None (model too large?)")
+            logger.warning("Preview mesh is None (model too large?)")
             return None
 
         # Scale from pixel/voxel coords to mm
@@ -519,11 +520,11 @@ def generate_realtime_glb(cache):
         # the FastAPI+React frontend renders bed in Three.js instead.
         glb_path = os.path.join(OUTPUT_DIR, "realtime_preview.glb")
         preview_mesh.export(glb_path)
-        print(f"[REALTIME_GLB] Exported: {glb_path}")
+        logger.info("Exported: %s", glb_path)
         return glb_path
 
     except Exception as e:
-        print(f"[REALTIME_GLB] Failed: {e}")
+        logger.error("Failed: %s", e)
         return None
 
 
@@ -865,7 +866,7 @@ def generate_highlight_preview(
             preview_rgba[border_mask, 2] = 255
             preview_rgba[border_mask, 3] = 200
     except Exception as e:
-        print(f"[HIGHLIGHT] Border effect skipped: {e}")
+        logger.debug("Border effect skipped: %s", e)
 
     # Render display
     display = render_preview(
@@ -911,20 +912,20 @@ def clear_highlight_preview(
     Returns:
         tuple: (display_image, status_message)
     """
-    print(
-        f"[CLEAR_HIGHLIGHT] Called with cache={cache is not None}, loop_pos={loop_pos}, add_loop={add_loop}"
+    logger.debug(
+        "Called with cache=%s, loop_pos=%s, add_loop=%s", cache is not None, loop_pos, add_loop
     )
 
     if cache is None:
-        print("[CLEAR_HIGHLIGHT] Cache is None!")
+        logger.debug("Cache is None!")
         return None, "[ERROR] Please generate preview first"
 
     preview_rgba = cache.get("preview_rgba")
     if preview_rgba is None:
-        print("[CLEAR_HIGHLIGHT] preview_rgba is None!")
+        logger.debug("preview_rgba is None!")
         return None, "[ERROR] Invalid cache"
 
-    print(f"[CLEAR_HIGHLIGHT] preview_rgba shape: {preview_rgba.shape}")
+    logger.debug("preview_rgba shape: %s", preview_rgba.shape)
 
     color_conf = cache["color_conf"]
     display = render_preview(
@@ -940,8 +941,8 @@ def clear_highlight_preview(
         is_dark=cache.get("is_dark", True),
     )
 
-    print(
-        f"[CLEAR_HIGHLIGHT] display shape: {display.shape if display is not None else None}"
+    logger.debug(
+        "display shape: %s", display.shape if display is not None else None
     )
 
     return display, "[OK] Preview restored"

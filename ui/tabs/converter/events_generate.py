@@ -6,6 +6,9 @@ fullscreen 3D toggle, and bed-size change events.
 """
 
 import gradio as gr
+from core.utils.logger import get_logger
+
+logger = get_logger("GENERATE")
 
 from ...settings import resolve_height_mode
 from ...slicer_integration import _get_slicer_choices, open_in_slicer
@@ -205,11 +208,11 @@ def bind_generate_events(components, states, theme_state):
 
         # If no file exists, auto-generate the complete workflow
         if file_obj is None:
-            print("[AUTO-SLICER] No 3MF file found, starting auto-generation workflow...")
+            logger.info("No 3MF file found, starting auto-generation workflow...")
 
             # Step 1: Generate preview if needed
             if preview_cache is None or not preview_cache:
-                print("[AUTO-SLICER] Step 1/2: Generating preview...")
+                logger.info("Step 1/2: Generating preview...")
                 try:
                     preview_img, cache, status, glb = generate_preview_cached_with_fit(
                         single_image, lut_path, target_width_mm, auto_bg, bg_tol,
@@ -217,13 +220,13 @@ def bind_generate_events(components, states, theme_state):
                         structure_mode=structure_mode
                     )
                     preview_cache = cache
-                    print(f"[AUTO-SLICER] Preview generated: {status}")
+                    logger.info("Preview generated: %s", status)
                 except Exception as e:
-                    print(f"[AUTO-SLICER] Failed to generate preview: {e}")
+                    logger.error("Failed to generate preview: %s", e)
                     return gr.update(), gr.update(), gr.update(), gr.update(), f"[ERROR] 预览生成失败: {e}"
 
             # Step 2: Generate 3MF model
-            print("[AUTO-SLICER] Step 2/2: Generating 3MF model...")
+            logger.info("Step 2/2: Generating 3MF model...")
             try:
                 file_obj, glb, preview_img, status, color_recipe_path = process_batch_generation(
                     batch_files, is_batch, single_image, lut_path, target_width_mm,
@@ -237,9 +240,9 @@ def bind_generate_events(components, states, theme_state):
                     free_color_set,
                     hue_weight=float(hue_weight) if hue_weight else 0.0,
                 )
-                print(f"[AUTO-SLICER] 3MF generated: {status}")
+                logger.info("3MF generated: %s", status)
             except Exception as e:
-                print(f"[AUTO-SLICER] Failed to generate 3MF: {e}")
+                logger.error("Failed to generate 3MF: %s", e)
                 return gr.update(), gr.update(), gr.update(), gr.update(), f"[ERROR] 3MF生成失败: {e}"
 
         # Now open in slicer or download

@@ -5,6 +5,9 @@ Binds all color replacement / merge / selection event handlers for the converter
 """
 
 import gradio as gr
+from core.utils.logger import get_logger
+
+logger = get_logger("COLOR")
 
 from core.preview.interaction import on_preview_click_select_color, _resolve_click_selection_hexes
 from core.converter import (
@@ -266,8 +269,8 @@ def bind_color_events(components, states, theme_state):
             nearest = colors[idx[0]]
             nearest_hex = nearest["hex"]
 
-            print(
-                f"[COLOR_PICKER] {picker_hex} -> nearest LUT: {nearest_hex} (dist={dist[0]:.1f})"
+            logger.info(
+                "%s -> nearest LUT: %s (dist=%.1f)", picker_hex, nearest_hex, dist[0]
             )
 
             # Return JS call to scroll to the matched swatch + update replacement display
@@ -276,7 +279,7 @@ def bind_color_events(components, states, theme_state):
             )
             return nearest_hex, nearest_hex
         except Exception as e:
-            print(f"[COLOR_PICKER] Error: {e}")
+            logger.error("[COLOR_PICKER] Error: %s", e)
             return gr.update(), gr.update()
 
     components["btn_conv_picker_search"].click(
@@ -732,7 +735,7 @@ def bind_color_events(components, states, theme_state):
                     )
                     rec_html = generate_dual_recommendations_html(rec, lang="zh")
         except Exception as e:
-            print(f"[DUAL_RECOMMEND] Failed: {e}")
+            logger.error("[DUAL_RECOMMEND] Failed: %s", e)
 
         display_hex, state_hex = _resolve_click_selection_hexes(cache, hex_val)
         selected_html = build_selected_dual_color_html(

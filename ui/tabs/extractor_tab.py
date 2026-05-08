@@ -17,6 +17,9 @@ from core.extractor import (
     probe_lut_cell,
     manual_fix_cell,
 )
+from core.utils.logger import get_logger
+
+logger = get_logger("EXTRACTOR")
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -123,10 +126,10 @@ def run_extraction_wrapper(img, points, offset_x, offset_y, zoom, barrel, wb, br
             np.save(temp_path, lut)
             # Return the assets path, not the original LUT_FILE_PATH
             # This ensures manual corrections are saved to the correct location
-            print(f"[8-COLOR] Saved page {page_idx} to: {temp_path}")
+            logger.info("Saved page %s to: %s", page_idx, temp_path)
             lut_path = temp_path
         except Exception as e:
-            print(f"[8-COLOR] Error saving page {page_idx}: {e}")
+            logger.error("Error saving page %s: %s", page_idx, e)
 
     # Handle 5-Color Extended dual-page saving
     if "5-Color Extended" in color_mode and lut_path:
@@ -143,10 +146,10 @@ def run_extraction_wrapper(img, points, offset_x, offset_y, zoom, barrel, wb, br
         try:
             lut = np.load(lut_path)
             np.save(temp_path, lut)
-            print(f"[5C-EXT] Saved page {page_idx} to: {temp_path}")
+            logger.info("Saved page %s to: %s", page_idx, temp_path)
             lut_path = temp_path
         except Exception as e:
-            print(f"[5C-EXT] Error saving page {page_idx}: {e}")
+            logger.error("Error saving page %s: %s", page_idx, e)
 
     return vis, prev, lut_path, status
 
@@ -163,10 +166,10 @@ def merge_8color_data():
     path1 = os.path.join(assets_dir, "temp_8c_page_1.npy")
     path2 = os.path.join(assets_dir, "temp_8c_page_2.npy")
 
-    print(f"[MERGE_8COLOR] Looking for page 1: {path1}")
-    print(f"[MERGE_8COLOR] Looking for page 2: {path2}")
-    print(f"[MERGE_8COLOR] Page 1 exists: {os.path.exists(path1)}")
-    print(f"[MERGE_8COLOR] Page 2 exists: {os.path.exists(path2)}")
+    logger.info("Looking for page 1: %s", path1)
+    logger.info("Looking for page 2: %s", path2)
+    logger.info("Page 1 exists: %s", os.path.exists(path1))
+    logger.info("Page 2 exists: %s", os.path.exists(path2))
 
     if not os.path.exists(path1) or not os.path.exists(path2):
         return None, "[ERROR] Missing temp pages. Please extract Page 1 and Page 2 first."
@@ -174,20 +177,18 @@ def merge_8color_data():
     try:
         lut1 = np.load(path1)
         lut2 = np.load(path2)
-        print(f"[MERGE_8COLOR] Page 1 shape: {lut1.shape}")
-        print(f"[MERGE_8COLOR] Page 2 shape: {lut2.shape}")
+        logger.info("Page 1 shape: %s", lut1.shape)
+        logger.info("Page 2 shape: %s", lut2.shape)
 
         merged = np.concatenate([lut1, lut2], axis=0)
-        print(f"[MERGE_8COLOR] Merged shape: {merged.shape}")
+        logger.info("Merged shape: %s", merged.shape)
 
         np.save(LUT_FILE_PATH, merged)
-        print(f"[MERGE_8COLOR] Saved merged LUT to: {LUT_FILE_PATH}")
+        logger.info("Saved merged LUT to: %s", LUT_FILE_PATH)
 
         return LUT_FILE_PATH, "[OK] 8-Color LUT merged and saved!"
     except Exception as e:
-        print(f"[MERGE_8COLOR] Error: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.exception("Merge 8-color failed: %s", e)
         return None, f"[ERROR] Merge failed: {e}"
 
 
@@ -203,10 +204,10 @@ def merge_5color_extended_data():
     path1 = os.path.join(assets_dir, "temp_5c_ext_page_1.npy")
     path2 = os.path.join(assets_dir, "temp_5c_ext_page_2.npy")
 
-    print(f"[MERGE_5C_EXT] Looking for page 1: {path1}")
-    print(f"[MERGE_5C_EXT] Looking for page 2: {path2}")
-    print(f"[MERGE_5C_EXT] Page 1 exists: {os.path.exists(path1)}")
-    print(f"[MERGE_5C_EXT] Page 2 exists: {os.path.exists(path2)}")
+    logger.info("Looking for page 1: %s", path1)
+    logger.info("Looking for page 2: %s", path2)
+    logger.info("Page 1 exists: %s", os.path.exists(path1))
+    logger.info("Page 2 exists: %s", os.path.exists(path2))
 
     if not os.path.exists(path1) or not os.path.exists(path2):
         return None, "❌ Missing temp pages. Please extract Page 1 and Page 2 first."
@@ -214,22 +215,20 @@ def merge_5color_extended_data():
     try:
         lut1 = np.load(path1)
         lut2 = np.load(path2)
-        print(f"[MERGE_5C_EXT] Page 1 shape: {lut1.shape}")
-        print(f"[MERGE_5C_EXT] Page 2 shape: {lut2.shape}")
+        logger.info("Page 1 shape: %s", lut1.shape)
+        logger.info("Page 2 shape: %s", lut2.shape)
 
         lut1_rgb = lut1.reshape(-1, 3)
         lut2_rgb = lut2.reshape(-1, 3)
         merged = np.vstack([lut1_rgb, lut2_rgb]).astype(np.uint8, copy=False)
-        print(f"[MERGE_5C_EXT] Merged shape: {merged.shape}")
+        logger.info("Merged shape: %s", merged.shape)
 
         np.save(LUT_FILE_PATH, merged)
-        print(f"[MERGE_5C_EXT] Saved merged LUT to: {LUT_FILE_PATH}")
+        logger.info("Saved merged LUT to: %s", LUT_FILE_PATH)
 
         return LUT_FILE_PATH, "✅ 5-Color Extended LUT merged and saved! (2468 colors)"
     except Exception as e:
-        print(f"[MERGE_5C_EXT] Error: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.exception("Merge 5C-ext failed: %s", e)
         return None, f"❌ Merge failed: {e}"
 
 
@@ -303,19 +302,19 @@ def get_extractor_reference_image(mode_str, page_choice="Page 1"):
         bundled_filepath = os.path.join(bundled_assets, filename)
         if os.path.exists(bundled_filepath):
             try:
-                print(f"[UI] Loading reference from bundle: {bundled_filepath}")
+                logger.info("Loading reference from bundle: %s", bundled_filepath)
                 return PILImage.open(bundled_filepath)
             except Exception as e:
-                print(f"Error loading bundled asset: {e}")
+                logger.error("Error loading bundled asset: %s", e)
 
     if os.path.exists(filepath):
         try:
-            print(f"[UI] Loading reference from cache: {filepath}")
+            logger.info("Loading reference from cache: %s", filepath)
             return PILImage.open(filepath)
         except Exception as e:
-            print(f"Error loading cache, regenerating: {e}")
+            logger.error("Error loading cache, regenerating: %s", e)
 
-    print(f"[UI] Generating new reference for {gen_mode}...")
+    logger.info("Generating new reference for %s...", gen_mode)
     try:
         block_size = 10
         gap = 0
@@ -342,12 +341,12 @@ def get_extractor_reference_image(mode_str, page_choice="Page 1"):
                 img = PILImage.fromarray(img.astype('uint8'), 'RGB')
 
             img.save(filepath)
-            print(f"[UI] Cached reference saved to {filepath}")
+            logger.info("Cached reference saved to %s", filepath)
 
         return img
 
     except Exception as e:
-        print(f"Error generating reference: {e}")
+        logger.error("Error generating reference: %s", e)
         return None
 
 

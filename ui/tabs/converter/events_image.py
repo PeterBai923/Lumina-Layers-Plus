@@ -10,6 +10,9 @@ import re
 import xml.etree.ElementTree as ET
 
 import gradio as gr
+from core.utils.logger import get_logger
+
+logger = get_logger("IMAGE")
 
 from config import ModelingMode
 from core.image.preprocessor import ImagePreprocessor
@@ -50,11 +53,11 @@ def bind_image_events(components, states):
 
     # ==================== Crop checkbox preference ====================
     def on_crop_checkbox_change(enable_crop):
-        print(f"[CROP_SETTING] Saving crop modal preference: {enable_crop}")
+        logger.info("Saving crop modal preference: %s", enable_crop)
         _save_user_setting("enable_crop_modal", enable_crop)
         # Verify it was saved
         saved_value = _load_user_settings().get("enable_crop_modal")
-        print(f"[CROP_SETTING] Verified saved value: {saved_value}")
+        logger.info("Verified saved value: %s", saved_value)
         return None
 
     components['checkbox_conv_enable_crop'].change(
@@ -141,9 +144,9 @@ def bind_image_events(components, states):
                         tmp_png.close()
                         renderPM.drawToFile(drawing, tmp_png.name, fmt="PNG")
                         display_path = tmp_png.name
-                        print(f"[SVG_UPLOAD] Rendered SVG preview → {tmp_png.name}")
+                        logger.info("Rendered SVG preview -> %s", tmp_png.name)
                 except Exception as render_err:
-                    print(f"[SVG_UPLOAD] Could not render SVG preview: {render_err}")
+                    logger.warning("Could not render SVG preview: %s", render_err)
                 # preprocess_processed_path keeps the original SVG for the converter;
                 # image_conv_image_label gets the PNG (or unchanged) to avoid base64 errors.
                 return (width, height, image_path, dimensions_html, display_path)
@@ -159,7 +162,7 @@ def bind_image_events(components, states):
             display_path = info.processed_path if info.was_converted else gr.update()
             return (info.width, info.height, info.processed_path, dimensions_html, display_path)
         except Exception as e:
-            print(f"Image upload error: {e}")
+            logger.error("Image upload error: %s", e)
             return (0, 0, None, '<div id="preprocess-dimensions-data" data-width="0" data-height="0" data-is-svg="0" style="display:none;"></div>', gr.update())
 
     # JavaScript to open crop modal (不传递颜色推荐，弹窗中不显示)
@@ -284,7 +287,7 @@ def bind_image_events(components, states):
     # ==================== Use original image (no crop) ====================
     def use_original_image_simple(processed_path, w, h, crop_json):
         """Use original image without cropping"""
-        print(f"[DEBUG] use_original_image_simple called: {processed_path}")
+        logger.debug("use_original_image_simple called: %s", processed_path)
         if processed_path is None:
             return None
         try:
@@ -293,7 +296,7 @@ def bind_image_events(components, states):
             result_path = ImagePreprocessor.convert_to_png(processed_path)
             return result_path
         except Exception as e:
-            print(f"Use original error: {e}")
+            logger.error("Use original error: %s", e)
             return None
 
     states['use_original_btn'].click(
@@ -305,12 +308,12 @@ def bind_image_events(components, states):
     # ==================== Confirm crop image ====================
     def confirm_crop_image_simple(processed_path, crop_json):
         """Crop image with specified region"""
-        print(f"[DEBUG] confirm_crop_image_simple called: {processed_path}, {crop_json}")
+        logger.debug("confirm_crop_image_simple called: %s, %s", processed_path, crop_json)
         if processed_path is None:
             return None
         try:
             if isinstance(processed_path, str) and processed_path.lower().endswith(".svg"):
-                print("[DEBUG] SVG uploaded, skipping raster crop and keeping original path")
+                logger.debug("SVG uploaded, skipping raster crop and keeping original path")
                 return processed_path
             import json
             data = json.loads(crop_json) if crop_json else {"x": 0, "y": 0, "w": 100, "h": 100}
@@ -322,9 +325,7 @@ def bind_image_events(components, states):
             result_path = ImagePreprocessor.crop_image(processed_path, x, y, w, h)
             return result_path
         except Exception as e:
-            print(f"Crop error: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.exception("Crop error: %s", e)
             return None
 
     states['confirm_crop_btn'].click(
@@ -361,19 +362,17 @@ def bind_image_events(components, states):
             return gr.update(), ""
         try:
             import time
-            print(f"[AutoColor] 开始分析: {image_path}, 目标宽度: {target_width_mm}mm")
+            logger.info("AutoColor analysis start: %s, target width: %smm", image_path, target_width_mm)
             color_analysis = ImagePreprocessor.analyze_recommended_colors(image_path, target_width_mm)
             recommended = color_analysis.get('recommended', 24)
             max_safe = color_analysis.get('max_safe', 32)
-            print(f"[AutoColor] 分析完成: recommended={recommended}, max_safe={max_safe}")
+            logger.info("AutoColor analysis done: recommended=%s, max_safe=%s", recommended, max_safe)
             # 添加时间戳确保每次返回值不同，触发 .then() 中的 JavaScript
             timestamp = int(time.time() * 1000)
             toast_html = f'<div id="color-rec-trigger" data-recommended="{recommended}" data-maxsafe="{max_safe}" data-ts="{timestamp}" style="display:none;"></div>'
             return gr.update(value=recommended), toast_html
         except Exception as e:
-            print(f"[AutoColor] 分析失败: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.exception("AutoColor analysis failed: %s", e)
             return gr.update(), ""
 
     components['btn_conv_auto_color'].click(

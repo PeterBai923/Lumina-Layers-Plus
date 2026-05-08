@@ -5,6 +5,9 @@ import json
 import os
 
 from config import ModelingMode
+from core.utils.logger import get_logger
+
+logger = get_logger("UI")
 
 CONFIG_FILE = "user_settings.json"
 
@@ -21,7 +24,7 @@ def load_last_lut_setting():
                 data = json.load(f)
                 return data.get("last_lut", None)
         except Exception as e:
-            print(f"Failed to load settings: {e}")
+            logger.error("Failed to load settings: %s", e)
     return None
 
 
@@ -45,7 +48,7 @@ def save_last_lut_setting(lut_name):
         with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception as e:
-        print(f"Failed to save settings: {e}")
+        logger.error("Failed to save settings: %s", e)
 
 
 def _load_user_settings():
@@ -67,7 +70,7 @@ def _save_user_setting(key, value):
         with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception as e:
-        print(f"Failed to save setting {key}: {e}")
+        logger.error("Failed to save setting %s: %s", key, e)
 
 
 def save_color_mode(color_mode):

@@ -14,11 +14,14 @@ import cv2
 import time
 from typing import Tuple, Optional, Dict, Any
 
+from core.utils.logger import get_logger
 from core.utils.color_conversion import rgb_to_lab, lab_to_rgb
 from core.utils.gpu_device import GPUDeviceManager
 from .downsampling import downsample_image_gpu, upsample_image_gpu
 from .color_mapping import map_colors_gpu
 from core.utils.color_encoding import build_color_lut, lookup_colors
+
+logger = get_logger("PIPELINE")
 
 
 class GPUPipeline:
@@ -29,7 +32,7 @@ class GPUPipeline:
         if not self.device_manager.is_cuda_available():
             raise RuntimeError("CUDA is not available. GPU is required.")
         self.device = self.device_manager.get_device()
-        print(f"[GPU_PIPELINE] GPU acceleration enabled: {torch.cuda.get_device_name()}")
+        logger.info("GPU acceleration enabled: %s", torch.cuda.get_device_name())
 
     def process_preview(
         self,
@@ -75,7 +78,7 @@ class GPUPipeline:
         t0 = time.time()
         if total_pixels > target_pixels:
             rgb_small, scale_factor = downsample_image_gpu(rgb_tensor, target_pixels)
-            print(f"[GPU_PIPELINE] Downsampled: {w}×{h} → {rgb_small.shape[1]}×{rgb_small.shape[0]} (scale={scale_factor:.2f})")
+            logger.info("Downsampled: %s×%s → %s×%s (scale=%.2f)", w, h, rgb_small.shape[1], rgb_small.shape[0], scale_factor)
         else:
             rgb_small = rgb_tensor
             scale_factor = 1.0
@@ -130,7 +133,7 @@ class GPUPipeline:
         # Step 7: Find unique colors and map to LUT
         t0 = time.time()
         unique_colors = np.unique(quantized.reshape(-1, 3), axis=0)
-        print(f"[GPU_PIPELINE] Found {len(unique_colors)} unique colors")
+        logger.info("Found %s unique colors", len(unique_colors))
 
         # Convert unique colors to LAB (GPU)
         unique_tensor = torch.from_numpy(unique_colors.astype(np.float32)).to(self.device)
@@ -191,7 +194,7 @@ class GPUPipeline:
         total_time = time.time() - total_start
         debug_data["timings"]["total"] = total_time
 
-        print(f"[GPU_PIPELINE] Total GPU processing complete: {total_time:.2f}s")
+        logger.info("Total GPU processing complete: %.2fs", total_time)
 
         return matched_rgb, material_matrix, debug_data
 
