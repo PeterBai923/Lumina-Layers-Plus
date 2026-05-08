@@ -5,7 +5,14 @@ Lumina Studio - Mesh Module
 """
 
 from core.mesh.generators import HighFidelityMesher, get_mesher
-from core.mesh.geometry import CUBE_FACES, CUBE_FACES_NP, create_keychain_loop
+from core.mesh.geometry import (
+    CUBE_FACES,
+    CUBE_FACES_NP,
+    CUBE_VERTICES_TEMPLATE,
+    fill_box_vertices_batch,
+    fill_box_faces_batch,
+    create_keychain_loop,
+)
 from core.mesh.heightmap import HeightmapLoader
 
 __all__ = [
@@ -13,6 +20,9 @@ __all__ = [
     "get_mesher",
     "CUBE_FACES",
     "CUBE_FACES_NP",
+    "CUBE_VERTICES_TEMPLATE",
+    "fill_box_vertices_batch",
+    "fill_box_faces_batch",
     "create_keychain_loop",
     "HeightmapLoader",
 ]

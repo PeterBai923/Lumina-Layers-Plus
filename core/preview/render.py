@@ -16,7 +16,11 @@ from PIL import Image, ImageDraw, ImageFont
 from typing import Optional, List, Dict, Tuple
 
 from config import PrinterConfig, PREVIEW_SCALE, OUTPUT_DIR
-from core.mesh.geometry import CUBE_FACES
+from core.mesh.geometry import (
+    CUBE_FACES,
+    fill_box_vertices_batch,
+    fill_box_faces_batch,
+)
 from core.color.formats import rgb_to_hex, hex_to_rgb
 
 # Fixed bed size constants
@@ -291,138 +295,124 @@ def _create_preview_mesh(
     height, width = matched_rgb.shape[:2]
     shrink = 0.05 * scale_factor
 
-    vertices = []
-    faces = []
-    face_colors = []
+    # === Vectorized implementation ===
+    # Get solid pixel coordinates (replaces double loop)
+    solid_coords = np.argwhere(mask_solid)  # (N, 2) array of (y, x)
+    n_solid = solid_coords.shape[0]
 
-    for y in range(height):
-        for x in range(width):
-            if not mask_solid[y, x]:
-                continue
-
-            rgb = matched_rgb[y, x]
-            rgba = [int(rgb[0]), int(rgb[1]), int(rgb[2]), 255]
-
-            world_y = height - 1 - y
-            x0, x1 = x + shrink, x + 1 - shrink
-            y0, y1 = world_y + shrink, world_y + 1 - shrink
-
-            # Determine Z range for this pixel
-            # If backing_z_range is provided, split the model into backing and non-backing layers
-            if backing_z_range is not None and preview_colors is not None:
-                backing_start, backing_end = backing_z_range
-
-                # Create backing layer box
-                z0_backing = backing_start
-                z1_backing = backing_end + 1
-
-                base_idx = len(vertices)
-                vertices.extend(
-                    [
-                        [x0, y0, z0_backing],
-                        [x1, y0, z0_backing],
-                        [x1, y1, z0_backing],
-                        [x0, y1, z0_backing],
-                        [x0, y0, z1_backing],
-                        [x1, y0, z1_backing],
-                        [x1, y1, z1_backing],
-                        [x0, y1, z1_backing],
-                    ]
-                )
-
-                # Apply backing color
-                # When backing_color_id=-2 (separate backing), use white color (material_id=0)
-                actual_backing_color_id = (
-                    0 if backing_color_id == -2 else backing_color_id
-                )
-                backing_rgba = [
-                    int(preview_colors[actual_backing_color_id][0]),
-                    int(preview_colors[actual_backing_color_id][1]),
-                    int(preview_colors[actual_backing_color_id][2]),
-                    255,
-                ]
-
-                cube_faces = CUBE_FACES
-
-                for f in cube_faces:
-                    faces.append([v + base_idx for v in f])
-                    face_colors.append(backing_rgba)
-
-                # Create non-backing layers (if any exist)
-                # Bottom layers (0 to backing_start)
-                if backing_start > 0:
-                    z0_bottom = 0
-                    z1_bottom = backing_start
-
-                    base_idx = len(vertices)
-                    vertices.extend(
-                        [
-                            [x0, y0, z0_bottom],
-                            [x1, y0, z0_bottom],
-                            [x1, y1, z0_bottom],
-                            [x0, y1, z0_bottom],
-                            [x0, y0, z1_bottom],
-                            [x1, y0, z1_bottom],
-                            [x1, y1, z1_bottom],
-                            [x0, y1, z1_bottom],
-                        ]
-                    )
-
-                    for f in cube_faces:
-                        faces.append([v + base_idx for v in f])
-                        face_colors.append(rgba)
-
-                # Top layers (backing_end+1 to total_layers)
-                if backing_end + 1 < total_layers:
-                    z0_top = backing_end + 1
-                    z1_top = total_layers
-
-                    base_idx = len(vertices)
-                    vertices.extend(
-                        [
-                            [x0, y0, z0_top],
-                            [x1, y0, z0_top],
-                            [x1, y1, z0_top],
-                            [x0, y1, z0_top],
-                            [x0, y0, z1_top],
-                            [x1, y0, z1_top],
-                            [x1, y1, z1_top],
-                            [x0, y1, z1_top],
-                        ]
-                    )
-
-                    for f in cube_faces:
-                        faces.append([v + base_idx for v in f])
-                        face_colors.append(rgba)
-            else:
-                # Original behavior: single box from 0 to total_layers
-                z0, z1 = 0, total_layers
-
-                base_idx = len(vertices)
-                vertices.extend(
-                    [
-                        [x0, y0, z0],
-                        [x1, y0, z0],
-                        [x1, y1, z0],
-                        [x0, y1, z0],
-                        [x0, y0, z1],
-                        [x1, y0, z1],
-                        [x1, y1, z1],
-                        [x0, y1, z1],
-                    ]
-                )
-
-                cube_faces = CUBE_FACES
-
-                for f in cube_faces:
-                    faces.append([v + base_idx for v in f])
-                    face_colors.append(rgba)
-
-    if not vertices:
+    if n_solid == 0:
         return None
 
-    mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
-    mesh.visual.face_colors = np.array(face_colors, dtype=np.uint8)
+    # Compute box corners (vectorized)
+    y_coords = solid_coords[:, 0]
+    x_coords = solid_coords[:, 1]
+    world_y = height - 1 - y_coords
+
+    x0 = x_coords.astype(np.float64) + shrink
+    x1 = x_coords.astype(np.float64) + 1 - shrink
+    y0 = world_y.astype(np.float64) + shrink
+    y1 = world_y.astype(np.float64) + 1 - shrink
+
+    # Get pixel colors (vectorized indexing)
+    pixel_colors = matched_rgb[y_coords, x_coords]  # (N, 3)
+    pixel_rgba = np.pad(pixel_colors, ((0, 0), (0, 1)), constant_values=255)  # (N, 4)
+
+    # Calculate total boxes needed
+    if backing_z_range is None:
+        total_boxes = n_solid
+    else:
+        backing_start, backing_end = backing_z_range
+        boxes_per_pixel = 1  # backing box
+        if backing_start > 0:
+            boxes_per_pixel += 1
+        if backing_end + 1 < total_layers:
+            boxes_per_pixel += 1
+        total_boxes = n_solid * boxes_per_pixel
+
+    # Preallocate arrays
+    all_vertices = np.empty((total_boxes * 8, 3), dtype=np.float64)
+    all_faces = np.empty((total_boxes * 12, 3), dtype=np.int64)
+    all_face_colors = np.empty((total_boxes * 12, 4), dtype=np.uint8)
+
+    box_idx = 0
+
+    if backing_z_range is None:
+        # Simple case: single box per pixel
+        z0, z1 = 0.0, float(total_layers)
+
+        fill_box_vertices_batch(all_vertices, box_idx, x0, x1, y0, y1, z0, z1)
+        fill_box_faces_batch(all_faces, box_idx, n_solid, vertex_offset=box_idx * 8)
+
+        # Broadcast colors to all faces
+        all_face_colors[: n_solid * 12] = np.repeat(pixel_rgba, 12, axis=0)
+
+    else:
+        # Complex case: backing + bottom + top boxes
+        backing_start, backing_end = backing_z_range
+
+        # Backing boxes (all pixels)
+        z0_backing = float(backing_start)
+        z1_backing = float(backing_end + 1)
+
+        fill_box_vertices_batch(
+            all_vertices, box_idx, x0, x1, y0, y1, z0_backing, z1_backing
+        )
+        fill_box_faces_batch(
+            all_faces, box_idx, n_solid, vertex_offset=box_idx * 8
+        )
+
+        # Backing color
+        actual_backing_id = 0 if backing_color_id == -2 else backing_color_id
+        backing_rgba = np.array(
+            [
+                int(preview_colors[actual_backing_id][0]),
+                int(preview_colors[actual_backing_id][1]),
+                int(preview_colors[actual_backing_id][2]),
+                255,
+            ],
+            dtype=np.uint8,
+        )
+        all_face_colors[box_idx * 12 : (box_idx + n_solid) * 12] = np.tile(
+            backing_rgba, (n_solid * 12, 1)
+        )
+
+        box_idx += n_solid
+
+        # Bottom boxes (if backing_start > 0)
+        if backing_start > 0:
+            z0_bottom = 0.0
+            z1_bottom = float(backing_start)
+
+            fill_box_vertices_batch(
+                all_vertices, box_idx, x0, x1, y0, y1, z0_bottom, z1_bottom
+            )
+            fill_box_faces_batch(
+                all_faces, box_idx, n_solid, vertex_offset=box_idx * 8
+            )
+            all_face_colors[box_idx * 12 : (box_idx + n_solid) * 12] = np.repeat(
+                pixel_rgba, 12, axis=0
+            )
+
+            box_idx += n_solid
+
+        # Top boxes (if backing_end + 1 < total_layers)
+        if backing_end + 1 < total_layers:
+            z0_top = float(backing_end + 1)
+            z1_top = float(total_layers)
+
+            fill_box_vertices_batch(
+                all_vertices, box_idx, x0, x1, y0, y1, z0_top, z1_top
+            )
+            fill_box_faces_batch(
+                all_faces, box_idx, n_solid, vertex_offset=box_idx * 8
+            )
+            all_face_colors[box_idx * 12 : (box_idx + n_solid) * 12] = np.repeat(
+                pixel_rgba, 12, axis=0
+            )
+
+    # Create mesh
+    mesh = trimesh.Trimesh(vertices=all_vertices, faces=all_faces)
+    mesh.visual.face_colors = all_face_colors
 
     print(
         f"[PREVIEW] Generated: {len(mesh.vertices):,} vertices, {len(mesh.faces):,} faces"

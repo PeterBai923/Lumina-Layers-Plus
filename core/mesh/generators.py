@@ -24,7 +24,12 @@ import numpy as np
 import cv2
 import trimesh
 from config import ModelingMode
-from core.mesh.geometry import CUBE_FACES
+from core.mesh.geometry import (
+    CUBE_FACES_NP,
+    CUBE_VERTICES_TEMPLATE,
+    fill_box_vertices_batch,
+    fill_box_faces_batch,
+)
 
 try:
     import numba
@@ -166,19 +171,6 @@ class HighFidelityMesher(BaseMesher):
         all_vertices = np.empty((total_rects * 8, 3), dtype=np.float64)
         all_faces = np.empty((total_rects * 12, 3), dtype=np.int64)
 
-        vertex_template = np.array([
-            [0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0],
-            [0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]
-        ], dtype=np.float64)
-        face_template = np.array([
-            [0, 2, 1], [0, 3, 2],
-            [4, 5, 6], [4, 6, 7],
-            [0, 1, 5], [0, 5, 4],
-            [1, 2, 6], [1, 6, 5],
-            [2, 3, 7], [2, 7, 6],
-            [3, 0, 4], [3, 4, 7]
-        ], dtype=np.int64)
-
         rect_idx = 0
         for z_bottom, z_top, rectangles in layer_rectangles:
             rect_arr = np.asarray(rectangles, dtype=np.float64)
@@ -190,42 +182,10 @@ class HighFidelityMesher(BaseMesher):
             world_y1 = height_px - y0
             n = rect_arr.shape[0]
 
-            base = np.empty((n, 8, 3), dtype=np.float64)
-            base[:, :, :] = vertex_template
-            base[:, 0, 0] = x0
-            base[:, 0, 1] = world_y0
-            base[:, 0, 2] = z_bottom
-            base[:, 1, 0] = x1
-            base[:, 1, 1] = world_y0
-            base[:, 1, 2] = z_bottom
-            base[:, 2, 0] = x1
-            base[:, 2, 1] = world_y1
-            base[:, 2, 2] = z_bottom
-            base[:, 3, 0] = x0
-            base[:, 3, 1] = world_y1
-            base[:, 3, 2] = z_bottom
-            base[:, 4, 0] = x0
-            base[:, 4, 1] = world_y0
-            base[:, 4, 2] = z_top
-            base[:, 5, 0] = x1
-            base[:, 5, 1] = world_y0
-            base[:, 5, 2] = z_top
-            base[:, 6, 0] = x1
-            base[:, 6, 1] = world_y1
-            base[:, 6, 2] = z_top
-            base[:, 7, 0] = x0
-            base[:, 7, 1] = world_y1
-            base[:, 7, 2] = z_top
-
-            v_start = rect_idx * 8
-            v_end = (rect_idx + n) * 8
-            all_vertices[v_start:v_end] = base.reshape(-1, 3)
-
-            offsets = (np.arange(n, dtype=np.int64) * 8 + v_start).reshape(-1, 1, 1)
-            faces = face_template.reshape(1, 12, 3) + offsets
-            f_start = rect_idx * 12
-            f_end = (rect_idx + n) * 12
-            all_faces[f_start:f_end] = faces.reshape(-1, 3)
+            fill_box_vertices_batch(
+                all_vertices, rect_idx, x0, x1, world_y0, world_y1, z_bottom, z_top
+            )
+            fill_box_faces_batch(all_faces, rect_idx, n, vertex_offset=rect_idx * 8)
             rect_idx += n
 
         mesh = trimesh.Trimesh(vertices=all_vertices, faces=all_faces)

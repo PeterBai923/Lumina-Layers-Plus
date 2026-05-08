@@ -17,6 +17,80 @@ CUBE_FACES = [
 ]
 CUBE_FACES_NP = np.array(CUBE_FACES, dtype=np.int64)
 
+# Standard cube vertices template (unit cube, 8 vertices)
+CUBE_VERTICES_TEMPLATE = np.array([
+    [0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0],
+    [0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]
+], dtype=np.float64)
+
+
+def fill_box_vertices_batch(vertices, start_idx, x0, x1, y0, y1, z0, z1):
+    """
+    Fill box vertices in batch (vectorized implementation)
+    批量填充立方体顶点（向量化实现）
+
+    Args:
+        vertices: Preallocated vertex array (N*8, 3). (预分配的顶点数组)
+        start_idx: Starting box index. (起始立方体索引)
+        x0, x1, y0, y1: Box corner coordinates as (n,) arrays. (立方体角坐标数组)
+        z0, z1: Z-axis range (scalar or array). (Z 轴范围)
+
+    Note:
+        Modifies vertices in-place by filling batch[start_idx * 8 : (start_idx + n) * 8].
+    """
+    n = len(x0)
+    batch = np.empty((n, 8, 3), dtype=np.float64)
+    batch[:] = CUBE_VERTICES_TEMPLATE
+
+    # Bottom face vertices (z=z0)
+    batch[:, 0, 0] = x0
+    batch[:, 0, 1] = y0
+    batch[:, 0, 2] = z0
+    batch[:, 1, 0] = x1
+    batch[:, 1, 1] = y0
+    batch[:, 1, 2] = z0
+    batch[:, 2, 0] = x1
+    batch[:, 2, 1] = y1
+    batch[:, 2, 2] = z0
+    batch[:, 3, 0] = x0
+    batch[:, 3, 1] = y1
+    batch[:, 3, 2] = z0
+
+    # Top face vertices (z=z1)
+    batch[:, 4, 0] = x0
+    batch[:, 4, 1] = y0
+    batch[:, 4, 2] = z1
+    batch[:, 5, 0] = x1
+    batch[:, 5, 1] = y0
+    batch[:, 5, 2] = z1
+    batch[:, 6, 0] = x1
+    batch[:, 6, 1] = y1
+    batch[:, 6, 2] = z1
+    batch[:, 7, 0] = x0
+    batch[:, 7, 1] = y1
+    batch[:, 7, 2] = z1
+
+    vertices[start_idx * 8 : (start_idx + n) * 8] = batch.reshape(-1, 3)
+
+
+def fill_box_faces_batch(faces, start_idx, n_boxes, vertex_offset=0):
+    """
+    Fill box faces in batch (vectorized implementation)
+    批量填充面索引（向量化实现）
+
+    Args:
+        faces: Preallocated face array (N*12, 3). (预分配的面数组)
+        start_idx: Starting box index. (起始立方体索引)
+        n_boxes: Number of boxes to fill. (立方体数量)
+        vertex_offset: Vertex index offset. (顶点索引偏移量)
+
+    Note:
+        Modifies faces in-place by filling faces[start_idx * 12 : (start_idx + n_boxes) * 12].
+    """
+    offsets = (np.arange(n_boxes, dtype=np.int64) * 8 + vertex_offset).reshape(-1, 1, 1)
+    batch_faces = CUBE_FACES_NP.reshape(1, 12, 3) + offsets
+    faces[start_idx * 12 : (start_idx + n_boxes) * 12] = batch_faces.reshape(-1, 3)
+
 
 def create_keychain_loop(width_mm, length_mm, hole_dia_mm, thickness_mm, 
                          attach_x_mm, attach_y_mm):
