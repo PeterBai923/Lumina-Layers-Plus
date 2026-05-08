@@ -7,7 +7,7 @@ UI construction for the left sidebar (original lines 260-557).
 import gradio as gr
 
 from config import ModelingMode
-from utils import LUTManager
+from core.utils import LUTManager
 from ...settings import (
     load_last_lut_setting, _load_user_settings,
 )

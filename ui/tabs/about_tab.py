@@ -6,7 +6,7 @@ Extracted from layout.py for modularity.
 
 import gradio as gr
 
-from utils import Stats
+from core.utils import Stats
 from ..image_helpers import _format_bytes
 
 ABOUT_CONTENT = """## 🌟 Lumina Studio v1.6.7

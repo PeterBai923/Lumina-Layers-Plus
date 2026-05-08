@@ -18,7 +18,7 @@ from config import (
     LUT_FILE_PATH
 )
 from core.stack_encoding import encode_to_base
-from utils import Stats
+from core.utils import Stats
 
 
 def rotate_image(img, direction):

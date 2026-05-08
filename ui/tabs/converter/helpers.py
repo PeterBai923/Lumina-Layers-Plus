@@ -13,7 +13,7 @@ import zipfile
 import gradio as gr
 
 from config import ModelingMode
-from utils import LUTManager
+from core.utils import LUTManager
 from core.naming import generate_batch_filename
 from core.converter import (
     generate_preview_cached,

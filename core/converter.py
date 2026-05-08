@@ -18,8 +18,8 @@ import gradio as gr
 from typing import List, Dict, Tuple, Optional
 
 from config import PrinterConfig, ColorSystem, ModelingMode, OUTPUT_DIR, EXTENDED_PRINT_SETTINGS
-from utils import Stats
-from utils.bambu_3mf_writer import export_scene_with_bambu_metadata
+from core.utils import Stats
+from core.utils.bambu_3mf_writer import export_scene_with_bambu_metadata
 
 from core.image.processor import LuminaImageProcessor
 from core.mesh.generators import get_mesher
@@ -1688,7 +1688,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
     )
     if enable_recipe:
         try:
-            from utils.color_recipe_logger import ColorRecipeLogger
+            from core.utils.color_recipe_logger import ColorRecipeLogger
 
             model_filename = os.path.basename(out_path)
             color_recipe_path = ColorRecipeLogger.create_from_processor(

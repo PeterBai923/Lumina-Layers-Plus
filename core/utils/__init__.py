@@ -8,6 +8,10 @@ Modules:
     color_conversion: RGB↔LAB color space conversions (GPU)
     color_encoding: Color encoding and lookup table utilities
     gpu_device: GPU device management and batch size calculation
+    stats: Usage statistics
+    lut_manager: LUT preset management
+    bambu_3mf_writer: BambuStudio-compatible 3MF export
+    color_recipe_logger: Color recipe report generation
 """
 
 from .color_conversion import (
@@ -31,6 +35,9 @@ from .lut_detection import (
     detect_mode_by_size,
 )
 
+from .stats import Stats
+from .lut_manager import LUTManager
+
 __all__ = [
     # Color conversion
     "rgb_to_lab",
@@ -47,4 +54,8 @@ __all__ = [
     "MODE_TO_COLOR_COUNT",
     "detect_color_count_by_size",
     "detect_mode_by_size",
+    # Stats
+    "Stats",
+    # LUT manager
+    "LUTManager",
 ]

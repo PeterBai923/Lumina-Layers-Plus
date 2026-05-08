@@ -6,7 +6,7 @@ UI layout definition
 
 import gradio as gr
 
-from utils import Stats
+from core.utils import Stats
 from core.preview.render import generate_realtime_glb, render_preview
 
 from .styles import CUSTOM_CSS

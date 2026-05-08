@@ -8,7 +8,7 @@ import numpy as np
 import gradio as gr
 
 from core.color.formats import hex_to_rgb
-from utils import LUTManager
+from core.utils import LUTManager
 
 
 def _build_full_color_region_mask(cache, selected_color: str):

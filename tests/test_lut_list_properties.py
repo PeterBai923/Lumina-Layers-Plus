@@ -25,7 +25,7 @@ from hypothesis import strategies as st
 from fastapi.testclient import TestClient
 
 from api.app import app
-from utils.lut_manager import LUTManager
+from core.utils.lut_manager import LUTManager
 
 client: TestClient = TestClient(app)
 

@@ -21,8 +21,8 @@ from config import PrinterConfig, ColorSystem, SmartConfig, OUTPUT_DIR, get_asse
 from core.naming import generate_calibration_filename
 from core.stack_encoding import encode_to_base
 from core.mesh.geometry import CUBE_FACES
-from utils import Stats
-from utils.bambu_3mf_writer import export_scene_with_bambu_metadata
+from core.utils import Stats
+from core.utils.bambu_3mf_writer import export_scene_with_bambu_metadata
 
 
 def _generate_voxel_mesh(voxel_matrix: np.ndarray, material_index: int,

@@ -34,7 +34,7 @@ class LUTManager:
             LUT_PRESET_DIR = os.path.join(exe_dir, "lut-npy预设")
     else:
         # Running as script
-        _BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        _BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         LUT_PRESET_DIR = os.path.join(_BASE_DIR, "lut-npy预设")
     
     @classmethod

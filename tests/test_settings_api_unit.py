@@ -132,7 +132,7 @@ class TestGetStats:
     def test_get_stats_success(self) -> None:
         """Stats.get_all() 返回数据时正确映射。"""
         mock_data = {"calibrations": 10, "extractions": 5, "conversions": 20}
-        with patch("utils.stats.Stats.get_all", return_value=mock_data):
+        with patch("core.utils.stats.Stats.get_all", return_value=mock_data):
             response = client.get("/api/system/stats")
 
         assert response.status_code == 200
@@ -144,7 +144,7 @@ class TestGetStats:
     def test_get_stats_no_file(self) -> None:
         """统计文件不存在时返回零值。"""
         mock_data: dict = {"calibrations": 0, "extractions": 0, "conversions": 0}
-        with patch("utils.stats.Stats.get_all", return_value=mock_data):
+        with patch("core.utils.stats.Stats.get_all", return_value=mock_data):
             response = client.get("/api/system/stats")
 
         assert response.status_code == 200
