@@ -18,30 +18,18 @@ import sys
 import time
 import glob
 import argparse
-from datetime import datetime
 
 # ── Bootstrap: ensure project root is on sys.path ────────────────────────────
 _ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _ROOT not in sys.path:
     sys.path.insert(0, _ROOT)
 
-# ── Redirect stdout/stderr to both console and log file ──────────────────────
-import threading as _threading
+# ── Prepare log directory (not tee-ing, just print) ──────────────────────────
 import multiprocessing as _mp
-from utils.log_tee import _Tee, _TeeStderr
-
 
 if _mp.current_process().name == 'MainProcess':
     _log_dir = os.path.join(_ROOT, 'logs')
     os.makedirs(_log_dir, exist_ok=True)
-    _ts = datetime.now().strftime('%Y%m%d_%H%M%S')
-    _log_path = os.path.join(_log_dir, f'bench_{_ts}.log')
-    _lock = _threading.Lock()
-    _tee = _Tee(_log_path, console_stream=sys.stdout, lock=_lock)
-    _tee_err = _TeeStderr(_tee._file, _lock)
-    sys.stdout = _tee
-    sys.stderr = _tee_err
-    print(f"[BENCH] Log: {_log_path}")
 
 # ── Now safe to import heavy project modules ──────────────────────────────────
 from config import ModelingMode

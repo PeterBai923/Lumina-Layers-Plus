@@ -6,8 +6,7 @@ Lumina Studio - Core Module (Refactored)
 
 # Patch numpy.asscalar for colormath compatibility (numpy >= 2.0)
 import numpy as np
-from utils.log_tee import patch_asscalar
-setattr(np, "asscalar", patch_asscalar)
+setattr(np, "asscalar", lambda a: a.item())
 
 # Calibration module
 from .calibration import generate_calibration_board

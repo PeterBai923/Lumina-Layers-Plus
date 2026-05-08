@@ -10,8 +10,7 @@ if _PROJECT_ROOT not in sys.path:
 # ==========================================
 # 紧急修复: 给 colormath 库打补丁
 # ==========================================
-from utils.log_tee import patch_asscalar
-setattr(np, "asscalar", patch_asscalar)
+setattr(np, "asscalar", lambda a: a.item())
 
 # 补丁打完后再引入 colormath
 from colormath.color_objects import sRGBColor, LabColor

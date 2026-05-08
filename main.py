@@ -19,9 +19,7 @@ import numpy as np
 import multiprocessing as mp
 from datetime import datetime
 
-from utils.log_tee import _Tee, _TeeStderr, patch_asscalar
-
-setattr(np, "asscalar", patch_asscalar)
+setattr(np, "asscalar", lambda a: a.item())
 
 
 def init_runtime_log():
@@ -32,13 +30,6 @@ def init_runtime_log():
     os.makedirs(log_dir, exist_ok=True)
     ts = datetime.now().strftime('%Y%m%d_%H%M%S')
     log_path = os.path.join(log_dir, f'lumina_{ts}.log')
-    import threading
-    lock = threading.Lock()
-    tee = _Tee(log_path, console_stream=sys.stdout, lock=lock)
-    tee_err = _TeeStderr(tee._file, lock)
-    sys.stdout = tee
-    sys.stderr = tee_err
-    print(f"[LOG] {log_path}")
     return log_path
 
 # Handle PyInstaller bundled resources
