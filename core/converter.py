@@ -1805,10 +1805,10 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
         )
 
     mode_name = mode_info['mode'].get_display_name()
-    msg = f"✅ Conversion complete ({mode_name})! Resolution: {target_w}×{target_h}px"
+    msg = f"[OK] Conversion complete ({mode_name})! Resolution: {target_w}x{target_h}px"
 
     if heightmap_stats is not None:
-        msg += (f" | 📊 高度图: {heightmap_stats['min_mm']:.1f}mm ~ "
+        msg += (f" | Heightmap: {heightmap_stats['min_mm']:.1f}mm ~ "
                 f"{heightmap_stats['max_mm']:.1f}mm (avg {heightmap_stats['avg_mm']:.1f}mm)")
 
     if loop_added:

@@ -425,12 +425,12 @@ def generate_smart_board(block_size_mm=5.0, gap_mm=0.8):
     
     Stats.increment("calibrations")
     
-    logger.info("[SMART] ✅ Smart 1296 board generated: %s", output_path)
-    
+    logger.info("[SMART] [OK] Smart 1296 board generated: %s", output_path)
+
     return (
         output_path,
         Image.fromarray(preview_arr),
-        f"✅ Smart 1296 (38x38 边框版) 生成完毕 | 尺寸：{board_w:.1f}mm | 颜色：{', '.join(slot_names)}"
+        f"[OK] Smart 1296 (38x38 border) generated | Size: {board_w:.1f}mm | Colors: {', '.join(slot_names)}"
     )
 
 
@@ -676,12 +676,12 @@ def generate_bw_calibration_board(block_size_mm=5.0, gap_mm=0.8, backing_color="
     
     Stats.increment("calibrations")
     
-    logger.info("[BW] ✅ Black & White calibration board generated: %s", output_path)
-    
+    logger.info("[BW] [OK] Black & White calibration board generated: %s", output_path)
+
     return (
         output_path,
         Image.fromarray(preview_arr),
-        f"✅ BW (8x8 边框版) 生成完毕 | 尺寸：{board_w:.1f}mm | 颜色：{', '.join(slot_names)}"
+        f"[OK] BW (8x8 border) generated | Size: {board_w:.1f}mm | Colors: {', '.join(slot_names)}"
     )
 
 
