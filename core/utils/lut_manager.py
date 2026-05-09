@@ -51,7 +51,7 @@ class LUTManager:
         lut_files = {}
         
         if not os.path.exists(cls.LUT_PRESET_DIR):
-            logger.warning("LUT preset directory not found: %s", cls.LUT_PRESET_DIR)
+            logger.warning("LUT 预设目录未找到: %s", cls.LUT_PRESET_DIR)
             return lut_files
         
         # Recursively search for all .npy and .npz files
@@ -81,7 +81,7 @@ class LUTManager:
         # Sort by name
         lut_files = dict(sorted(lut_files.items()))
         
-        logger.info("Found %d LUT presets", len(lut_files))
+        logger.info("找到 %d 个 LUT 预设", len(lut_files))
         return lut_files
     
     @classmethod
@@ -223,10 +223,10 @@ class LUTManager:
             # Build display name
             display_name = f"Custom - {Path(dest_path).stem}"
             
-            logger.info("Saved uploaded LUT: %s", dest_path)
+            logger.info("已保存上传的 LUT: %s", dest_path)
             
             return True, f"[OK] LUT saved: {display_name}\nPlease select from dropdown to use", cls.get_lut_choices()
             
         except Exception as e:
-            logger.error("Error saving LUT: %s", e)
+            logger.error("保存 LUT 错误: %s", e)
             return False, f"[ERROR] Save failed: {e}", cls.get_lut_choices()

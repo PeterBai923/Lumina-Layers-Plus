@@ -122,7 +122,7 @@ def run_svg_benchmark(run_preview: bool = True):
     from core.converter import generate_preview_cached, generate_final_model
 
     target_w = _calc_target_width(SVG_PATH, LONG_EDGE)
-    logger.info("[BENCH] SVG target_width_mm=%.1f (long edge=%smm)", target_w, LONG_EDGE)
+    logger.info("[BENCH] SVG 目标宽度=%.1f (长边=%smm)", target_w, LONG_EDGE)
 
     timings = {}
 
@@ -143,7 +143,7 @@ def run_svg_benchmark(run_preview: bool = True):
             is_dark=False,
         )
         timings['preview'] = time.perf_counter() - t0
-        logger.info("[BENCH] SVG preview done: %s", status)
+        logger.info("[BENCH] SVG 预览完成: %s", status)
 
     _bench_header("SVG Convert")
     t0 = time.perf_counter()
@@ -166,7 +166,7 @@ def run_svg_benchmark(run_preview: bool = True):
         backing_color_name="White",
     )
     timings['convert'] = time.perf_counter() - t0
-    logger.info("[BENCH] SVG convert done: %s", result)
+    logger.info("[BENCH] SVG 转换完成: %s", result)
 
     total = sum(timings.values())
     _bench_result("SVG", timings, total)
@@ -177,7 +177,7 @@ def run_hifi_benchmark(run_preview: bool = True):
     from core.converter import generate_preview_cached, generate_final_model
 
     target_w = _calc_target_width(HIFI_PATH, LONG_EDGE)
-    logger.info("[BENCH] HiFi target_width_mm=%.1f (long edge=%smm)", target_w, LONG_EDGE)
+    logger.info("[BENCH] HiFi 目标宽度=%.1f (长边=%smm)", target_w, LONG_EDGE)
 
     timings = {}
 
@@ -198,7 +198,7 @@ def run_hifi_benchmark(run_preview: bool = True):
             is_dark=False,
         )
         timings['preview'] = time.perf_counter() - t0
-        logger.info("[BENCH] HiFi preview done: %s", status)
+        logger.info("[BENCH] HiFi 预览完成: %s", status)
 
     _bench_header("HiFi Convert")
     t0 = time.perf_counter()
@@ -226,7 +226,7 @@ def run_hifi_benchmark(run_preview: bool = True):
         backing_color_name="White",
     )
     timings['convert'] = time.perf_counter() - t0
-    logger.info("[BENCH] HiFi convert done: %s", result)
+    logger.info("[BENCH] HiFi 转换完成: %s", result)
 
     total = sum(timings.values())
     _bench_result("HiFi", timings, total)
@@ -249,7 +249,7 @@ def main():
     for i in range(args.runs):
         if args.runs > 1:
             logger.info("")
-            logger.info("[BENCH] ====== RUN %s/%s ======", i + 1, args.runs)
+            logger.info("[BENCH] ====== 第 %s/%s 次运行 ======", i + 1, args.runs)
         if run_svg:
             t, total = run_svg_benchmark(run_preview=run_preview)
             all_results.setdefault('svg', []).append(total)
@@ -259,15 +259,15 @@ def main():
 
     # Final summary
     logger.info("")
-    logger.info("[BENCH] ====== SUMMARY ======")
+    logger.info("[BENCH] ====== 汇总 ======")
     for mode, totals in all_results.items():
         avg = sum(totals) / len(totals)
         mn  = min(totals)
         mx  = max(totals)
         if len(totals) == 1:
-            logger.info("[BENCH] %s total=%.2fs", mode.upper().ljust(6), totals[0])
+            logger.info("[BENCH] %s 总计=%.2fs", mode.upper().ljust(6), totals[0])
         else:
-            logger.info("[BENCH] %s avg=%.2fs  min=%.2fs  max=%.2fs", mode.upper().ljust(6), avg, mn, mx)
+            logger.info("[BENCH] %s 平均=%.2fs  最小=%.2fs  最大=%.2fs", mode.upper().ljust(6), avg, mn, mx)
 
 
 if __name__ == '__main__':

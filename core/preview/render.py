@@ -235,12 +235,12 @@ def _create_bed_mesh(bed_w_mm: int, bed_h_mm: int, is_dark: bool = True):
 
         theme_name = "dark" if is_dark else "light"
         logger.info(
-            "Created %s %dx%dmm rounded bed (%d verts)", theme_name, bed_w_mm, bed_h_mm, n_pts
+            "已创建 %s %dx%dmm 圆角热床（%d 个顶点）", theme_name, bed_w_mm, bed_h_mm, n_pts
         )
         return mesh
 
     except Exception as e:
-        logger.exception("Failed to create bed mesh: %s", e)
+        logger.exception("创建热床网格失败: %s", e)
         return None
 
 
@@ -275,7 +275,7 @@ def _create_preview_mesh(
     scale_factor = max(2, min(scale_factor, 16))
 
     logger.info(
-        "Downsampling by %dx (%d -> ~%d pixels)", scale_factor, total_pixels, TARGET_PIXELS
+        "降采样 %dx（%d -> ~%d 像素）", scale_factor, total_pixels, TARGET_PIXELS
     )
 
     import torch
@@ -416,7 +416,7 @@ def _create_preview_mesh(
     mesh.visual.face_colors = all_face_colors
 
     logger.info(
-        "Generated: %d vertices, %d faces", len(mesh.vertices), len(mesh.faces)
+        "已生成: %d 个顶点, %d 个面", len(mesh.vertices), len(mesh.faces)
     )
 
     return mesh
@@ -446,7 +446,7 @@ def generate_empty_bed_glb(bed_w: int = None, bed_h: int = None, is_dark: bool =
         glb_scene.export(glb_path)
         return glb_path
     except Exception as e:
-        logger.error("Failed: %s", e)
+        logger.error("失败: %s", e)
         return None
 
 
@@ -490,7 +490,7 @@ def generate_realtime_glb(cache):
         )
 
         if preview_mesh is None:
-            logger.warning("Preview mesh is None (model too large?)")
+            logger.warning("预览网格为空（模型太大？）")
             return None
 
         # Scale from pixel/voxel coords to mm
@@ -520,11 +520,11 @@ def generate_realtime_glb(cache):
         # the FastAPI+React frontend renders bed in Three.js instead.
         glb_path = os.path.join(OUTPUT_DIR, "realtime_preview.glb")
         preview_mesh.export(glb_path)
-        logger.info("Exported: %s", glb_path)
+        logger.info("已导出: %s", glb_path)
         return glb_path
 
     except Exception as e:
-        logger.error("Failed: %s", e)
+        logger.error("失败: %s", e)
         return None
 
 
@@ -866,7 +866,7 @@ def generate_highlight_preview(
             preview_rgba[border_mask, 2] = 255
             preview_rgba[border_mask, 3] = 200
     except Exception as e:
-        logger.debug("Border effect skipped: %s", e)
+        logger.debug("边框效果已跳过: %s", e)
 
     # Render display
     display = render_preview(
@@ -917,15 +917,15 @@ def clear_highlight_preview(
     )
 
     if cache is None:
-        logger.debug("Cache is None!")
+        logger.debug("缓存为空!")
         return None, "[ERROR] Please generate preview first"
 
     preview_rgba = cache.get("preview_rgba")
     if preview_rgba is None:
-        logger.debug("preview_rgba is None!")
+        logger.debug("preview_rgba 为空!")
         return None, "[ERROR] Invalid cache"
 
-    logger.debug("preview_rgba shape: %s", preview_rgba.shape)
+    logger.debug("preview_rgba 形状: %s", preview_rgba.shape)
 
     color_conf = cache["color_conf"]
     display = render_preview(

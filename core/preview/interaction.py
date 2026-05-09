@@ -234,7 +234,7 @@ def on_preview_click_select_color(cache, evt: gr.SelectData):
     q_hex = cache['selected_quantized_hex']
     m_hex = cache['selected_matched_hex']
 
-    logger.debug("Coords: (%s, %s), Quantized: %s, Matched: %s", orig_x, orig_y, q_hex, m_hex)
+    logger.debug("坐标: (%s, %s), 量化: %s, 匹配: %s", orig_x, orig_y, q_hex, m_hex)
 
     display_img, status_msg = generate_highlight_preview(
         cache,

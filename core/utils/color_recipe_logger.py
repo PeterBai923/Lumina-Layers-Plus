@@ -254,7 +254,7 @@ class ColorRecipeLogger:
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write('\n'.join(lines))
         
-        logger.info("Color recipe saved: %s", output_path)
+        logger.info("颜色配方已保存: %s", output_path)
     
     @staticmethod
     def create_from_processor(processor, output_dir: str, model_filename: str,

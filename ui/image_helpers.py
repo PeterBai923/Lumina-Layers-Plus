@@ -29,10 +29,10 @@ def _get_image_size(img):
                     drawing = svg2rlg(img)
                     return (drawing.width, drawing.height)
                 except ImportError:
-                    logger.warning("svglib not installed, cannot read SVG size")
+                    logger.warning("svglib 未安装，无法读取 SVG 大小")
                     return None
                 except Exception as e:
-                    logger.warning("Error reading SVG size: %s", e)
+                    logger.warning("读取 SVG 大小错误: %s", e)
                     return None
 
             with PILImage.open(img) as i:
@@ -41,7 +41,7 @@ def _get_image_size(img):
         elif hasattr(img, 'shape'):
             return (img.shape[1], img.shape[0])
     except Exception as e:
-        logger.error("Error getting image size: %s", e)
+        logger.error("获取图像大小错误: %s", e)
         return None
 
     return None

@@ -279,7 +279,7 @@ def bind_color_events(components, states, theme_state):
             )
             return nearest_hex, nearest_hex
         except Exception as e:
-            logger.error("[COLOR_PICKER] Error: %s", e)
+            logger.error("[COLOR_PICKER] 错误: %s", e)
             return gr.update(), gr.update()
 
     components["btn_conv_picker_search"].click(
@@ -735,7 +735,7 @@ def bind_color_events(components, states, theme_state):
                     )
                     rec_html = generate_dual_recommendations_html(rec, lang="zh")
         except Exception as e:
-            logger.error("[DUAL_RECOMMEND] Failed: %s", e)
+            logger.error("[DUAL_RECOMMEND] 失败: %s", e)
 
         display_hex, state_hex = _resolve_click_selection_hexes(cache, hex_val)
         selected_html = build_selected_dual_color_html(

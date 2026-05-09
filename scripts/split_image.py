@@ -50,7 +50,7 @@ def split_image(image_path: str) -> None:
     logger.info("[1/4] 正在读取原图: %s", src.name)
     img = Image.open(src)
     w, h = img.size
-    logger.info("      原图分辨率: %s × %s", w, h)
+    logger.info("      原图分辨率: %s x %s", w, h)
 
     # ----------------------------------------------------------
     # 2. 尺寸补齐 —— resize 到 3072×4096
@@ -59,7 +59,7 @@ def split_image(image_path: str) -> None:
     if w == TARGET_WIDTH and h == TARGET_HEIGHT:
         logger.info("[2/4] 尺寸已符合要求，无需补齐")
     else:
-        logger.info("[2/4] 正在补齐尺寸: %s×%s → %s×%s", w, h, TARGET_WIDTH, TARGET_HEIGHT)
+        logger.info("[2/4] 正在补齐尺寸: %sx%s -> %sx%s", w, h, TARGET_WIDTH, TARGET_HEIGHT)
         img = img.resize((TARGET_WIDTH, TARGET_HEIGHT), Image.LANCZOS)
 
     # ----------------------------------------------------------
@@ -92,7 +92,7 @@ def split_image(image_path: str) -> None:
             tile_path = output_dir / filename
 
             tile.save(tile_path)
-            logger.info("      正在处理: %s (%s/%s)  [区域: (%s,%s)-(%s,%s)]  ✓",
+            logger.info("      正在处理: %s (%s/%s)  [区域: (%s,%s)-(%s,%s)]  完成",
                         filename, count, total, left, upper, right, lower)
 
             # 最终校验：确保每块都是 1024×1024
@@ -101,7 +101,7 @@ def split_image(image_path: str) -> None:
             )
 
     logger.info("")
-    logger.info("全部完成! 共导出 %s 张 %s×%s 子图", total, TILE_SIZE, TILE_SIZE)
+    logger.info("全部完成! 共导出 %s 张 %sx%s 子图", total, TILE_SIZE, TILE_SIZE)
     logger.info("保存位置: %s", output_dir.resolve())
 
 

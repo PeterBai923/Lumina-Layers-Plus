@@ -126,10 +126,10 @@ def run_extraction_wrapper(img, points, offset_x, offset_y, zoom, barrel, wb, br
             np.save(temp_path, lut)
             # Return the assets path, not the original LUT_FILE_PATH
             # This ensures manual corrections are saved to the correct location
-            logger.info("Saved page %s to: %s", page_idx, temp_path)
+            logger.info("已保存页面 %s 到: %s", page_idx, temp_path)
             lut_path = temp_path
         except Exception as e:
-            logger.error("Error saving page %s: %s", page_idx, e)
+            logger.error("保存页面 %s 错误: %s", page_idx, e)
 
     # Handle 5-Color Extended dual-page saving
     if "5-Color Extended" in color_mode and lut_path:
@@ -146,10 +146,10 @@ def run_extraction_wrapper(img, points, offset_x, offset_y, zoom, barrel, wb, br
         try:
             lut = np.load(lut_path)
             np.save(temp_path, lut)
-            logger.info("Saved page %s to: %s", page_idx, temp_path)
+            logger.info("已保存页面 %s 到: %s", page_idx, temp_path)
             lut_path = temp_path
         except Exception as e:
-            logger.error("Error saving page %s: %s", page_idx, e)
+            logger.error("保存页面 %s 错误: %s", page_idx, e)
 
     return vis, prev, lut_path, status
 
@@ -166,10 +166,10 @@ def merge_8color_data():
     path1 = os.path.join(assets_dir, "temp_8c_page_1.npy")
     path2 = os.path.join(assets_dir, "temp_8c_page_2.npy")
 
-    logger.info("Looking for page 1: %s", path1)
-    logger.info("Looking for page 2: %s", path2)
-    logger.info("Page 1 exists: %s", os.path.exists(path1))
-    logger.info("Page 2 exists: %s", os.path.exists(path2))
+    logger.info("正在查找页面 1: %s", path1)
+    logger.info("正在查找页面 2: %s", path2)
+    logger.info("页面 1 存在: %s", os.path.exists(path1))
+    logger.info("页面 2 存在: %s", os.path.exists(path2))
 
     if not os.path.exists(path1) or not os.path.exists(path2):
         return None, "[ERROR] Missing temp pages. Please extract Page 1 and Page 2 first."
@@ -177,14 +177,14 @@ def merge_8color_data():
     try:
         lut1 = np.load(path1)
         lut2 = np.load(path2)
-        logger.info("Page 1 shape: %s", lut1.shape)
-        logger.info("Page 2 shape: %s", lut2.shape)
+        logger.info("页面 1 形状: %s", lut1.shape)
+        logger.info("页面 2 形状: %s", lut2.shape)
 
         merged = np.concatenate([lut1, lut2], axis=0)
-        logger.info("Merged shape: %s", merged.shape)
+        logger.info("合并后形状: %s", merged.shape)
 
         np.save(LUT_FILE_PATH, merged)
-        logger.info("Saved merged LUT to: %s", LUT_FILE_PATH)
+        logger.info("已保存合并 LUT 到: %s", LUT_FILE_PATH)
 
         return LUT_FILE_PATH, "[OK] 8-Color LUT merged and saved!"
     except Exception as e:
@@ -204,10 +204,10 @@ def merge_5color_extended_data():
     path1 = os.path.join(assets_dir, "temp_5c_ext_page_1.npy")
     path2 = os.path.join(assets_dir, "temp_5c_ext_page_2.npy")
 
-    logger.info("Looking for page 1: %s", path1)
-    logger.info("Looking for page 2: %s", path2)
-    logger.info("Page 1 exists: %s", os.path.exists(path1))
-    logger.info("Page 2 exists: %s", os.path.exists(path2))
+    logger.info("正在查找页面 1: %s", path1)
+    logger.info("正在查找页面 2: %s", path2)
+    logger.info("页面 1 存在: %s", os.path.exists(path1))
+    logger.info("页面 2 存在: %s", os.path.exists(path2))
 
     if not os.path.exists(path1) or not os.path.exists(path2):
         return None, "❌ Missing temp pages. Please extract Page 1 and Page 2 first."
@@ -215,16 +215,16 @@ def merge_5color_extended_data():
     try:
         lut1 = np.load(path1)
         lut2 = np.load(path2)
-        logger.info("Page 1 shape: %s", lut1.shape)
-        logger.info("Page 2 shape: %s", lut2.shape)
+        logger.info("页面 1 形状: %s", lut1.shape)
+        logger.info("页面 2 形状: %s", lut2.shape)
 
         lut1_rgb = lut1.reshape(-1, 3)
         lut2_rgb = lut2.reshape(-1, 3)
         merged = np.vstack([lut1_rgb, lut2_rgb]).astype(np.uint8, copy=False)
-        logger.info("Merged shape: %s", merged.shape)
+        logger.info("合并后形状: %s", merged.shape)
 
         np.save(LUT_FILE_PATH, merged)
-        logger.info("Saved merged LUT to: %s", LUT_FILE_PATH)
+        logger.info("已保存合并 LUT 到: %s", LUT_FILE_PATH)
 
         return LUT_FILE_PATH, "✅ 5-Color Extended LUT merged and saved! (2468 colors)"
     except Exception as e:
@@ -302,19 +302,19 @@ def get_extractor_reference_image(mode_str, page_choice="Page 1"):
         bundled_filepath = os.path.join(bundled_assets, filename)
         if os.path.exists(bundled_filepath):
             try:
-                logger.info("Loading reference from bundle: %s", bundled_filepath)
+                logger.info("正在从包加载参考: %s", bundled_filepath)
                 return PILImage.open(bundled_filepath)
             except Exception as e:
-                logger.error("Error loading bundled asset: %s", e)
+                logger.error("加载打包资源错误: %s", e)
 
     if os.path.exists(filepath):
         try:
-            logger.info("Loading reference from cache: %s", filepath)
+            logger.info("正在从缓存加载参考: %s", filepath)
             return PILImage.open(filepath)
         except Exception as e:
-            logger.error("Error loading cache, regenerating: %s", e)
+            logger.error("加载缓存错误，正在重新生成: %s", e)
 
-    logger.info("Generating new reference for %s...", gen_mode)
+    logger.info("正在为 %s 生成新参考...", gen_mode)
     try:
         block_size = 10
         gap = 0
@@ -341,12 +341,12 @@ def get_extractor_reference_image(mode_str, page_choice="Page 1"):
                 img = PILImage.fromarray(img.astype('uint8'), 'RGB')
 
             img.save(filepath)
-            logger.info("Cached reference saved to %s", filepath)
+            logger.info("缓存参考已保存到 %s", filepath)
 
         return img
 
     except Exception as e:
-        logger.error("Error generating reference: %s", e)
+        logger.error("生成参考错误: %s", e)
         return None
 
 

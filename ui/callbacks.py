@@ -579,7 +579,7 @@ def on_merge_execute(primary_name, secondary_names, dedup_threshold):
                 continue
             sec_mode, _ = LUTMerger.detect_color_mode(sec_path)
             if sec_mode == "Merged":
-                logger.info("Skipping Merged LUT as secondary: %s", sec_name)
+                logger.info("跳过合并 LUT 作为次要: %s", sec_name)
                 continue
             sec_rgb, sec_stacks = LUTMerger.load_lut_with_stacks(sec_path, sec_mode)
             entries.append((sec_rgb, sec_stacks, sec_mode))
@@ -620,7 +620,7 @@ def on_merge_execute(primary_name, secondary_names, dedup_threshold):
         return status, gr.Dropdown(choices=new_choices), gr.Dropdown(choices=[], value=[])
 
     except Exception as e:
-        logger.exception("Merge failed: %s", e)
+        logger.exception("合并失败: %s", e)
         return '<span class="status-text">❌ 合并失败: {msg}</span>'.format(msg=str(e)), gr.update(), gr.update()
 
 

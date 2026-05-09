@@ -194,7 +194,7 @@ def run_extraction(img, points, offset_x, offset_y, zoom, barrel, wb, bright, co
         physical_grid = PHYSICAL_GRID_SIZE
         total_cells = 1024
     
-    logger.info("Mode: %s, Logic: %dx%d inside %dx%d", color_mode, grid_size, grid_size, physical_grid, physical_grid)
+    logger.info("模式: %s, 逻辑: %dx%d 在 %dx%d 内", color_mode, grid_size, grid_size, physical_grid, physical_grid)
 
     # Perspective transform
     half = DST_SIZE / physical_grid / 2.0
@@ -314,15 +314,15 @@ def manual_fix_cell(coord, color_input, lut_path=None):
         actual_path = lut_path.name
 
     if not coord or not actual_path or not os.path.exists(actual_path):
-        logger.error("MANUAL_FIX Error: coord=%s, actual_path=%s, exists=%s", coord, actual_path, os.path.exists(actual_path) if actual_path else False)
+        logger.error("MANUAL_FIX 错误: coord=%s, actual_path=%s, exists=%s", coord, actual_path, os.path.exists(actual_path) if actual_path else False)
         return None, "[WARNING] 错误"
 
     try:
-        logger.debug("MANUAL_FIX Loading LUT from: %s", actual_path)
+        logger.debug("MANUAL_FIX 正在从 %s 加载 LUT", actual_path)
         lut = np.load(actual_path)
-        logger.debug("MANUAL_FIX LUT shape: %s", lut.shape)
+        logger.debug("MANUAL_FIX LUT 形状: %s", lut.shape)
         r, c = coord
-        logger.debug("MANUAL_FIX Fixing cell (%s, %s)", r, c)
+        logger.debug("MANUAL_FIX 正在修复单元格 (%s, %s)", r, c)
         new_color = [0, 0, 0]
 
         color_str = str(color_input)
@@ -337,12 +337,12 @@ def manual_fix_cell(coord, color_input, lut_path=None):
         else:
             new_color = [int(color_str[i:i+2], 16) for i in (0, 2, 4)]
 
-        logger.debug("MANUAL_FIX Old color: %s, New color: %s", lut[r, c], new_color)
+        logger.debug("MANUAL_FIX 原颜色: %s, 新颜色: %s", lut[r, c], new_color)
         lut[r, c] = new_color
 
         # Save to the actual path
         np.save(actual_path, lut)
-        logger.debug("MANUAL_FIX Saved to: %s", actual_path)
+        logger.debug("MANUAL_FIX 已保存到: %s", actual_path)
         
         # For 8-color mode: also ensure we save to the correct assets path
         # Check if the path is a temp_8c_page file
@@ -365,7 +365,7 @@ def manual_fix_cell(coord, color_input, lut_path=None):
                 if os.path.abspath(actual_path) != os.path.abspath(assets_path):
                     # If the actual_path is not the assets path, save to assets too
                     np.save(assets_path, lut)
-                    logger.debug("MANUAL_FIX Also saved to assets: %s", assets_path)
+                    logger.debug("MANUAL_FIX 也已保存到 assets: %s", assets_path)
 
         # 5-Color Extended dual-page: same as 8-Color — merge reads assets/temp_5c_ext_page_*.npy
         if "temp_5c_ext_page_" in actual_path:
@@ -382,11 +382,11 @@ def manual_fix_cell(coord, color_input, lut_path=None):
                 assets_path = os.path.join(assets_dir, f"temp_5c_ext_page_{page_num}.npy")
                 if os.path.abspath(actual_path) != os.path.abspath(assets_path):
                     np.save(assets_path, lut)
-                    logger.debug("MANUAL_FIX Also saved 5C-EXT to assets: %s", assets_path)
+                    logger.debug("MANUAL_FIX 5C-EXT 也已保存到 assets: %s", assets_path)
 
         preview = cv2.resize(lut, (512, 512), interpolation=cv2.INTER_NEAREST)
-        logger.debug("MANUAL_FIX Preview shape: %s", preview.shape)
+        logger.debug("MANUAL_FIX 预览形状: %s", preview.shape)
         return preview, "[OK] 已修正"
     except Exception as e:
-        logger.exception("MANUAL_FIX Exception: %s", e)
+        logger.exception("MANUAL_FIX 异常: %s", e)
         return None, f"[ERROR] 格式错误: {color_input}"

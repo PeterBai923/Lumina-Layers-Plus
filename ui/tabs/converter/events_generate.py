@@ -208,11 +208,11 @@ def bind_generate_events(components, states, theme_state):
 
         # If no file exists, auto-generate the complete workflow
         if file_obj is None:
-            logger.info("No 3MF file found, starting auto-generation workflow...")
+            logger.info("未找到 3MF 文件，启动自动生成流程...")
 
             # Step 1: Generate preview if needed
             if preview_cache is None or not preview_cache:
-                logger.info("Step 1/2: Generating preview...")
+                logger.info("步骤 1/2: 正在生成预览...")
                 try:
                     preview_img, cache, status, glb = generate_preview_cached_with_fit(
                         single_image, lut_path, target_width_mm, auto_bg, bg_tol,
@@ -220,13 +220,13 @@ def bind_generate_events(components, states, theme_state):
                         structure_mode=structure_mode
                     )
                     preview_cache = cache
-                    logger.info("Preview generated: %s", status)
+                    logger.info("预览已生成: %s", status)
                 except Exception as e:
-                    logger.error("Failed to generate preview: %s", e)
+                    logger.error("生成预览失败: %s", e)
                     return gr.update(), gr.update(), gr.update(), gr.update(), f"[ERROR] 预览生成失败: {e}"
 
             # Step 2: Generate 3MF model
-            logger.info("Step 2/2: Generating 3MF model...")
+            logger.info("步骤 2/2: 正在生成 3MF 模型...")
             try:
                 file_obj, glb, preview_img, status, color_recipe_path = process_batch_generation(
                     batch_files, is_batch, single_image, lut_path, target_width_mm,
@@ -240,9 +240,9 @@ def bind_generate_events(components, states, theme_state):
                     free_color_set,
                     hue_weight=float(hue_weight) if hue_weight else 0.0,
                 )
-                logger.info("3MF generated: %s", status)
+                logger.info("3MF 已生成: %s", status)
             except Exception as e:
-                logger.error("Failed to generate 3MF: %s", e)
+                logger.error("生成 3MF 失败: %s", e)
                 return gr.update(), gr.update(), gr.update(), gr.update(), f"[ERROR] 3MF生成失败: {e}"
 
         # Now open in slicer or download

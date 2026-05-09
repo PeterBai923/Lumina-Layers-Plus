@@ -148,7 +148,7 @@ def process_batch_generation(batch_files, is_batch, single_image, lut_path, targ
                 generated_files.append(dest_path)
         except Exception as e:
             logs.append(f"❌ 失败 {filename}: {str(e)}")
-            logger.error("Batch error on %s: %s", filename, e)
+            logger.error("批量处理 %s 错误: %s", filename, e)
 
     if generated_files:
         zip_path = os.path.join("outputs", generate_batch_filename())

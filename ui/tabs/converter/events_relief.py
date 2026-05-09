@@ -216,7 +216,7 @@ def bind_relief_events(components, states):
                     heightmap_path = converted
                     display_update = converted
                 except Exception as e:
-                    logger.error("Heightmap conversion failed: %s", e)
+                    logger.error("高度图转换失败: %s", e)
 
         result = HeightmapLoader.load_and_validate(heightmap_path)
 
@@ -315,7 +315,7 @@ def bind_relief_events(components, states):
                 )
                 rec_html = generate_dual_recommendations_html(rec)
         except Exception as e:
-            logger.error("Dual recommend failed: %s", e)
+            logger.error("双重推荐失败: %s", e)
 
         display_hex, state_hex = _resolve_click_selection_hexes(new_cache, q_hex)
         selected_html = build_selected_dual_color_html(state_hex, display_hex)
@@ -361,7 +361,7 @@ def bind_relief_events(components, states):
         """Update height map when slider changes"""
         if selected_color:
             height_map[selected_color] = new_height
-            logger.info("Updated %s -> %smm", selected_color, new_height)
+            logger.info("已更新 %s -> %smm", selected_color, new_height)
         return height_map
 
     components['slider_conv_relief_height'].change(

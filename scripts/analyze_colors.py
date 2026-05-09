@@ -69,12 +69,12 @@ def main():
     TARGET_COUNT = 2738  # 37x37×2 = 2738
 
     logger.info("=" * 60)
-    logger.info("🎨 8色智能筛选算法 (仿6色优雅版)")
+    logger.info("8色智能筛选算法 (仿6色优雅版)")
     logger.info("=" * 60)
-    logger.info("🔄 开始模拟 %s色 %s层 全排列 (%s 种组合)...", COLOR_COUNT, LAYERS, COLOR_COUNT ** LAYERS)
-    logger.info("📏 RGB距离阈值: %s (和6色算法一致)", RGB_DISTANCE_THRESHOLD)
-    logger.info("🎯 目标数量: %s 个颜色", TARGET_COUNT)
-    logger.info("🧱 黑色TD: %smm (和6色一致，自然筛选)", FILAMENTS[4]["td"])
+    logger.info("开始模拟 %s色 %s层 全排列 (%s 种组合)...", COLOR_COUNT, LAYERS, COLOR_COUNT ** LAYERS)
+    logger.info("RGB距离阈值: %s (和6色算法一致)", RGB_DISTANCE_THRESHOLD)
+    logger.info("目标数量: %s 个颜色", TARGET_COUNT)
+    logger.info("黑色TD: %smm (和6色一致，自然筛选)", FILAMENTS[4]["td"])
     logger.info("")
 
     # ==================== 阶段1: 模拟所有组合 ====================
@@ -93,7 +93,7 @@ def main():
             "lab": lab
         })
 
-    logger.info("✅ 模拟完成: %s 个组合", len(candidates))
+    logger.info("模拟完成: %s 个组合", len(candidates))
     logger.info("")
 
     # ==================== 阶段2: 智能筛选 (仿6色算法) ====================
@@ -102,7 +102,7 @@ def main():
     selected = []
 
     # Step 1: 预选种子颜色 (8个纯色)
-    logger.info("  → 预选种子颜色 (8个纯色)...")
+    logger.info("  预选种子颜色 (8个纯色)...")
     for i in range(COLOR_COUNT):
         stack = (i,) * LAYERS
         for c in candidates:
@@ -111,11 +111,11 @@ def main():
                 logger.info("     种子 %s: %s - RGB%s", i, FILAMENTS[i]['name'], tuple(c['rgb']))
                 break
 
-    logger.info("  ✓ 种子颜色: %s 个", len(selected))
+    logger.info("  种子颜色: %s 个", len(selected))
     logger.info("")
 
     # Step 2: 高质量筛选 (RGB距离 > 8)
-    logger.info("  → 高质量筛选 (RGB距离 > %s)...", RGB_DISTANCE_THRESHOLD)
+    logger.info("  高质量筛选 (RGB距离 > %s)...", RGB_DISTANCE_THRESHOLD)
     round1_start = len(selected)
 
     for c in candidates:
@@ -142,12 +142,12 @@ def main():
             logger.info("     进度: %s/%s", len(selected), TARGET_COUNT)
 
     round1_count = len(selected) - round1_start
-    logger.info("  ✓ 高质量筛选: 新增 %s 个颜色", round1_count)
+    logger.info("  高质量筛选: 新增 %s 个颜色", round1_count)
     logger.info("")
 
     # Step 3: 填充剩余 (降低阈值)
     if len(selected) < TARGET_COUNT:
-        logger.info("  → 填充剩余 %s 个位置...", TARGET_COUNT - len(selected))
+        logger.info("  填充剩余 %s 个位置...", TARGET_COUNT - len(selected))
         for c in candidates:
             if len(selected) >= TARGET_COUNT:
                 break
@@ -155,11 +155,11 @@ def main():
                 continue
             selected.append(c)
 
-        logger.info("  ✓ 填充完成: 总计 %s 个颜色", len(selected))
+        logger.info("  填充完成: 总计 %s 个颜色", len(selected))
 
     logger.info("")
     logger.info("=" * 60)
-    logger.info("🎉 筛选完成!")
+    logger.info("筛选完成!")
     logger.info("   总组合数: %s", len(candidates))
     logger.info("   最终选择: %s", len(selected))
     logger.info("   筛选率: %.2f%%", len(selected) / len(candidates) * 100)
@@ -169,14 +169,14 @@ def main():
     # ==================== 阶段3: 保存结果 ====================
     output_dir = os.path.join(_PROJECT_ROOT, "assets")
 
-    logger.info("💾 保存到 '%s/'...", output_dir)
+    logger.info("保存到 '%s/'...", output_dir)
 
     # 确保数量正确
     final_selection = selected[:TARGET_COUNT]
 
     # 如果不足，用白色填充
     if len(final_selection) < TARGET_COUNT:
-        logger.warning("⚠️  不足 %s 个，用白色填充...", TARGET_COUNT)
+        logger.warning("不足 %s 个，用白色填充...", TARGET_COUNT)
         dummy_stack = (0,) * LAYERS  # 白色
         while len(final_selection) < TARGET_COUNT:
             final_selection.append({"stack": dummy_stack})
@@ -190,14 +190,14 @@ def main():
     save_path = os.path.join(output_dir, "smart_8color_stacks.npy")
     np.save(save_path, stacks_array)
 
-    logger.info("✅ 已保存到 '%s'", save_path)
+    logger.info("已保存到 '%s'", save_path)
     logger.info("   数组形状: %s", stacks_array.shape)
     logger.info("   数据类型: %s", stacks_array.dtype)
     logger.info("")
 
     # ==================== 统计分析 ====================
     logger.info("=" * 60)
-    logger.info("📊 统计分析")
+    logger.info("统计分析")
     logger.info("=" * 60)
 
     # 统计黑色使用情况 (修正：黑色现在的 ID 是 4)
@@ -218,7 +218,7 @@ def main():
     logger.info("  B: min=%s, max=%s, avg=%.1f", all_rgb[:, 2].min(), all_rgb[:, 2].max(), all_rgb[:, 2].mean())
     logger.info("")
 
-    logger.info("✅ 完成！")
+    logger.info("完成！")
     logger.info("=" * 60)
 
 if __name__ == "__main__":

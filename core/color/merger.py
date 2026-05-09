@@ -237,7 +237,7 @@ class ColorMerger:
         
         # If all colors are low usage, don't merge (prevent color loss)
         if len(low_usage_colors) >= len(palette):
-            logger.warning("All colors below threshold, merging disabled")
+            logger.warning("所有颜色低于阈值，合并已禁用")
             return {}
 
         # If no low usage colors, nothing to merge
@@ -256,7 +256,7 @@ class ColorMerger:
             if target_hex is not None:
                 merge_map[source_hex] = target_hex
             else:
-                logger.info("No suitable target for %s, keeping original", source_hex)
+                logger.info("%s 无合适目标，保留原色", source_hex)
         
         return merge_map
     

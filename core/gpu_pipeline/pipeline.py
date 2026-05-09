@@ -95,7 +95,7 @@ class GPUPipeline:
         if not self.device_manager.is_cuda_available():
             raise RuntimeError("CUDA is not available. GPU is required.")
         self.device = self.device_manager.get_device()
-        logger.info("GPU acceleration enabled: %s", torch.cuda.get_device_name())
+        logger.info("GPU 加速已启用: %s", torch.cuda.get_device_name())
 
     def process_preview(
         self,
@@ -141,7 +141,7 @@ class GPUPipeline:
         t0 = time.time()
         if total_pixels > target_pixels:
             rgb_small, scale_factor = downsample_image_gpu(rgb_tensor, target_pixels)
-            logger.info("Downsampled: %s×%s → %s×%s (scale=%.2f)", w, h, rgb_small.shape[1], rgb_small.shape[0], scale_factor)
+            logger.info("下采样: %sx%s -> %sx%s (scale=%.2f)", w, h, rgb_small.shape[1], rgb_small.shape[0], scale_factor)
         else:
             rgb_small = rgb_tensor
             scale_factor = 1.0
@@ -193,7 +193,7 @@ class GPUPipeline:
         # Step 7: Find unique colors and map to LUT
         t0 = time.time()
         unique_colors = np.unique(quantized.reshape(-1, 3), axis=0)
-        logger.info("Found %s unique colors", len(unique_colors))
+        logger.info("找到 %s 个唯一颜色", len(unique_colors))
 
         # Convert unique colors to LAB (GPU)
         unique_tensor = torch.from_numpy(unique_colors.astype(np.float32)).to(self.device)
@@ -254,7 +254,7 @@ class GPUPipeline:
         total_time = time.time() - total_start
         debug_data["timings"]["total"] = total_time
 
-        logger.info("Total GPU processing complete: %.2fs", total_time)
+        logger.info("GPU 处理完成: %.2fs", total_time)
 
         return matched_rgb, material_matrix, debug_data
 

@@ -339,7 +339,7 @@ def build_left_sidebar(components, states):
         with gr.Row():
             # Load saved crop modal preference
             saved_enable_crop = _load_user_settings().get("enable_crop_modal", True)
-            logger.info("Loading crop modal preference: %s", saved_enable_crop)
+            logger.info("正在加载裁剪模态框偏好: %s", saved_enable_crop)
             components['checkbox_conv_enable_crop'] = gr.Checkbox(
                 label="🖼️ 启用裁剪界面 | Enable Crop Interface",
                 value=saved_enable_crop,

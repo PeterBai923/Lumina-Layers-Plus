@@ -69,7 +69,7 @@ def _graceful_shutdown(signum, frame):
     """
     logger = get_logger("main")
     sig_name = signal.Signals(signum).name
-    logger.info(f"Received {sig_name}, shutting down...")
+    logger.info(f"收到 %s 信号，正在关闭...", sig_name)
     os._exit(0)
 
 
@@ -84,7 +84,7 @@ if __name__ == "__main__":
         PORT = find_available_port(7860)
 
         threading.Thread(target=start_browser, args=(PORT,), daemon=True).start()
-        logger.info(f"Lumina Studio is running on http://127.0.0.1:{PORT}")
+        logger.info(f"Lumina Studio 运行在 http://127.0.0.1:{PORT}")
         app = create_app()
 
         try:
@@ -114,7 +114,7 @@ if __name__ == "__main__":
                 head=get_crop_head_js() + DEBOUNCE_JS + FIVECOLOR_CLICK_JS
             )
         except Exception as e:
-            logger.error(f"Failed to launch Gradio app: {e}")
+            logger.error(f"启动 Gradio 应用失败: {e}")
             import traceback
             traceback.print_exc()
             raise
@@ -125,11 +125,11 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             pass
 
-        logger.info("Stopping...")
+        logger.info("正在停止...")
         os._exit(0)
         
     except Exception as e:
-        logger.error(f"FATAL ERROR: {e}")
+        logger.error(f"致命错误: {e}")
         import traceback
         traceback.print_exc()
         input("Press Enter to exit...")

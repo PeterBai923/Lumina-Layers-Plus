@@ -72,12 +72,12 @@ def extract_lut_available_colors(lut_path: str) -> List[dict]:
         if lut_path.endswith('.npz'):
             data = np.load(lut_path)
             measured_colors = data['rgb']
-            logger.debug("Loading merged LUT (.npz) with %s colors", len(measured_colors))
+            logger.debug("正在加载合并 LUT (.npz)，共 %s 种颜色", len(measured_colors))
         else:
             # Standard .npy format
             lut_grid = np.load(lut_path)
             measured_colors = lut_grid.reshape(-1, 3)
-            logger.debug("Loading standard LUT (.npy) with %s colors", len(measured_colors))
+            logger.debug("正在加载标准 LUT (.npy)，共 %s 种颜色", len(measured_colors))
 
         # Get unique colors
         unique_colors = np.unique(measured_colors, axis=0)
@@ -94,11 +94,11 @@ def extract_lut_available_colors(lut_path: str) -> List[dict]:
         # Sort by brightness (dark to light) for better UX
         colors.sort(key=lambda x: sum(x['color']))
 
-        logger.debug("Extracted %s unique colors from LUT", len(colors))
+        logger.debug("从 LUT 提取了 %s 种唯一颜色", len(colors))
         return colors
 
     except Exception as e:
-        logger.debug("Error extracting colors from LUT: %s", e)
+        logger.debug("从 LUT 提取颜色错误: %s", e)
         return []
 
 
@@ -375,8 +375,8 @@ def _save_debug_preview(debug_data, material_matrix, mask_solid, image_path, mod
     quantized_image = debug_data['quantized_image']
     num_colors = debug_data['num_colors']
 
-    logger.debug("Saving %s debug preview...", mode_name)
-    logger.debug("Quantized to %s colors", num_colors)
+    logger.debug("正在保存 %s 调试预览...", mode_name)
+    logger.debug("量化为 %s 种颜色", num_colors)
 
     debug_img = quantized_image.copy()
 
@@ -401,10 +401,10 @@ def _save_debug_preview(debug_data, material_matrix, mask_solid, image_path, mod
             cv2.drawContours(contour_overlay, contours, -1, (0, 0, 0), 1)
 
         debug_img = contour_overlay
-        logger.debug("Contours drawn on preview")
+        logger.debug("预览图上已绘制轮廓")
 
     except Exception as e:
-        logger.debug("Warning: Could not draw contours: %s", e)
+        logger.debug("警告: 无法绘制轮廓: %s", e)
 
     base_name = os.path.splitext(os.path.basename(image_path))[0]
     debug_path = os.path.join(OUTPUT_DIR, f"{base_name}_{mode_name}_Debug.png")
@@ -412,8 +412,8 @@ def _save_debug_preview(debug_data, material_matrix, mask_solid, image_path, mod
     debug_pil = Image.fromarray(debug_img, mode='RGB')
     debug_pil.save(debug_path, 'PNG')
 
-    logger.debug("Saved: %s", debug_path)
-    logger.debug("This is the EXACT image the vectorizer sees before meshing")
+    logger.debug("已保存: %s", debug_path)
+    logger.debug("这是矢量化器在生成网格前看到的精确图像")
 
 
 # ========== LUT Slot Color Derivation ==========
@@ -608,8 +608,8 @@ def _build_relief_voxel_matrix(matched_rgb, material_matrix, mask_solid, color_h
     OPTICAL_THICKNESS_MM = OPTICAL_LAYERS * PrinterConfig.LAYER_HEIGHT
     LAYER_HEIGHT = PrinterConfig.LAYER_HEIGHT
 
-    logger.info("Relief: Building 2.5D relief voxel matrix (GPU)...")
-    logger.info("Relief: Optical layer thickness: %smm (%s layers)", OPTICAL_THICKNESS_MM, OPTICAL_LAYERS)
+    logger.info("Relief: 正在构建 2.5D 浮雕体素矩阵 (GPU)...")
+    logger.info("Relief: 光学层厚度: %smm (%s 层)", OPTICAL_THICKNESS_MM, OPTICAL_LAYERS)
 
     # Convert inputs to GPU tensors
     mask_tensor = torch.from_numpy(mask_solid).to(device)
@@ -666,9 +666,9 @@ def _build_relief_voxel_matrix(matched_rgb, material_matrix, mask_solid, color_h
         max_height_mm = default_height
     max_z_layers = max(OPTICAL_LAYERS + 1, int(np.ceil(max_height_mm / LAYER_HEIGHT)))
 
-    logger.info("Relief: Max height: %.2fmm (%s layers)", max_height_mm, max_z_layers)
+    logger.info("Relief: 最大高度: %.2fmm (%s 层)", max_height_mm, max_z_layers)
     if mask_tensor.any():
-        logger.info("Relief: Height range: %.2fmm - %.2fmm", pixel_heights[mask_tensor].min().item(), max_height_mm)
+        logger.info("Relief: 高度范围: %.2fmm - %.2fmm", pixel_heights[mask_tensor].min().item(), max_height_mm)
 
     # Step 3: Initialize voxel matrix (GPU)
     full_matrix = torch.full((max_z_layers, target_h, target_w), -1, device=device, dtype=torch.int32)
@@ -705,9 +705,9 @@ def _build_relief_voxel_matrix(matched_rgb, material_matrix, mask_solid, color_h
         'max_height_mm': max_height_mm
     }
 
-    logger.info("Relief: Relief voxel matrix built: %s", full_matrix.shape)
-    logger.info("Relief: Backing range: Z=%s to Z=%s", backing_z_range[0], backing_z_range[1])
-    logger.info("Relief: Mode: Single-sided (viewing surface on top)")
+    logger.info("Relief: 浮雕体素矩阵已构建: %s", full_matrix.shape)
+    logger.info("Relief: 背板范围: Z=%s 到 Z=%s", backing_z_range[0], backing_z_range[1])
+    logger.info("Relief: 模式: 单面（观赏面朝上）")
 
     return full_matrix.cpu().numpy(), backing_metadata
 
@@ -897,7 +897,7 @@ def _generate_outline_mesh(mask_solid, pixel_scale, outline_width_mm, outline_th
     # Convert thickness from mm to layers
     outline_layers = max(1, int(round(outline_thickness_mm / PrinterConfig.LAYER_HEIGHT)))
 
-    logger.info("Outline: Width: %smm = %spx, Thickness: %smm = %s layers", outline_width_mm, outline_width_px, outline_thickness_mm, outline_layers)
+    logger.info("轮廓: 宽度 %smm = %spx, 厚度 %smm = %s 层", outline_width_mm, outline_width_px, outline_thickness_mm, outline_layers)
 
     # Pad the mask before dilation so edges touching image boundaries
     # can still expand outward. Without padding, cv2.dilate treats the border
@@ -922,11 +922,11 @@ def _generate_outline_mesh(mask_solid, pixel_scale, outline_width_mm, outline_th
     h_original = mask_solid.shape[0]
 
     if not np.any(ring_mask):
-        logger.info("Outline: Ring mask is empty, skipping")
+        logger.info("轮廓: 环形遮罩为空，跳过")
         return None
 
     ring_pixel_count = np.sum(ring_mask)
-    logger.info("Outline: Ring mask: %s pixels", ring_pixel_count)
+    logger.info("轮廓: 环形遮罩 %s 像素", ring_pixel_count)
 
     # Use greedy rectangle merging to generate optimized mesh
     # Note: h, w are padded dimensions; use pad offset for world coordinates
@@ -987,7 +987,7 @@ def _generate_outline_mesh(mask_solid, pixel_scale, outline_width_mm, outline_th
     mesh.merge_vertices()
     mesh.update_faces(mesh.unique_faces())
 
-    logger.info("Outline: Generated outline mesh: %s verts, %s faces", f"{len(mesh.vertices):,}", f"{len(mesh.faces):,}")
+    logger.info("轮廓: 已生成轮廓网格: %s 顶点, %s 面", f"{len(mesh.vertices):,}", f"{len(mesh.faces):,}")
     return mesh
 
 
@@ -1070,7 +1070,7 @@ def generate_auto_height_map(color_list, mode, base_thickness, max_relief_height
         # All colors get the same height (average of base and max)
         avg_height = (base_thickness + max_relief_height) / 2.0
         color_height_map = {color: round(avg_height, 1) for color, _ in color_luminance}
-        logger.info("AutoHeight: All colors have same luminance, using average height: %.1fmm", avg_height)
+        logger.info("自动高度: 所有颜色亮度相同，使用平均高度: %.1fmm", avg_height)
         return color_height_map
 
     # Step 3: Calculate available height range
@@ -1098,11 +1098,11 @@ def generate_auto_height_map(color_list, mode, base_thickness, max_relief_height
         # Round to 0.1mm precision
         color_height_map[color] = round(height, 1)
 
-    logger.info("AutoHeight: Generated normalized height map for %s colors", len(color_list))
-    logger.info("AutoHeight: Mode: %s", mode)
-    logger.info("AutoHeight: Luminance range: %.1f - %.1f", y_min, y_max)
-    logger.info("AutoHeight: Height range: %.1fmm - %.1fmm", min(color_height_map.values()), max(color_height_map.values()))
-    logger.info("AutoHeight: Total height span: %.1fmm", max(color_height_map.values()) - min(color_height_map.values()))
+    logger.info("自动高度: 已为 %s 种颜色生成归一化高度图", len(color_list))
+    logger.info("自动高度: 模式: %s", mode)
+    logger.info("自动高度: 亮度范围: %.1f - %.1f", y_min, y_max)
+    logger.info("自动高度: 高度范围: %.1fmm - %.1fmm", min(color_height_map.values()), max(color_height_map.values()))
+    logger.info("自动高度: 总高度跨度: %.1fmm", max(color_height_map.values()) - min(color_height_map.values()))
 
     return color_height_map
 
@@ -1183,18 +1183,18 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
     try:
         separate_backing = bool(separate_backing) if separate_backing is not None else False
     except Exception as e:
-        logger.error("Error reading separate_backing checkbox state: %s, using default (False)", e)
+        logger.error("读取 separate_backing 复选框状态错误: %s，使用默认值 (False)", e)
         separate_backing = False
 
     if separate_backing:
         backing_color_id = -2
-        logger.info("Backing separation enabled: backing will be a separate object (white)")
+        logger.info("背板分离已启用: 背板将作为独立对象（白色）")
     else:
-        logger.info("Backing separation disabled: backing merged with first layer (backing_color_id=%s)", backing_color_id)
+        logger.info("背板分离已禁用: 背板与第一层合并 (backing_color_id=%s)", backing_color_id)
 
-    logger.info("Starting conversion...")
-    logger.info("Mode: %s, Quantize: %s", modeling_mode.get_display_name(), quantize_colors)
-    logger.info("Filters: blur_kernel=%s, smooth_sigma=%s", blur_kernel, smooth_sigma)
+    logger.info("开始转换...")
+    logger.info("模式: %s, 量化: %s", modeling_mode.get_display_name(), quantize_colors)
+    logger.info("滤镜: blur_kernel=%s, smooth_sigma=%s", blur_kernel, smooth_sigma)
     logger.info("LUT: %s", actual_lut_path)
 
     # ========== Raster-based Processing ==========
@@ -1209,7 +1209,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
     # Validate backing_color_id (allow -2 as special marker for separation)
     num_materials = len(slot_names)
     if backing_color_id != -2 and (backing_color_id < 0 or backing_color_id >= num_materials):
-        logger.warning("Invalid backing_color_id=%s, using default (0)", backing_color_id)
+        logger.warning("无效的 backing_color_id=%s，使用默认值 (0)", backing_color_id)
         backing_color_id = 0
 
     # Step 1: Image Processing
@@ -1251,10 +1251,10 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
             preview_colors = dict(preview_colors)  # local copy; don't mutate shared config
             for slot_id, rgb in actual_slot_colors.items():
                 preview_colors[slot_id] = [rgb[0], rgb[1], rgb[2], 255]
-            logger.info("LUT slot colors derived from calibration data:")
+            logger.info("从校准数据推导的 LUT 槽位颜色:")
             for sid in sorted(preview_colors):
                 c = preview_colors[sid]
-                logger.info("  slot%s: #%02x%02x%02x", sid, c[0], c[1], c[2])
+                logger.info("  槽位%s: #%02x%02x%02x", sid, c[0], c[1], c[2])
 
     # Apply color replacements if provided
     effective_color_replacements = _normalize_color_replacements_input(color_replacements)
@@ -1269,7 +1269,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
         manager = ColorReplacementManager.from_dict(effective_color_replacements)
         old_rgb = matched_rgb.copy()
         matched_rgb = manager.apply_to_image(matched_rgb)
-        logger.info("Applied %s color replacements", len(manager))
+        logger.info("已应用 %s 个颜色替换", len(manager))
 
         for orig_hex, repl_hex in effective_color_replacements.items():
             orig_rgb_tuple = hex_to_rgb(orig_hex)
@@ -1301,7 +1301,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
             processor.ref_stacks,
         )
 
-    logger.info("Image processed: %sx%s px, scale=%s mm/px", target_w, target_h, pixel_scale)
+    logger.info("图像处理完成: %sx%s 像素, scale=%s mm/px", target_w, target_h, pixel_scale)
 
     # Step 2: Save Debug Preview (High-Fidelity mode only)
     if debug_data is not None and mode_info['mode'] == ModelingMode.HIGH_FIDELITY:
@@ -1316,7 +1316,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                 num_materials=num_materials
             )
         except Exception as e:
-            logger.warning("Failed to save debug preview: %s", e)
+            logger.warning("保存调试预览失败: %s", e)
 
     # Step 3: Generate Preview Image
     preview_rgba = np.zeros((target_h, target_w, 4), dtype=np.uint8)
@@ -1342,10 +1342,10 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
     try:
         # 5-Color Extended: force single-sided face-up
         if "5-Color Extended" in color_mode:
-            logger.info("5-Color Extended: forcing single-sided face-up")
+            logger.info("5色扩展模式: 强制单面朝上")
             structure_mode = "单面"
             if enable_relief:
-                logger.info("5-Color Extended: 2.5D relief mode disabled (incompatible)")
+                logger.info("5色扩展模式: 2.5D 浮雕模式已禁用（不兼容）")
                 enable_relief = False
             full_matrix, backing_metadata = _build_voxel_matrix_faceup(
                 material_matrix, mask_solid, spacer_thick, backing_color_id
@@ -1376,10 +1376,10 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
             except Exception as e:
                 logger.warning("高度图处理异常: %s，回退到 flat 模式", e)
         elif enable_relief and height_mode == "heightmap" and heightmap_path is None:
-            logger.warning("heightmap mode selected but no heightmap provided, falling back to flat")
+            logger.warning("已选择高度图模式但未提供高度图，回退到平面模式")
 
         if heightmap_height_matrix is not None:
-            logger.info("2.5D Heightmap Relief Mode ENABLED")
+            logger.info("2.5D 高度图浮雕模式已启用")
             full_matrix, backing_metadata = _build_relief_voxel_matrix(
                 matched_rgb=matched_rgb,
                 material_matrix=material_matrix,
@@ -1392,8 +1392,8 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                 height_matrix=heightmap_height_matrix
             )
         elif enable_relief and height_mode == "color" and color_height_map:
-            logger.info("2.5D Relief Mode ENABLED")
-            logger.info("Color height map: %s", color_height_map)
+            logger.info("2.5D 浮雕模式已启用")
+            logger.info("颜色高度图: %s", color_height_map)
 
             full_matrix, backing_metadata = _build_relief_voxel_matrix(
                 matched_rgb=matched_rgb,
@@ -1412,18 +1412,18 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
             )
 
         total_layers = full_matrix.shape[0]
-        logger.info("Voxel matrix: %s (ZxHxW)", full_matrix.shape)
-        logger.info("Backing layer: z=%s, color_id=%s", backing_metadata['backing_z_range'], backing_metadata['backing_color_id'])
+        logger.info("体素矩阵: %s (ZxHxW)", full_matrix.shape)
+        logger.info("背板层: z=%s, 颜色ID=%s", backing_metadata['backing_z_range'], backing_metadata['backing_color_id'])
     except Exception as e:
-        logger.error("Error marking backing layer: %s", e)
-        logger.info("Falling back to original behavior (backing_color_id=0)")
+        logger.error("标记背板层错误: %s", e)
+        logger.info("回退到原始行为 (backing_color_id=0)")
 
         try:
             full_matrix, backing_metadata = _build_voxel_matrix(
                 material_matrix, mask_solid, spacer_thick, structure_mode, backing_color_id=0
             )
             total_layers = full_matrix.shape[0]
-            logger.info("Fallback successful: %s (ZxHxW)", full_matrix.shape)
+            logger.info("回退成功: %s (ZxHxW)", full_matrix.shape)
         except Exception as fallback_error:
             return None, None, None, f"[ERROR] Voxel matrix generation failed: {fallback_error}", None
 
@@ -1433,14 +1433,14 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
 
     scene = trimesh.Scene()
 
-    logger.info("Transform: XY=%smm/px, Z=variable (optical=%smm, backing=%smm)", pixel_scale, PrinterConfig.LAYER_HEIGHT, PrinterConfig.BACKING_LAYER_HEIGHT)
+    logger.info("变换: XY=%smm/px, Z=可变 (光学层=%smm, 背板=%smm)", pixel_scale, PrinterConfig.LAYER_HEIGHT, PrinterConfig.BACKING_LAYER_HEIGHT)
 
     mesher = get_mesher(modeling_mode)
-    logger.info("Using mesher: %s", mesher.__class__.__name__)
+    logger.info("使用网格生成器: %s", mesher.__class__.__name__)
 
     valid_slot_names = []
     num_materials = len(slot_names)
-    logger.info("Generating meshes for %s materials...", num_materials)
+    logger.info("正在为 %s 种材料生成网格...", num_materials)
 
     max_workers = min(4, num_materials)
     parallel_enabled = max_workers > 1 and os.getenv("LUMINA_DISABLE_PARALLEL_MESH", "0") != "1"
@@ -1468,8 +1468,8 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
     for mat_id in range(num_materials):
         if mat_id in mesh_errors:
             e = mesh_errors[mat_id]
-            logger.error("Error generating mesh for material %s (%s): %s", mat_id, slot_names[mat_id], e)
-            logger.info("Continuing with other materials...")
+            logger.error("生成材料 %s (%s) 网格错误: %s", mat_id, slot_names[mat_id], e)
+            logger.info("继续处理其他材料...")
             continue
         mesh = mesh_results.get(mat_id)
         if mesh:
@@ -1483,17 +1483,17 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                 geom_name=name
             )
             valid_slot_names.append(name)
-            logger.info("Added mesh for %s", name)
+            logger.info("已添加网格: %s", name)
 
     # Conditionally generate backing mesh
     if separate_backing:
-        logger.info("Attempting to generate separate backing mesh (mat_id=-2)...")
+        logger.info("正在尝试生成独立背板网格 (mat_id=-2)...")
         try:
             backing_mesh = mesher.generate_mesh(full_matrix, mat_id=-2, height_px=target_h)
 
             if backing_mesh is None or len(backing_mesh.vertices) == 0:
-                logger.warning("Backing mesh is empty, skipping separate backing object")
-                logger.info("Continuing with other material meshes...")
+                logger.warning("背板网格为空，跳过独立背板对象")
+                logger.info("继续处理其他材料网格...")
             else:
                 _apply_variable_layer_height_transform(backing_mesh, backing_metadata, pixel_scale)
                 backing_color = preview_colors[0]
@@ -1502,19 +1502,19 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                 backing_mesh.metadata['name'] = backing_name
                 scene.add_geometry(backing_mesh, node_name=backing_name, geom_name=backing_name)
                 valid_slot_names.append(backing_name)
-                logger.info("Added backing mesh as separate object (white)")
-                logger.info("Scene now has %s geometries", len(scene.geometry))
+                logger.info("已添加背板网格作为独立对象（白色）")
+                logger.info("场景现在有 %s 个几何体", len(scene.geometry))
         except Exception as e:
-            logger.exception("Error generating backing mesh: %s", e)
-            logger.info("Continuing with other material meshes...")
+            logger.exception("生成背板网格错误: %s", e)
+            logger.info("继续处理其他材料网格...")
     else:
-        logger.info("Backing merged with first layer (original behavior)")
+        logger.info("背板与第一层合并（原始行为）")
 
     # Free Color mesh extraction
     if free_color_set:
         _free_set = {c.lower() for c in free_color_set if c}
         if _free_set:
-            logger.info("Free Color mode: %s colors marked", len(_free_set))
+            logger.info("自由颜色模式: 已标记 %s 个颜色", len(_free_set))
             for hex_c in sorted(_free_set):
                 try:
                     r_fc = int(hex_c[1:3], 16)
@@ -1527,7 +1527,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                         mask_solid
                     )
                     if not np.any(color_mask):
-                        logger.info("  %s: no pixels found, skipping", hex_c)
+                        logger.info("  %s: 未找到像素，跳过", hex_c)
                         continue
                     fc_matrix = np.where(
                         np.broadcast_to(color_mask[np.newaxis, :, :], full_matrix.shape),
@@ -1542,11 +1542,11 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                         fc_mesh.metadata['name'] = fc_name
                         scene.add_geometry(fc_mesh, node_name=fc_name, geom_name=fc_name)
                         valid_slot_names.append(fc_name)
-                        logger.info("  %s -> standalone object '%s' (%s px)", hex_c, fc_name, np.sum(color_mask))
+                        logger.info("  %s -> 独立对象 '%s' (%s 像素)", hex_c, fc_name, np.sum(color_mask))
                     else:
-                        logger.info("  %s: mesh empty, skipping", hex_c)
+                        logger.info("  %s: 网格为空，跳过", hex_c)
                 except Exception as e:
-                    logger.error("Error extracting free color %s: %s", hex_c, e)
+                    logger.error("提取自由颜色 %s 错误: %s", hex_c, e)
 
     _hifi_timings['mesh_gen_s'] = time.perf_counter() - _mesh_t0
 
@@ -1575,9 +1575,9 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                 )
                 valid_slot_names.append("Keychain_Loop")
                 loop_added = True
-                logger.info("Loop added successfully")
+                logger.info("挂环添加成功")
         except Exception as e:
-            logger.error("Loop creation failed: %s", e)
+            logger.error("挂环创建失败: %s", e)
 
     # Generate Outline Mesh
     outline_added = False
@@ -1592,7 +1592,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
             backing_height = backing_layers * PrinterConfig.BACKING_LAYER_HEIGHT
             outline_thickness_mm = optical_height + backing_height
 
-            logger.info("Generating outline: width=%smm, thickness=%smm", outline_width, outline_thickness_mm)
+            logger.info("正在生成轮廓: width=%smm, thickness=%smm", outline_width, outline_thickness_mm)
 
             outline_mesh = _generate_outline_mesh(
                 mask_solid=mask_solid,
@@ -1608,12 +1608,12 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                 outline_mesh.metadata['name'] = outline_name
                 scene.add_geometry(outline_mesh, node_name=outline_name, geom_name=outline_name)
                 valid_slot_names.append(outline_name)
-                logger.info("Outline added as standalone '%s' object", outline_name)
+                logger.info("轮廓已作为独立对象 '%s' 添加", outline_name)
                 outline_added = True
             else:
-                logger.warning("Outline mesh is empty, skipping")
+                logger.warning("轮廓网格为空，跳过")
         except Exception as e:
-            logger.exception("Outline generation failed: %s", e)
+            logger.exception("轮廓生成失败: %s", e)
 
     # Step 8: Export 3MF
     is_single_sided = "单面" in structure_mode or "single" in structure_mode.lower()
@@ -1666,13 +1666,13 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
     out_path = os.path.join(OUTPUT_DIR, generate_model_filename(base_name, modeling_mode, color_mode))
 
     if len(scene.geometry) == 0:
-        logger.error("No meshes generated, cannot export 3MF")
+        logger.error("未生成网格，无法导出 3MF")
         return None, None, None, "[ERROR] Mesh generation failed: No valid meshes generated", None
 
     print_settings = EXTENDED_PRINT_SETTINGS
 
     try:
-        logger.info("Exporting with BambuStudio metadata...")
+        logger.info("正在导出 BambuStudio 元数据...")
         backing_z_start, backing_z_end = backing_metadata['backing_z_range']
         backing_layers_count = backing_z_end - backing_z_start + 1
         export_scene_with_bambu_metadata(
@@ -1688,9 +1688,9 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
             backing_layers=backing_layers_count
         )
         _hifi_timings['export_3mf_s'] = time.perf_counter() - _export_t0
-        logger.info("3MF exported with embedded settings: %s", out_path)
+        logger.info("3MF 已导出（含嵌入设置）: %s", out_path)
     except Exception as e:
-        logger.error("Error exporting 3MF: %s", e)
+        logger.error("导出 3MF 错误: %s", e)
         return None, None, None, f"[ERROR] 3MF export failed: {e}", None
 
     # Generate Color Recipe Report
@@ -1718,10 +1718,10 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                 mask_solid=mask_solid
             )
         except Exception as e:
-            logger.warning("Failed to generate color recipe report: %s", e)
+            logger.warning("生成颜色配方报告失败: %s", e)
     else:
         logger.info(
-            "Skipping color recipe report: policy=%s, solid_pixels=%s, auto_max=%s",
+            "跳过颜色配方报告: policy=%s, solid_pixels=%s, auto_max=%s",
             recipe_policy, solid_pixels, recipe_auto_max_pixels
         )
 
@@ -1766,7 +1766,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                     preview_loop.visual.face_colors = [loop_color] * len(preview_loop.faces)
                     preview_mesh = trimesh.util.concatenate([preview_mesh, preview_loop])
             except Exception as e:
-                logger.error("Preview loop failed: %s", e)
+                logger.error("预览挂环失败: %s", e)
 
         if outline_added:
             try:
@@ -1783,7 +1783,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
                     preview_outline.visual.face_colors = [outline_color] * len(preview_outline.faces)
                     preview_mesh = trimesh.util.concatenate([preview_mesh, preview_outline])
             except Exception as e:
-                logger.error("Preview outline failed: %s", e)
+                logger.error("预览轮廓失败: %s", e)
 
     if preview_mesh:
         glb_path = os.path.join(OUTPUT_DIR, generate_preview_filename(base_name))
@@ -1800,7 +1800,7 @@ def convert_image_to_3d(image_path, lut_path, target_width_mm, spacer_thick,
         export_3mf_s = _hifi_timings.get('export_3mf_s', 0.0)
         total_s = image_proc_s + mesh_gen_s + export_3mf_s
         logger.info(
-            "HiFi timings (s): image_proc=%.3f, mesh_gen=%.3f, export_3mf=%.3f, total=%.3f",
+            "高保真计时(s): 图像处理=%.3f, 网格生成=%.3f, 导出3MF=%.3f, 总计=%.3f",
             image_proc_s, mesh_gen_s, export_3mf_s, total_s
         )
 
@@ -1865,7 +1865,7 @@ def generate_preview_cached(image_path, lut_path, target_width_mm,
     # Handle None modeling_mode with default
     if modeling_mode is None or modeling_mode == "none":
         modeling_mode = ModelingMode.HIGH_FIDELITY
-        logger.warning("modeling_mode was None, using default HIGH_FIDELITY")
+        logger.warning("modeling_mode 为 None，使用默认值 HIGH_FIDELITY")
     else:
         modeling_mode = ModelingMode(modeling_mode)
 
@@ -1966,16 +1966,16 @@ def generate_final_model(image_path, lut_path, target_width_mm, spacer_thick,
     try:
         separate_backing = bool(separate_backing) if separate_backing is not None else False
     except Exception as e:
-        logger.error("Error reading separate_backing parameter: %s, using default (False)", e)
+        logger.error("读取 separate_backing 参数错误: %s，使用默认值 (False)", e)
         separate_backing = False
 
     if separate_backing:
         backing_color_id = -2  # Special marker for separate backing
-        logger.info("Backing will be separated as individual object (white)")
+        logger.info("背板将作为独立对象分离（白色）")
     else:
         color_conf = ColorSystem.get(color_mode)
         backing_color_id = color_conf['map'].get(backing_color_name, 0)
-        logger.info("Backing color: %s (ID=%s)", backing_color_name, backing_color_id)
+        logger.info("背板颜色: %s (ID=%s)", backing_color_name, backing_color_id)
 
     # Handle relief mode parameters
     if color_height_map is None:
@@ -2031,21 +2031,21 @@ def detect_lut_color_mode(lut_path):
                 layer_count = int(stacks.shape[1]) if isinstance(stacks, np.ndarray) and stacks.ndim == 2 else None
                 max_mat = int(np.max(stacks)) if isinstance(stacks, np.ndarray) and stacks.size > 0 else None
                 if total_colors >= 2400 and total_colors < 2600 and layer_count == 6 and (max_mat is None or max_mat <= 4):
-                    logger.info("Detected 5-Color Extended mode from .npz (%s colors)", total_colors)
+                    logger.info("从 .npz 检测到 5色扩展模式（%s 种颜色）", total_colors)
                     return "5-Color Extended"
                 if total_colors >= 2600 and total_colors <= 2800:
-                    logger.info("Detected 8-Color mode from .npz (%s colors)", total_colors)
+                    logger.info("从 .npz 检测到 8色模式（%s 种颜色）", total_colors)
                     return "8-Color Max"
                 if total_colors >= 1200 and total_colors < 1400:
-                    logger.info("Detected 6-Color mode from .npz (%s colors)", total_colors)
+                    logger.info("从 .npz 检测到 6色模式（%s 种颜色）", total_colors)
                     return "6-Color (Smart 1296)"
                 if total_colors >= 900 and total_colors < 1200:
-                    logger.info("Detected 4-Color mode from .npz (%s colors)", total_colors)
+                    logger.info("从 .npz 检测到 4色模式（%s 种颜色）", total_colors)
                     return "4-Color"
                 if total_colors >= 30 and total_colors <= 36:
-                    logger.info("Detected 2-Color BW mode from .npz (%s colors)", total_colors)
+                    logger.info("从 .npz 检测到 2色黑白模式（%s 种颜色）", total_colors)
                     return "BW (Black & White)"
-            logger.info("Detected Merged LUT (.npz format)")
+            logger.info("检测到合并 LUT（.npz 格式）")
             return "Merged"
 
         # Standard .npy format
@@ -2056,7 +2056,7 @@ def detect_lut_color_mode(lut_path):
             if len(lut_data) % 3 == 0:
                 lut_data = lut_data.reshape(-1, 3)
             else:
-                logger.info("Invalid LUT format: cannot reshape to (N, 3)")
+                logger.info("无效的 LUT 格式: 无法重塑为 (N, 3)")
                 return None
 
         if lut_data.ndim == 2:
@@ -2064,39 +2064,39 @@ def detect_lut_color_mode(lut_path):
         else:
             total_colors = lut_data.shape[0] * lut_data.shape[1]
 
-        logger.info("LUT shape: %s, total colors: %s", lut_data.shape, total_colors)
+        logger.info("LUT 形状: %s, 总颜色数: %s", lut_data.shape, total_colors)
 
         # 2色模式：32色 (2^5 = 32), LUT is 6x6 grid = 36 entries
         if total_colors >= 30 and total_colors <= 36:
-            logger.info("Detected 2-Color BW mode (32 colors)")
+            logger.info("检测到 2色黑白模式（32 种颜色）")
             return "BW (Black & White)"
 
         # 5-Color Extended模式：~2468色 (1024 base + 1444 extended)
         elif total_colors >= 2400 and total_colors < 2600:
-            logger.info("Detected 5-Color Extended mode (%s colors)", total_colors)
+            logger.info("检测到 5色扩展模式（%s 种颜色）", total_colors)
             return "5-Color Extended"
 
         # 8色模式：2600-2800色
         elif total_colors >= 2600 and total_colors <= 2800:
-            logger.info("Detected 8-Color mode (%s colors)", total_colors)
+            logger.info("检测到 8色模式（%s 种颜色）", total_colors)
             return "8-Color Max"
 
         # 6色模式：1200-1400色
         elif total_colors >= 1200 and total_colors < 1400:
-            logger.info("Detected 6-Color mode (%s colors)", total_colors)
+            logger.info("检测到 6色模式（%s 种颜色）", total_colors)
             return "6-Color (Smart 1296)"
 
         # 4色模式：900-1200色
         elif total_colors >= 900 and total_colors < 1200:
-            logger.info("Detected 4-Color mode (%s colors)", total_colors)
+            logger.info("检测到 4色模式（%s 种颜色）", total_colors)
             return "4-Color"
 
         else:
-            logger.info("Non-standard LUT size (%s colors), detected as Merged", total_colors)
+            logger.info("非标准 LUT 大小（%s 种颜色），检测为合并类型", total_colors)
             return "Merged"
 
     except Exception as e:
-        logger.exception("Error detecting LUT mode: %s", e)
+        logger.exception("检测 LUT 模式错误: %s", e)
         return None
 
 
