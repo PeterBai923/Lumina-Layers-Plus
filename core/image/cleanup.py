@@ -1,34 +1,34 @@
 """
-孤立像素清理模块（Isolated Pixel Cleanup）
+孤立像素清理模块（Isolated Pixel Cleanup）- GPU 加速版
 
 在 LUT 颜色匹配之后、voxel matrix 构建之前，对 material_matrix 执行孤立像素检测与替换。
 孤立像素是指其 5 层材料堆叠编码与所有 8 邻域像素均不同的像素点，
 这些像素在打印时会产生不必要的换色操作。
 
 核心思路：将每个像素的 5 层材料 ID 编码为单个整数（堆叠编码），
-通过 NumPy 向量化操作快速检测孤立像素，然后用邻域众数替换，
+通过 PyTorch GPU 向量化操作快速检测孤立像素，然后用邻域众数替换，
 同时同步更新 matched_rgb 以保持数据一致性。
 """
 
 import numpy as np
-from collections import Counter
+import torch
+import torch.nn.functional as F
 
 from core.stack_encoding import encode_stacks_batch
+from core.utils.gpu_device import GPUDeviceManager
 from core.utils.logger import get_logger
 
 logger = get_logger("CLEANUP")
 
-# Alias for backward compatibility
 _encode_stacks = encode_stacks_batch
 
 
 def _detect_isolated(encoded: np.ndarray) -> np.ndarray:
     """
-    检测孤立像素，返回 (H, W) 布尔掩码。
+    检测孤立像素，返回 (H, W) 布尔掩码 (GPU 加速版)。
 
     孤立像素 = 堆叠编码与所有 8 邻域均不同。
-    边界像素仅使用实际存在的邻居（3 个或 5 个）进行判定。
-    使用切片比较（非 np.roll），正确处理边界。
+    使用 PyTorch unfold 提取 8 邻域，向量化比较。
 
     Args:
         encoded: (H, W) 整数编码矩阵
@@ -38,52 +38,38 @@ def _detect_isolated(encoded: np.ndarray) -> np.ndarray:
     """
     H, W = encoded.shape
 
-    # 特殊情况：1x1 图像没有邻居，不判定为孤立
     if H <= 1 and W <= 1:
         return np.zeros((H, W), dtype=bool)
 
-    # neighbor_count[i,j] = 像素 (i,j) 的实际邻居数量
-    # diff_count[i,j] = 像素 (i,j) 与邻居不同的次数
-    neighbor_count = np.zeros((H, W), dtype=np.int32)
-    diff_count = np.zeros((H, W), dtype=np.int32)
+    device = GPUDeviceManager().get_device()
+    t = torch.from_numpy(encoded).to(device).float()
 
-    # 8 个方向的偏移: (dy, dx)
-    directions = [(-1, -1), (-1, 0), (-1, 1),
-                  (0, -1),           (0, 1),
-                  (1, -1),  (1, 0),  (1, 1)]
+    # Pad 并提取 3x3 邻域
+    padded = F.pad(t, (1, 1, 1, 1), mode='constant', value=-1)
+    neighborhoods = padded.unfold(0, 3, 1).unfold(1, 3, 1)  # (H, W, 3, 3)
+    neighborhoods = neighborhoods.reshape(H, W, 9)  # 展平为 9 个邻域值
 
-    for dy, dx in directions:
-        # 中心区域
-        c_y_start = max(0, -dy)
-        c_y_end = H - max(0, dy)
-        c_x_start = max(0, -dx)
-        c_x_end = W - max(0, dx)
+    center = neighborhoods[:, :, 4]  # 中心像素 (index 4)
 
-        # 邻居区域（偏移后）
-        n_y_start = c_y_start + dy
-        n_y_end = c_y_end + dy
-        n_x_start = c_x_start + dx
-        n_x_end = c_x_end + dx
+    # 统计有效邻居数量和不同数量
+    valid = neighborhoods != -1
+    neighbor_count = valid.sum(dim=-1) - 1  # 减去中心
 
-        center = encoded[c_y_start:c_y_end, c_x_start:c_x_end]
-        neighbor = encoded[n_y_start:n_y_end, n_x_start:n_x_end]
-
-        # 该方向上有邻居的像素，邻居计数 +1
-        neighbor_count[c_y_start:c_y_end, c_x_start:c_x_end] += 1
-        # 与邻居不同的像素，差异计数 +1
-        diff_count[c_y_start:c_y_end, c_x_start:c_x_end] += (center != neighbor).astype(np.int32)
+    # 与中心不同的邻居
+    different = (neighborhoods != center.unsqueeze(-1)) & valid
+    diff_count = different.sum(dim=-1)
 
     # 孤立 = 与所有实际邻居都不同（且至少有一个邻居）
     isolated = (diff_count == neighbor_count) & (neighbor_count > 0)
-    return isolated
+
+    return isolated.cpu().numpy()
 
 
 def _find_neighbor_mode(encoded: np.ndarray, isolated_mask: np.ndarray) -> np.ndarray:
     """
-    对每个孤立像素，找到其 8 邻域中出现次数最多的堆叠编码。
+    对每个孤立像素，找到其 8 邻域中出现次数最多的堆叠编码 (GPU 加速版)。
 
-    统计 8 邻域中各堆叠编码出现次数，选择最多的作为替换值。
-    多个并列众数时确定性选择其中之一（Counter.most_common 的第一个）。
+    使用 torch.mode 向量化众数查找。
 
     Args:
         encoded: (H, W) 整数编码矩阵
@@ -93,27 +79,33 @@ def _find_neighbor_mode(encoded: np.ndarray, isolated_mask: np.ndarray) -> np.nd
         (H, W) 数组，孤立像素位置存储邻域众数编码，非孤立像素位置值为原编码
     """
     H, W = encoded.shape
-    mode_map = encoded.copy()
+    device = GPUDeviceManager().get_device()
 
-    directions = [(-1, -1), (-1, 0), (-1, 1),
-                  (0, -1),           (0, 1),
-                  (1, -1),  (1, 0),  (1, 1)]
+    t = torch.from_numpy(encoded).to(device).float()
+    mask = torch.from_numpy(isolated_mask).to(device)
 
-    isolated_coords = np.argwhere(isolated_mask)
+    mode_map = t.clone()
 
-    for i, j in isolated_coords:
-        neighbors = []
-        for dy, dx in directions:
-            ni, nj = i + dy, j + dx
-            if 0 <= ni < H and 0 <= nj < W:
-                neighbors.append(encoded[ni, nj])
+    if not mask.any():
+        return mode_map.cpu().numpy().astype(encoded.dtype)
 
-        if neighbors:
-            counter = Counter(neighbors)
-            # most_common(1) 返回出现次数最多的，确定性选择
-            mode_map[i, j] = counter.most_common(1)[0][0]
+    # Pad 并提取邻域
+    padded = F.pad(t, (1, 1, 1, 1), mode='constant', value=-2)  # -2 为无效标记
+    neighborhoods = padded.unfold(0, 3, 1).unfold(1, 3, 1).reshape(H, W, 9)
 
-    return mode_map
+    # 排除中心 (index 4)，只保留 8 个邻居
+    neighbor_vals = torch.cat([
+        neighborhoods[:, :, :4],
+        neighborhoods[:, :, 5:]
+    ], dim=-1)  # (H, W, 8)
+
+    # 找众数 (torch.mode 返回最小众数，确定性)
+    modes, _ = torch.mode(neighbor_vals, dim=-1)
+
+    # 只更新孤立像素
+    mode_map[mask] = modes[mask]
+
+    return mode_map.cpu().numpy().astype(encoded.dtype)
 
 
 def cleanup_isolated_pixels(

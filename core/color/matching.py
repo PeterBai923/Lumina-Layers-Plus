@@ -24,8 +24,6 @@ logger = get_logger("MATCHING")
 
 from typing import Optional
 import numpy as np
-import cv2
-from scipy.spatial import KDTree
 import torch
 
 from core.utils.color_conversion import rgb_to_lab
@@ -76,9 +74,6 @@ class HueAwareColorMatcher:
 
         # 预计算 LUT 的 LCH（基于 OpenCV LAB 格式）
         self.lut_lch = self._lab_to_lch(self.lut_lab)
-
-        # 构建 CIELAB KDTree 用于快速初筛
-        self.kdtree = KDTree(self.lut_lab)
 
         # 解析权重参数
         self._resolve_weights(hue_weight, preset, w_L, w_C, w_H)
@@ -174,55 +169,52 @@ class HueAwareColorMatcher:
 
     def match_colors_batch(self, input_rgb: np.ndarray, k: int = 16) -> np.ndarray:
         """
-        批量颜色匹配。
+        批量颜色匹配 (纯 GPU 实现)。
 
         参数:
             input_rgb: (N, 3) uint8 RGB 数组
-            k: KDTree 初筛候选数量
+            k: 忽略（保留参数兼容性）
 
         返回:
             (N,) int 数组，每个输入颜色在 LUT 中的最佳匹配索引
         """
-        input_rgb = np.asarray(input_rgb, dtype=np.uint8)
-        n = len(input_rgb)
-
-        # 如果权重全为 1（纯 CIELAB），直接用 KDTree
-        if (
-            abs(self.w_L - 1.0) < 1e-6
-            and abs(self.w_C - 1.0) < 1e-6
-            and abs(self.w_H - 1.0) < 1e-6
-        ):
-            input_lab = self._rgb_to_lab(input_rgb)
-            _, indices = self.kdtree.query(input_lab)
-            return np.atleast_1d(indices)
-
-        # 转换到 LAB 和 LCH
-        input_lab = self._rgb_to_lab(input_rgb)
-        input_lch = self._lab_to_lch(input_lab)
-
-        # KDTree 初筛
-        k_actual = min(k, self.n_colors)
-        _, candidate_indices = self.kdtree.query(input_lab, k=k_actual)
-        candidate_indices = np.asarray(candidate_indices)
-        if candidate_indices.ndim == 1:
-            candidate_indices = candidate_indices.reshape(-1, 1)
-
-        # 对每个输入颜色，在候选中用加权距离重新排序
-        result = np.empty(n, dtype=np.intp)
-
-        for i in range(n):
-            cand_idx = candidate_indices[i]
-            cand_lch = self.lut_lch[cand_idx]
-            distances = self._weighted_distance(input_lch[i], cand_lch)
-            best = np.argmin(distances)
-            result[i] = cand_idx[best]
-
-        return result
-
-    @staticmethod
-    def _rgb_to_lab(rgb_array: np.ndarray) -> np.ndarray:
-        """Convert RGB to LAB using GPU."""
         device = GPUDeviceManager().get_device()
-        tensor = torch.from_numpy(rgb_array.astype(np.float32)).to(device)
-        lab_tensor = rgb_to_lab(tensor)
-        return lab_tensor.cpu().numpy()
+
+        # 转换输入为 GPU tensor
+        if isinstance(input_rgb, np.ndarray):
+            input_tensor = torch.from_numpy(input_rgb.astype(np.float32)).to(device)
+        else:
+            input_tensor = input_rgb.float().to(device)
+
+        # 转换 LUT LCH 为 GPU tensor
+        lut_lch_tensor = torch.from_numpy(self.lut_lch).to(device).float()
+
+        # RGB -> LAB -> LCH (GPU)
+        input_lab = rgb_to_lab(input_tensor)
+
+        # LAB -> LCH 转换 (GPU)
+        L = input_lab[:, 0]
+        a = input_lab[:, 1] - 128
+        b = input_lab[:, 2] - 128
+        C = torch.sqrt(a**2 + b**2)
+        H = torch.rad2deg(torch.atan2(b, a)) % 360
+        input_lch = torch.stack([L, C, H], dim=-1)
+
+        # 批量 LCH 加权距离计算 (N, M)
+        # dL = (input_L - lut_L) / w_L
+        dL = (input_lch[:, 0:1] - lut_lch_tensor[:, 0:1].T) / self.w_L
+
+        # dC = (input_C - lut_C) / w_C
+        dC = (input_lch[:, 1:2] - lut_lch_tensor[:, 1:2].T) / self.w_C
+
+        # dH: 色相差（环形处理）
+        # ΔH = 2 * min(C1, C2) * sin(Δh / 2)
+        dh = (lut_lch_tensor[:, 2] - input_lch[:, 2:3].T + 180) % 360 - 180
+        min_C = torch.minimum(C.unsqueeze(1), lut_lch_tensor[:, 1].unsqueeze(0))
+        dH = 2 * min_C * torch.sin(torch.deg2rad(dh) / 2) / self.w_H
+
+        # 总距离
+        distances = torch.sqrt(dL**2 + dC**2 + dH**2)
+
+        # 返回最小距离的索引
+        return distances.argmin(dim=1).cpu().numpy()

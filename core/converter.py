@@ -572,7 +572,7 @@ def _build_relief_voxel_matrix(matched_rgb, material_matrix, mask_solid, color_h
                                default_height, structure_mode, backing_color_id, pixel_scale,
                                height_matrix=None):
     """
-    Build 2.5D relief voxel matrix with per-color or per-pixel variable heights.
+    Build 2.5D relief voxel matrix with per-color or per-pixel variable heights (GPU accelerated).
 
     Supports two modes:
     1. Color height map mode (default): heights assigned by color
@@ -597,84 +597,103 @@ def _build_relief_voxel_matrix(matched_rgb, material_matrix, mask_solid, color_h
     Returns:
         tuple: (full_matrix, backing_metadata)
     """
+    import torch
+    from core.utils.gpu_device import GPUDeviceManager
+
+    device = GPUDeviceManager().get_device()
     target_h, target_w = material_matrix.shape[:2]
 
     # Constants
     OPTICAL_LAYERS = 5
     OPTICAL_THICKNESS_MM = OPTICAL_LAYERS * PrinterConfig.LAYER_HEIGHT
+    LAYER_HEIGHT = PrinterConfig.LAYER_HEIGHT
 
-    logger.info("Relief: Building 2.5D relief voxel matrix...")
+    logger.info("Relief: Building 2.5D relief voxel matrix (GPU)...")
     logger.info("Relief: Optical layer thickness: %smm (%s layers)", OPTICAL_THICKNESS_MM, OPTICAL_LAYERS)
 
-    # Step 1: Build per-pixel height matrix
+    # Convert inputs to GPU tensors
+    mask_tensor = torch.from_numpy(mask_solid).to(device)
+    mat_tensor = torch.from_numpy(material_matrix).to(device)
+
+    # Step 1: Build per-pixel height matrix (GPU)
     if height_matrix is not None:
         # Heightmap mode: use provided per-pixel height matrix
         logger.info("Relief: 使用高度图模式（逐像素高度）")
-        pixel_heights = height_matrix.copy()
+        pixel_heights = torch.from_numpy(height_matrix).to(device).float()
         # Clamp: pixel height < optical thickness → set to optical thickness
-        pixel_heights[mask_solid & (pixel_heights < OPTICAL_THICKNESS_MM)] = OPTICAL_THICKNESS_MM
+        pixel_heights = torch.where(
+            mask_tensor & (pixel_heights < OPTICAL_THICKNESS_MM),
+            torch.full_like(pixel_heights, OPTICAL_THICKNESS_MM),
+            pixel_heights
+        )
+    elif color_height_map:
+        # Color height map mode: vectorized color matching (GPU)
+        matched_tensor = torch.from_numpy(matched_rgb).to(device).float()
+
+        # Build color-to-height lookup tensors
+        colors = []
+        heights = []
+        for hex_color, height in color_height_map.items():
+            r = int(hex_color[1:3], 16)
+            g = int(hex_color[3:5], 16)
+            b = int(hex_color[5:7], 16)
+            colors.append([r, g, b])
+            heights.append(height)
+
+        color_tensor = torch.tensor(colors, device=device, dtype=torch.float32)
+        height_tensor = torch.tensor(heights, device=device, dtype=torch.float32)
+
+        # Batch distance calculation
+        flat_rgb = matched_tensor.reshape(-1, 3)
+        distances = torch.cdist(flat_rgb, color_tensor)
+        nearest_idx = distances.argmin(dim=1)
+        nearest_heights = height_tensor[nearest_idx].reshape(target_h, target_w)
+
+        # Apply only for exact matches
+        exact_match = (distances.min(dim=1).values == 0).reshape(target_h, target_w)
+        pixel_heights = torch.where(
+            mask_tensor & exact_match,
+            nearest_heights,
+            torch.full((target_h, target_w), default_height, device=device, dtype=torch.float32)
+        )
     else:
-        # Color height map mode: assign heights by color
-        pixel_heights = np.full((target_h, target_w), default_height, dtype=np.float32)
-        for y in range(target_h):
-            for x in range(target_w):
-                if not mask_solid[y, x]:
-                    continue
-                r, g, b = matched_rgb[y, x]
-                hex_color = f'#{r:02x}{g:02x}{b:02x}'
-                if hex_color in color_height_map:
-                    pixel_heights[y, x] = color_height_map[hex_color]
+        pixel_heights = torch.full((target_h, target_w), default_height, device=device, dtype=torch.float32)
 
     # Step 2: Calculate max height to determine total Z layers
-    max_height_mm = np.max(pixel_heights[mask_solid]) if np.any(mask_solid) else default_height
-    max_z_layers = max(OPTICAL_LAYERS + 1, int(np.ceil(max_height_mm / PrinterConfig.LAYER_HEIGHT)))
+    if mask_tensor.any():
+        max_height_mm = pixel_heights[mask_tensor].max().item()
+    else:
+        max_height_mm = default_height
+    max_z_layers = max(OPTICAL_LAYERS + 1, int(np.ceil(max_height_mm / LAYER_HEIGHT)))
 
     logger.info("Relief: Max height: %.2fmm (%s layers)", max_height_mm, max_z_layers)
-    if np.any(mask_solid):
-        logger.info("Relief: Height range: %.2fmm - %.2fmm", np.min(pixel_heights[mask_solid]), max_height_mm)
+    if mask_tensor.any():
+        logger.info("Relief: Height range: %.2fmm - %.2fmm", pixel_heights[mask_tensor].min().item(), max_height_mm)
 
-    # Step 3: Initialize voxel matrix
-    full_matrix = np.full((max_z_layers, target_h, target_w), -1, dtype=int)
+    # Step 3: Initialize voxel matrix (GPU)
+    full_matrix = torch.full((max_z_layers, target_h, target_w), -1, device=device, dtype=torch.int32)
 
-    # Step 4: Fill voxel matrix
-    if height_matrix is not None:
-        # Vectorized fill for heightmap mode (much faster for large images)
-        target_z_layers = np.ceil(pixel_heights / PrinterConfig.LAYER_HEIGHT).astype(int)
-        target_z_layers = np.clip(target_z_layers, OPTICAL_LAYERS, max_z_layers)
-        optical_start_z = target_z_layers - OPTICAL_LAYERS
+    # Step 4: Fill voxel matrix (vectorized GPU)
+    z_layers = torch.ceil(pixel_heights / LAYER_HEIGHT).long()
+    z_layers = z_layers.clamp(min=OPTICAL_LAYERS, max=max_z_layers)
+    optical_start_z = z_layers - OPTICAL_LAYERS
 
-        # Fill backing layers
-        for z in range(max_z_layers):
-            backing_mask = mask_solid & (z < optical_start_z)
-            full_matrix[z][backing_mask] = backing_color_id
+    # Fill backing layers
+    for z in range(max_z_layers):
+        backing_mask = mask_tensor & (z < optical_start_z)
+        full_matrix[z][backing_mask] = backing_color_id
 
-        # Fill optical layers
-        solid_ys, solid_xs = np.where(mask_solid)
+    # Fill optical layers
+    solid_y, solid_x = torch.where(mask_tensor)
+    if solid_y.numel() > 0:
         for layer_idx in range(OPTICAL_LAYERS):
-            z_positions = optical_start_z + layer_idx
-            for i in range(len(solid_ys)):
-                y, x = solid_ys[i], solid_xs[i]
-                z = z_positions[y, x]
-                if z < max_z_layers:
-                    mat_id = material_matrix[y, x, OPTICAL_LAYERS - 1 - layer_idx]
-                    full_matrix[z, y, x] = mat_id
-    else:
-        # Original per-pixel loop for color height map mode
-        for y in range(target_h):
-            for x in range(target_w):
-                if not mask_solid[y, x]:
-                    continue
-                target_height_mm = max(0.08, pixel_heights[y, x])
-                target_z_layers_px = int(np.ceil(target_height_mm / PrinterConfig.LAYER_HEIGHT))
-                target_z_layers_px = max(OPTICAL_LAYERS, min(target_z_layers_px, max_z_layers))
-                optical_start_z_px = target_z_layers_px - OPTICAL_LAYERS
-                for z in range(optical_start_z_px):
-                    full_matrix[z, y, x] = backing_color_id
-                for layer_idx in range(OPTICAL_LAYERS):
-                    z = optical_start_z_px + layer_idx
-                    if z < max_z_layers:
-                        mat_id = material_matrix[y, x, OPTICAL_LAYERS - 1 - layer_idx]
-                        full_matrix[z, y, x] = mat_id
+            z_positions = optical_start_z[solid_y, solid_x] + layer_idx
+            valid_z = z_positions < max_z_layers
+            z_valid = z_positions[valid_z]
+            y_valid = solid_y[valid_z]
+            x_valid = solid_x[valid_z]
+            mat_ids = mat_tensor[y_valid, x_valid, OPTICAL_LAYERS - 1 - layer_idx].long()
+            full_matrix[z_valid, y_valid, x_valid] = mat_ids
 
     # Step 5: Relief mode is always single-sided (观赏面朝上)
     backing_z_range = (0, max_z_layers - OPTICAL_LAYERS - 1)
@@ -690,7 +709,7 @@ def _build_relief_voxel_matrix(matched_rgb, material_matrix, mask_solid, color_h
     logger.info("Relief: Backing range: Z=%s to Z=%s", backing_z_range[0], backing_z_range[1])
     logger.info("Relief: Mode: Single-sided (viewing surface on top)")
 
-    return full_matrix, backing_metadata
+    return full_matrix.cpu().numpy(), backing_metadata
 
 
 def _apply_variable_layer_height_transform(mesh, backing_metadata, pixel_scale):

@@ -9,10 +9,17 @@ Provides a complete GPU-accelerated pipeline that integrates:
 """
 
 import torch
+import torch.nn.functional as F
 import numpy as np
-import cv2
 import time
 from typing import Tuple, Optional, Dict, Any
+
+try:
+    import kornia
+    HAS_KORNIA = True
+except ImportError:
+    kornia = None
+    HAS_KORNIA = False
 
 from core.utils.logger import get_logger
 from core.utils.color_conversion import rgb_to_lab, lab_to_rgb
@@ -22,6 +29,62 @@ from .color_mapping import map_colors_gpu
 from core.utils.color_encoding import build_color_lut, lookup_colors
 
 logger = get_logger("PIPELINE")
+
+
+def bilateral_filter_gpu(rgb_tensor: torch.Tensor, sigma_color: float, sigma_space: float) -> torch.Tensor:
+    """
+    GPU bilateral filter using kornia.
+
+    Args:
+        rgb_tensor: (H, W, 3) float tensor in range [0, 255]
+        sigma_color: Color space sigma
+        sigma_space: Spatial sigma
+
+    Returns:
+        Filtered tensor (H, W, 3) uint8
+    """
+    if not HAS_KORNIA:
+        raise RuntimeError("kornia is required for GPU bilateral filter. Install with: pip install kornia")
+
+    # (H, W, 3) -> (1, 3, H, W)
+    x = rgb_tensor.permute(2, 0, 1).unsqueeze(0).float() / 255.0
+
+    # kornia bilateral_blur: sigma_color is float, sigma_space is tuple
+    filtered = kornia.filters.bilateral_blur(
+        x,
+        kernel_size=(9, 9),
+        sigma_color=sigma_color / 255.0,  # float value
+        sigma_space=(sigma_space, sigma_space)  # tuple
+    )
+
+    # Back to (H, W, 3) uint8
+    return (filtered.squeeze(0).permute(1, 2, 0) * 255).clamp(0, 255).to(torch.uint8)
+
+
+def median_filter_gpu(rgb_tensor: torch.Tensor, kernel_size: int) -> torch.Tensor:
+    """
+    GPU median filter using kornia.
+
+    Args:
+        rgb_tensor: (H, W, 3) tensor
+        kernel_size: Kernel size (must be odd)
+
+    Returns:
+        Filtered tensor (H, W, 3) uint8
+    """
+    if not HAS_KORNIA:
+        raise RuntimeError("kornia is required for GPU median filter. Install with: pip install kornia")
+
+    # Ensure kernel size is odd
+    kernel_size = kernel_size if kernel_size % 2 == 1 else kernel_size + 1
+
+    # (H, W, 3) -> (1, 3, H, W)
+    x = rgb_tensor.permute(2, 0, 1).unsqueeze(0).float()
+
+    filtered = kornia.filters.median_blur(x, (kernel_size, kernel_size))
+
+    # Back to (H, W, 3) uint8
+    return filtered.squeeze(0).permute(1, 2, 0).to(torch.uint8)
 
 
 class GPUPipeline:
@@ -84,26 +147,23 @@ class GPUPipeline:
             scale_factor = 1.0
         debug_data["timings"]["downsample"] = time.time() - t0
 
-        # Step 3: Bilateral filter (CPU for now)
+        # Step 3: Bilateral and median filters (GPU)
         t0 = time.time()
-        rgb_small_cpu = rgb_small.cpu().numpy().astype(np.uint8)
         if smooth_sigma > 0:
-            rgb_filtered = cv2.bilateralFilter(
-                rgb_small_cpu, d=9, sigmaColor=smooth_sigma, sigmaSpace=smooth_sigma
-            )
-        else:
-            rgb_filtered = rgb_small_cpu
+            rgb_small = bilateral_filter_gpu(rgb_small, smooth_sigma, smooth_sigma)
 
-        # Median filter
         if blur_kernel > 0:
-            kernel_size = blur_kernel if blur_kernel % 2 == 1 else blur_kernel + 1
-            rgb_filtered = cv2.medianBlur(rgb_filtered, kernel_size)
+            rgb_small = median_filter_gpu(rgb_small, blur_kernel)
 
         debug_data["timings"]["filtering"] = time.time() - t0
 
         # Step 4: K-Means quantization
         t0 = time.time()
-        pixels = rgb_filtered.reshape(-1, 3).astype(np.float32)
+        rgb_small_cpu = rgb_small.cpu().numpy()
+        # Ensure correct shape (H, W, 3)
+        if rgb_small_cpu.ndim == 2:
+            rgb_small_cpu = np.stack([rgb_small_cpu] * 3, axis=-1)
+        pixels = rgb_small_cpu.reshape(-1, 3).astype(np.float32)
 
         from core.gpu_kmeans import KMeansBackend
         backend = KMeansBackend()
@@ -114,20 +174,20 @@ class GPUPipeline:
         # Step 5: Map centers to full image (GPU)
         t0 = time.time()
         centers_tensor = torch.from_numpy(centers).to(self.device)
-        pixels_tensor = torch.from_numpy(
-            rgb_filtered.reshape(-1, 3).astype(np.float32)
-        ).to(self.device)
+        pixels_tensor = rgb_small.reshape(-1, 3).float().to(self.device)
 
         # Find nearest center for each pixel
         pixel_indices = map_colors_gpu(pixels_tensor, centers_tensor, use_amp=True)
 
         # Quantized image
-        quantized = centers[pixel_indices.cpu().numpy()].reshape(rgb_filtered.shape)
+        quantized = centers[pixel_indices.cpu().numpy()].reshape(rgb_small_cpu.shape)
         debug_data["timings"]["quantize_mapping"] = time.time() - t0
 
-        # Step 6: Post-quantization cleanup
+        # Step 6: Post-quantization cleanup (GPU)
         t0 = time.time()
-        quantized = cv2.medianBlur(quantized, 3)
+        quantized_tensor = torch.from_numpy(quantized).to(self.device)
+        quantized_tensor = median_filter_gpu(quantized_tensor, 3)
+        quantized = quantized_tensor.cpu().numpy()
         debug_data["timings"]["cleanup"] = time.time() - t0
 
         # Step 7: Find unique colors and map to LUT

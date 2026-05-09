@@ -21,7 +21,8 @@ CHANGELOG v2.1:
 
 from abc import ABC, abstractmethod
 import numpy as np
-import cv2
+import torch
+import torch.nn.functional as F
 import trimesh
 from config import ModelingMode
 from core.mesh.geometry import (
@@ -30,6 +31,7 @@ from core.mesh.geometry import (
     fill_box_vertices_batch,
     fill_box_faces_batch,
 )
+from core.utils.gpu_device import GPUDeviceManager
 
 try:
     import numba
@@ -40,6 +42,23 @@ except ImportError:
 
 from core.utils.logger import get_logger
 logger = get_logger("MESH")
+
+
+def dilate_mask_gpu(mask_tensor: torch.Tensor, iterations: int = 2) -> torch.Tensor:
+    """
+    GPU morphological dilation using max_pool2d.
+
+    Args:
+        mask_tensor: (H, W) boolean tensor
+        iterations: Number of dilation iterations
+
+    Returns:
+        Dilated boolean tensor (H, W)
+    """
+    x = mask_tensor.float().unsqueeze(0).unsqueeze(0)  # (1, 1, H, W)
+    for _ in range(iterations):
+        x = F.max_pool2d(x, 3, stride=1, padding=1)
+    return x.squeeze().bool()
 
 if HAS_NUMBA:
     @numba.njit(cache=True)
@@ -278,48 +297,48 @@ class HighFidelityMesher(BaseMesher):
     
     def _merge_layers_with_dilation(self, voxel_matrix, mat_id):
         """
-        Merge identical vertical layers and apply morphological dilation
-        
+        Merge identical vertical layers and apply morphological dilation (GPU)
+
         Groups consecutive Z-layers with identical masks to reduce geometry.
         Applies morphological dilation to ensure thin features are printable.
-        
+
         Returns:
             list of tuples: [(start_z, end_z, dilated_mask), ...]
         """
-        kernel = np.ones((3, 3), np.uint8)
-        
+        device = GPUDeviceManager().get_device()
+
+        # Convert voxel matrix to GPU tensor
+        voxel_tensor = torch.from_numpy(voxel_matrix).to(device)
+
         layer_groups = []
         prev_mask = None
         start_z = 0
-        
-        for z in range(voxel_matrix.shape[0]):
-            curr_mask = (voxel_matrix[z] == mat_id)
-            
-            if not np.any(curr_mask):
-                if prev_mask is not None and np.any(prev_mask):
-                    layer_groups.append((start_z, z - 1, prev_mask))
+
+        for z in range(voxel_tensor.shape[0]):
+            curr_mask = (voxel_tensor[z] == mat_id)
+
+            if not torch.any(curr_mask):
+                if prev_mask is not None and torch.any(prev_mask):
+                    layer_groups.append((start_z, z - 1, prev_mask.cpu().numpy()))
                     prev_mask = None
                 continue
-            
-            dilated_mask = cv2.dilate(
-                curr_mask.astype(np.uint8),
-                kernel,
-                iterations=2
-            ).astype(bool)
-            
+
+            # GPU dilation
+            dilated_mask = dilate_mask_gpu(curr_mask, iterations=2)
+
             if prev_mask is None:
                 start_z = z
-                prev_mask = dilated_mask.copy()
-            elif np.array_equal(dilated_mask, prev_mask):
+                prev_mask = dilated_mask.clone()
+            elif torch.equal(dilated_mask, prev_mask):
                 pass
             else:
-                layer_groups.append((start_z, z - 1, prev_mask))
+                layer_groups.append((start_z, z - 1, prev_mask.cpu().numpy()))
                 start_z = z
-                prev_mask = dilated_mask.copy()
-        
-        if prev_mask is not None and np.any(prev_mask):
-            layer_groups.append((start_z, voxel_matrix.shape[0] - 1, prev_mask))
-        
+                prev_mask = dilated_mask.clone()
+
+        if prev_mask is not None and torch.any(prev_mask):
+            layer_groups.append((start_z, voxel_tensor.shape[0] - 1, prev_mask.cpu().numpy()))
+
         return layer_groups
 
 

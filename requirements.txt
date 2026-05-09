@@ -22,4 +22,5 @@ uvicorn
 httpx
 numba
 # GPU acceleration
-torch>=2.0.0  # Optional: for CUDA-accelerated
+torch>=2.0.0
+kornia>=0.7.0  # GPU image filters
