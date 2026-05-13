@@ -28,33 +28,40 @@ class KMeansBackend:
         tol: float = 1e-4,
         n_init: int = 10,
         seed: Optional[int] = None,
+        feature_dim: int = 3,
     ) -> np.ndarray:
         """
         Quantize pixels using GPU K-Means.
 
         Args:
-            pixels: Input pixels array (N, 3), dtype float32
+            pixels: Input pixels array (N, D), dtype float32, D >= feature_dim.
+                    For spatial K-Means, D=5 with [R, G, B, x*weight, y*weight].
             k: Number of clusters
             max_iter: Maximum iterations per run
             tol: Convergence tolerance
             n_init: Number of initialization runs
             seed: Random seed for reproducibility
+            feature_dim: Dimension of output features (default 3 for RGB).
+                         If input has D > feature_dim, clustering uses all D dimensions
+                         but only the first feature_dim dimensions are returned.
 
         Returns:
-            np.ndarray: Cluster centers (k, 3), dtype float32
+            np.ndarray: Cluster centers (k, feature_dim), dtype float32
         """
         if not isinstance(pixels, np.ndarray):
             raise TypeError("pixels must be numpy array")
-        if pixels.ndim != 2 or pixels.shape[1] != 3:
-            raise ValueError("pixels must have shape (N, 3)")
+        if pixels.ndim != 2 or pixels.shape[1] < feature_dim:
+            raise ValueError(f"pixels must have shape (N, D) where D >= {feature_dim}")
         if not isinstance(k, int) or k <= 0:
             raise ValueError("k must be positive integer")
         if k > pixels.shape[0]:
             raise ValueError("k cannot exceed number of pixels")
 
-        return self.gpu_kmeans.fit(
+        all_centers = self.gpu_kmeans.fit(
             pixels, k, max_iter=max_iter, tol=tol, n_init=n_init, seed=seed
         )
+
+        return all_centers[:, :feature_dim]
 
     def is_gpu_active(self) -> bool:
         return True

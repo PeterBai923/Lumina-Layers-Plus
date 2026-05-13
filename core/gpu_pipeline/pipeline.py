@@ -109,6 +109,8 @@ class GPUPipeline:
         blur_kernel: int = 0,
         smooth_sigma: float = 0.0,
         target_pixels: int = 500_000,
+        spatial_weight: float = None,
+        spatial_enabled: bool = None,
     ) -> Tuple[np.ndarray, np.ndarray, Optional[Dict[str, Any]]]:
         """
         Process image preview on GPU.
@@ -123,12 +125,24 @@ class GPUPipeline:
             blur_kernel: Median filter kernel size (0=disabled)
             smooth_sigma: Bilateral filter sigma (0=disabled)
             target_pixels: Target pixel count for downsampling
+            spatial_weight: Weight for spatial coordinates (default from config)
+            spatial_enabled: Enable spatial features (default from config)
 
         Returns:
             tuple: (matched_rgb, material_matrix, debug_data)
         """
         total_start = time.time()
         debug_data = {"timings": {}, "gpu_used": True}
+
+        # Use config defaults if not specified
+        if spatial_weight is None:
+            spatial_weight = PrinterConfig.KMEANS_SPATIAL_WEIGHT
+        if spatial_enabled is None:
+            spatial_enabled = PrinterConfig.KMEANS_SPATIAL_ENABLED
+
+        # Validate spatial_weight
+        if spatial_weight < 0:
+            raise ValueError(f"spatial_weight must be non-negative, got {spatial_weight}")
 
         h, w = rgb_arr.shape[:2]
         total_pixels = h * w
@@ -158,33 +172,74 @@ class GPUPipeline:
 
         debug_data["timings"]["filtering"] = time.time() - t0
 
-        # Step 4: K-Means quantization
+        # Step 4: K-Means quantization with spatial features
         t0 = time.time()
         rgb_small_cpu = rgb_small.cpu().numpy()
         # Ensure correct shape (H, W, 3)
         if rgb_small_cpu.ndim == 2:
             rgb_small_cpu = np.stack([rgb_small_cpu] * 3, axis=-1)
-        pixels = rgb_small_cpu.reshape(-1, 3).astype(np.float32)
 
-        from core.gpu_kmeans import KMeansBackend
-        backend = KMeansBackend()
-        centers = backend.quantize(
+        h_small, w_small = rgb_small_cpu.shape[:2]
+
+        # Build feature vector: RGB + spatial coordinates (if enabled)
+        use_spatial = spatial_enabled and spatial_weight > 0
+        if use_spatial:
+            # Create normalized coordinate grids using meshgrid (more efficient)
+            spatial_weight_f32 = np.float32(spatial_weight)
+            y_grid, x_grid = np.meshgrid(
+                np.linspace(0, 1, h_small, dtype=np.float32),
+                np.linspace(0, 1, w_small, dtype=np.float32),
+                indexing='ij'
+            )
+
+            # Flatten and scale
+            rgb_flat = rgb_small_cpu.reshape(-1, 3).astype(np.float32)
+            x_scaled = x_grid.reshape(-1, 1) * spatial_weight_f32
+            y_scaled = y_grid.reshape(-1, 1) * spatial_weight_f32
+
+            # Stack: (N, 5) = [R, G, B, x*weight, y*weight]
+            pixels = np.hstack([rgb_flat, x_scaled, y_scaled])
+            logger.info("空间一致性 K-Means: weight=%.1f, features=%dD", spatial_weight, pixels.shape[1])
+        else:
+            # Original RGB-only mode
+            pixels = rgb_small_cpu.reshape(-1, 3).astype(np.float32)
+            logger.info("标准 K-Means: features=3D (RGB)")
+
+        # Get full centers (5D if spatial enabled, 3D otherwise)
+        from core.gpu_kmeans.kmeans_plusplus import CUDAKMeansPlusPlus
+        kmeans = CUDAKMeansPlusPlus(self.device_manager)
+        centers_full = kmeans.fit(
             pixels, k=quantize_colors, max_iter=50, tol=0.5, n_init=5,
             seed=PrinterConfig.KMEANS_SEED
         )
+        # Extract RGB portion for final output
+        centers = centers_full[:, :3]
 
         debug_data["timings"]["kmeans"] = time.time() - t0
+        debug_data["spatial_weight"] = spatial_weight if use_spatial else 0
 
         # Step 5: Map centers to full image (GPU)
+        # Use 5D mapping if spatial features are enabled for better spatial coherence
         t0 = time.time()
-        centers_tensor = torch.from_numpy(centers).to(self.device)
-        pixels_tensor = rgb_small.reshape(-1, 3).float().to(self.device)
+        if use_spatial:
+            # 5D mapping: use full feature vectors
+            centers_tensor = torch.from_numpy(centers_full).to(self.device)
+            pixels_tensor = torch.from_numpy(pixels).to(self.device)
+        else:
+            # 3D mapping: RGB only
+            centers_tensor = torch.from_numpy(centers).to(self.device)
+            pixels_tensor = rgb_small.reshape(-1, 3).float().to(self.device)
 
         # Find nearest center for each pixel
         pixel_indices = map_colors_gpu(pixels_tensor, centers_tensor, use_amp=True)
 
+        # Release GPU tensors
+        del centers_tensor, pixels_tensor
+
         # Quantized image
-        quantized = centers[pixel_indices.cpu().numpy()].reshape(rgb_small_cpu.shape)
+        pixel_indices_np = pixel_indices.cpu().numpy()
+        del pixel_indices
+        quantized = centers[pixel_indices_np].reshape(rgb_small_cpu.shape)
         debug_data["timings"]["quantize_mapping"] = time.time() - t0
 
         # Step 6: Post-quantization cleanup (GPU)

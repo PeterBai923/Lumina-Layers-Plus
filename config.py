@@ -80,6 +80,10 @@ class PrinterConfig:
     SHRINK_OFFSET: float = 0.01
     KMEANS_SEED: int = 42  # K-Means 随机种子，设为 None 则每次结果不同
 
+    # 空间一致性 K-Means 配置
+    KMEANS_SPATIAL_WEIGHT: float = 50.0  # 空间坐标权重 (0-255 量级，与 RGB 范围匹配)
+    KMEANS_SPATIAL_ENABLED: bool = True  # 启用空间特征，减少颜色碎片
+
 
 class SmartConfig:
     """Configuration for the Smart 1296 (36x36) System."""

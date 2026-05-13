@@ -176,7 +176,8 @@ class CUDAKMeansPlusPlus:
             distances = torch.cdist(X, centers)
             min_distances_sq = distances.min(dim=1)[0] ** 2
         else:
-            batch_size = self.device_manager.get_batch_size_for_distance_matrix(N, k)
+            feature_dim = X.shape[1]
+            batch_size = self.device_manager.get_batch_size_for_distance_matrix(N, k, feature_dim)
             min_distances_sq = torch.zeros(N, device=X.device, dtype=X.dtype)
 
             for start in range(0, N, batch_size):
@@ -233,8 +234,9 @@ class CUDAKMeansPlusPlus:
                 labels = distances.argmin(dim=1)
                 min_distances = distances.min(dim=1)[0]
             else:
+                feature_dim = X.shape[1]
                 batch_size = self.device_manager.get_batch_size_for_distance_matrix(
-                    N, k
+                    N, k, feature_dim
                 )
                 labels = torch.zeros(N, device=X.device, dtype=torch.long)
                 min_distances_list = []
@@ -268,7 +270,8 @@ class CUDAKMeansPlusPlus:
             distances = torch.cdist(X, centers)
             labels = distances.argmin(dim=1)
         else:
-            batch_size = self.device_manager.get_batch_size_for_distance_matrix(N, k)
+            feature_dim = X.shape[1]
+            batch_size = self.device_manager.get_batch_size_for_distance_matrix(N, k, feature_dim)
             labels = torch.zeros(N, device=X.device, dtype=torch.long)
 
             for start in range(0, N, batch_size):

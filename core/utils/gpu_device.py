@@ -119,9 +119,11 @@ class GPUDeviceManager:
     def get_batch_size_for_distance_matrix(
         self,
         n_pixels: int,
-        n_centers: int
+        n_centers: int,
+        feature_dim: int = 3
     ) -> int:
-        bytes_per_pixel = (n_centers * 4 + 12) * 1.2
+        # Memory per pixel: n_centers * 4 (distance) + feature_dim * 4 (features)
+        bytes_per_pixel = (n_centers * 4 + feature_dim * 4) * 1.2
         return self.calculate_batch_size(n_pixels, bytes_per_pixel, 'distance')
 
     def get_batch_size_for_color_mapping(
