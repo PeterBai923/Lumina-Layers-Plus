@@ -78,6 +78,7 @@ class PrinterConfig:
     COLOR_LAYERS: int = 5
     BACKING_MM: float = 1.6
     SHRINK_OFFSET: float = 0.01
+    KMEANS_SEED: int = 42  # K-Means 随机种子，设为 None 则每次结果不同
 
 
 class SmartConfig:

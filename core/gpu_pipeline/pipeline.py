@@ -24,6 +24,7 @@ except ImportError:
 from core.utils.logger import get_logger
 from core.utils.color_conversion import rgb_to_lab, lab_to_rgb
 from core.utils.gpu_device import GPUDeviceManager
+from config import PrinterConfig
 from .downsampling import downsample_image_gpu, upsample_image_gpu
 from .color_mapping import map_colors_gpu
 from core.utils.color_encoding import build_color_lut, lookup_colors
@@ -167,7 +168,10 @@ class GPUPipeline:
 
         from core.gpu_kmeans import KMeansBackend
         backend = KMeansBackend()
-        centers = backend.quantize(pixels, k=quantize_colors, max_iter=50, tol=0.5, n_init=5)
+        centers = backend.quantize(
+            pixels, k=quantize_colors, max_iter=50, tol=0.5, n_init=5,
+            seed=PrinterConfig.KMEANS_SEED
+        )
 
         debug_data["timings"]["kmeans"] = time.time() - t0
 
