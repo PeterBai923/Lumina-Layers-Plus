@@ -6,6 +6,33 @@ All notable changes to Lumina Studio are documented in this file.
 
 ---
 
+## v1.7.0 (2026-05-14)
+
+### Features
+- **Variable Layer Height Transform** - Support dynamic layer height adjustment based on model geometry, enabling optimized print quality and time
+- **K-Means Seed Configuration** - Configurable K-Means initialization seeds for reproducible color clustering results
+- **Unified Logging Module** - Centralized logging system with structured output and configurable log levels
+
+### Performance
+- **Multi-Module GPU Acceleration** - Optimized GPU acceleration across multiple processing modules for faster image conversion
+- **Vectorized Cube Vertex/Face Generation** - Replaced iterative mesh generation with vectorized NumPy operations, significantly improving mesh creation speed
+- **Enhanced Clustering Spatial Features** - Improved GPU K-Means clustering with better spatial feature support for more accurate color segmentation
+- **Optimized Mesh Inflation** - Improved mesh inflation iteration and shrink offset parameter handling
+
+### Refactoring
+- **Modular Architecture Restructure** - Reorganized codebase into logical modules (color, image, lut, mesh, preview, utils) with clear responsibilities
+- **CUDA Support Integration** - Added native CUDA support for GPU-accelerated operations with automatic device detection
+- **Tool Module Migration** - Migrated utility modules to core directory for better code organization
+- **Simplified NumPy Patch** - Removed log redirection and simplified NumPy patch handling
+- **Feature Removal** - Removed cloisonné mode, transparent coating layer, segmented GLB preview, and pixel/vector modeling modes to streamline codebase
+
+### Other
+- Localized log messages to Chinese
+- Added .gitignore patterns
+- Simplified README layout
+
+---
+
 ## v1.6.8 (2026-05-06)
 
 ### Features
