@@ -2,7 +2,7 @@
 
 基于物理校准的多材料FDM色彩系统
 
-> **重构说明**: 本项目基于 [Lumina-Layers 原版](https://github.com/lumina-layer-studio/Lumina-Layers) 进行模块化重构和性能优化。
+> **重构说明**: 本项目基于 [Lumina-Layers V1](https://github.com/lumina-layer-studio/Lumina-Layers) 进行模块化重构和性能优化。
 
 [查看完整更新日志 →](CHANGELOG_CN.md)
 

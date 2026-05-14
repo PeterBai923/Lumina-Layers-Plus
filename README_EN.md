@@ -2,7 +2,7 @@
 
 Physics-Based Multi-Material FDM Color System
 
-> **Fork Note**: This project is a refactored and optimized version of the [original Lumina-Layers](https://github.com/lumina-layer-studio/Lumina-Layers).
+> **Fork Note**: This project is a refactored and optimized version of the [V1 Lumina-Layers](https://github.com/lumina-layer-studio/Lumina-Layers).
 
 [View Full Changelog →](CHANGELOG.md)
 
